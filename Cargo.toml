@@ -1,0 +1,7 @@
+[workspace]
+members = ["sdk", "xtask", "codegen"]
+resolver = "2"
+
+[profile.dist]
+inherits = "release"
+lto = "thin"
