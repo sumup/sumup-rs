@@ -51,10 +51,10 @@ pub struct Checkout {
     pub status: Option<String>,
     /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub date: Option<String>,
+    pub date: Option<crate::datetime::DateTime>,
     /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub valid_until: Option<String>,
+    pub valid_until: Option<crate::datetime::DateTime>,
     /// Unique identification of a customer. If specified, the checkout session and payment instrument are associated with the referenced customer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub customer_id: Option<String>,
@@ -101,10 +101,10 @@ pub struct CheckoutCreateRequest {
     pub status: Option<String>,
     /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub date: Option<String>,
+    pub date: Option<crate::datetime::DateTime>,
     /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub valid_until: Option<String>,
+    pub valid_until: Option<crate::datetime::DateTime>,
     /// List of transactions related to the payment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transactions: Option<Vec<serde_json::Value>>,
@@ -253,10 +253,10 @@ pub struct DeactivateCheckoutResponse {
     pub status: Option<String>,
     /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub date: Option<String>,
+    pub date: Option<crate::datetime::DateTime>,
     /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub valid_until: Option<String>,
+    pub valid_until: Option<crate::datetime::DateTime>,
     /// Merchant name
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_name: Option<String>,

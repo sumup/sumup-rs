@@ -137,7 +137,7 @@ pub enum EventType {
 pub struct Invite {
     /// Email address of the invited user.
     pub email: String,
-    pub expires_at: String,
+    pub expires_at: crate::datetime::DateTime,
 }
 /// Created mandate
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -216,7 +216,7 @@ pub struct TransactionMixinBase {
     pub currency: Option<Currency>,
     /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<String>,
+    pub timestamp: Option<crate::datetime::DateTime>,
     /// Current status of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,

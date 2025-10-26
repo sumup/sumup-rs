@@ -18,9 +18,9 @@ pub struct Membership {
     )]
     pub permissions: Vec<String>,
     /// The timestamp of when the membership was created.
-    pub created_at: String,
+    pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the membership was last updated.
-    pub updated_at: String,
+    pub updated_at: crate::datetime::DateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub invite: Option<Invite>,
     pub status: MembershipStatus,
@@ -43,9 +43,9 @@ pub struct MembershipResource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logo: Option<String>,
     /// The timestamp of when the membership resource was created.
-    pub created_at: String,
+    pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the membership resource was last updated.
-    pub updated_at: String,
+    pub updated_at: crate::datetime::DateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attributes: Option<Attributes>,
 }

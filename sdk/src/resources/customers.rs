@@ -28,7 +28,7 @@ pub struct PaymentInstrumentResponse {
     pub mandate: Option<MandateResponse>,
     /// Creation date of payment instrument. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
+    pub created_at: Option<crate::datetime::DateTime>,
 }
 /// Details of the payment card.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

@@ -18,9 +18,9 @@ pub struct Role {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
     /// The timestamp of when the role was created.
-    pub created_at: String,
+    pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the role was last updated.
-    pub updated_at: String,
+    pub updated_at: crate::datetime::DateTime,
 }
 /// Returns a list of Role objects.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

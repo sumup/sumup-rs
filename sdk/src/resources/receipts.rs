@@ -68,7 +68,7 @@ pub struct ReceiptTransaction {
     pub currency: Option<String>,
     /// Time created at.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<String>,
+    pub timestamp: Option<crate::datetime::DateTime>,
     /// Transaction processing status.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,

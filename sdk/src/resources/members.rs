@@ -14,9 +14,9 @@ pub struct Member {
     )]
     pub permissions: Vec<String>,
     /// The timestamp of when the member was created.
-    pub created_at: String,
+    pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the member was last updated.
-    pub updated_at: String,
+    pub updated_at: crate::datetime::DateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<MembershipUser>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,7 +42,7 @@ pub struct MembershipUser {
     pub service_account_user: bool,
     /// Time when the user has been disabled. Applies only to virtual users (`virtual_user: true`).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub disabled_at: Option<String>,
+    pub disabled_at: Option<crate::datetime::DateTime>,
     /// User's preferred name. Used for display purposes only.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,

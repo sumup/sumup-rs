@@ -413,7 +413,14 @@ pub fn infer_rust_type(
     parent_field: Option<(&str, &str)>,
 ) -> TokenStream {
     let base_type = match schema_kind {
-        openapiv3::SchemaKind::Type(openapiv3::Type::String(_)) => quote! { String },
+        openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
+            match &string_type.format {
+                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::DateTime) => {
+                    quote! { crate::datetime::DateTime }
+                }
+                _ => quote! { String },
+            }
+        }
         openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => quote! { f64 },
         openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => quote! { i64 },
         openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_)) => quote! { bool },

@@ -9,6 +9,14 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features: [chrono, jiff]
+        include:
+          - features: chrono
+            feature_flags: --features chrono
+          - features: jiff
+            feature_flags: --no-default-features --features jiff
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -22,8 +30,8 @@ jobs:
       - name: Check style
         run: cargo fmt -- --check
 
-      - name: Run Clippy Lints
-        run: cargo clippy --all-targets -- --deny warnings --allow clippy::style
+      - name: Run Clippy Lints (${{ matrix.features }})
+        run: cargo clippy ${{ matrix.feature_flags }} --all-targets -- --deny warnings --allow clippy::style
 
       - name: Check toml format
         run: |
@@ -34,10 +42,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-2022, macos-latest]
-        features: [ all, default ]
+        features: [chrono, jiff]
         include:
-          - features: all
-            feature_flags: --all-features
+          - features: chrono
+            feature_flags: --features chrono
+          - features: jiff
+            feature_flags: --no-default-features --features jiff
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 

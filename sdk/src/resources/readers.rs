@@ -102,9 +102,9 @@ pub struct Reader {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub meta: Option<Meta>,
     /// The timestamp of when the reader was created.
-    pub created_at: String,
+    pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the reader was last updated.
-    pub updated_at: String,
+    pub updated_at: crate::datetime::DateTime,
 }
 /// Information about the underlying physical device.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

@@ -243,9 +243,9 @@ pub type PhoneNumber = String;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Timestamps {
     /// The date and time when the resource was created. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
-    pub created_at: String,
+    pub created_at: crate::datetime::DateTime,
     /// The date and time when the resource was last updated. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
-    pub updated_at: String,
+    pub updated_at: crate::datetime::DateTime,
 }
 pub type Version = String;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

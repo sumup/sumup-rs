@@ -21,9 +21,9 @@ pub struct Operator {
     pub nickname: Option<String>,
     pub disabled: bool,
     /// The timestamp of when the operator was created.
-    pub created_at: String,
+    pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the operator was last updated.
-    pub updated_at: String,
+    pub updated_at: crate::datetime::DateTime,
     pub permissions: Permissions,
     pub account_type: String,
 }
