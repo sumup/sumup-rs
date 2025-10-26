@@ -20,7 +20,7 @@ jiff = ["dep:jiff"]
 chrono = { version = "0.4", default-features = false, features = [
   "serde",
 ], optional = true }
-jiff = { version = "0.1", default-features = false, features = [
+jiff = { version = "0.2", default-features = false, features = [
   "serde",
 ], optional = true }
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
