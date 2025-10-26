@@ -1,9 +1,15 @@
 [package]
 name = "sumup"
-version = "0.0.1"
+description = "Rust SDK for the SumUp API."
+documentation = "https://docs.rs/sumup"
+version = "0.5.0"
 edition = "2021"
-license = "SPECIFY A LICENSE BEFORE PUBLISHING"
 rust-version = "1.82"
+readme = "../README.md"
+authors = ["Matous Dzivjak <matous.dzivjak@sumup.com>"]
+categories = ["sdk", "sumup", "payments"]
+license = "Apache-2.0"
+repository = "https://github.com/sumup/sumup-rs"
 
 [features]
 default = ["chrono"]
