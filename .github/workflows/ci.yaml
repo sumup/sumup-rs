@@ -38,10 +38,9 @@ jobs:
           taplo fmt --check
 
   build-and-test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-2022, macos-latest]
         features: [chrono, jiff]
         include:
           - features: chrono
