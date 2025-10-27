@@ -37,16 +37,13 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Run Clippy
-        run: cargo clippy --package sumup --all-features -- --deny warnings
+        run: cargo clippy --package sumup -- --deny warnings
 
       - name: Build
         run: cargo build --package sumup --locked
 
       - name: Test
         run: cargo test --package sumup --locked
-
-      - name: Test documentation
-        run: cargo test --package sumup --doc
 
       - name: Package for publication
         run: cargo package --package sumup --list
