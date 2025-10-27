@@ -153,7 +153,8 @@ pub fn generate_structs_for_schemas(
                 }
             }
             _ => {
-                let base_type = infer_rust_type(&schema.schema_kind, true, None);
+                let dummy_ref = openapiv3::ReferenceOr::Item(Box::new(schema.clone()));
+                let base_type = infer_rust_type(&schema.schema_kind, true, None, &dummy_ref);
                 items.push(quote! {
                     pub type #struct_name = #base_type;
                 });
@@ -205,12 +206,19 @@ fn collect_nested_schemas(
         if let openapiv3::ReferenceOr::Item(schema) = prop_ref {
             match &schema.schema_kind {
                 openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
-                    // Generate nested struct
-                    let nested_struct_name = format!(
-                        "{}{}",
-                        parent_name.to_upper_camel_case(),
-                        field_name.to_upper_camel_case()
-                    );
+                    // Generate nested struct, preferring title if available
+                    let nested_struct_name = schema
+                        .schema_data
+                        .title
+                        .as_ref()
+                        .map(|t| t.to_upper_camel_case())
+                        .unwrap_or_else(|| {
+                            format!(
+                                "{}{}",
+                                parent_name.to_upper_camel_case(),
+                                field_name.to_upper_camel_case()
+                            )
+                        });
                     let struct_ident = Ident::new(&nested_struct_name, Span::call_site());
 
                     // Recursively collect nested schemas
@@ -246,12 +254,19 @@ fn collect_nested_schemas(
                         if let openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) =
                             &item_schema.schema_kind
                         {
-                            // Generate nested struct for array items
-                            let nested_struct_name = format!(
-                                "{}{}Item",
-                                parent_name.to_upper_camel_case(),
-                                field_name.to_upper_camel_case()
-                            );
+                            // Generate nested struct for array items, preferring title if available
+                            let nested_struct_name = item_schema
+                                .schema_data
+                                .title
+                                .as_ref()
+                                .map(|t| t.to_upper_camel_case())
+                                .unwrap_or_else(|| {
+                                    format!(
+                                        "{}{}Item",
+                                        parent_name.to_upper_camel_case(),
+                                        field_name.to_upper_camel_case()
+                                    )
+                                });
                             let struct_ident = Ident::new(&nested_struct_name, Span::call_site());
 
                             collect_nested_schemas(
@@ -373,8 +388,12 @@ pub fn generate_struct_fields(
                 }
             };
 
-            let rust_type =
-                infer_rust_type(&prop.schema_kind, is_required, Some((parent_name, name)));
+            let rust_type = infer_rust_type(
+                &prop.schema_kind,
+                is_required,
+                Some((parent_name, name)),
+                prop_ref,
+            );
 
             let description = prop
                 .schema_data
@@ -411,6 +430,7 @@ pub fn infer_rust_type(
     schema_kind: &openapiv3::SchemaKind,
     required: bool,
     parent_field: Option<(&str, &str)>,
+    schema_ref: &openapiv3::ReferenceOr<Box<openapiv3::Schema>>,
 ) -> TokenStream {
     let base_type = match schema_kind {
         openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
@@ -436,20 +456,35 @@ pub fn infer_rust_type(
                     openapiv3::ReferenceOr::Item(schema) => {
                         match &schema.schema_kind {
                             openapiv3::SchemaKind::Type(openapiv3::Type::Object(_)) => {
-                                // Use nested struct name
-                                if let Some((parent_name, field_name)) = parent_field {
-                                    let nested_type = format!(
-                                        "{}{}Item",
-                                        parent_name.to_upper_camel_case(),
-                                        field_name.to_upper_camel_case()
-                                    );
+                                // Prefer title if available, otherwise use nested struct name
+                                let nested_type = schema
+                                    .schema_data
+                                    .title
+                                    .as_ref()
+                                    .map(|t| t.to_upper_camel_case())
+                                    .or_else(|| {
+                                        parent_field.map(|(parent_name, field_name)| {
+                                            format!(
+                                                "{}{}Item",
+                                                parent_name.to_upper_camel_case(),
+                                                field_name.to_upper_camel_case()
+                                            )
+                                        })
+                                    })
+                                    .unwrap_or_else(|| "serde_json::Value".to_string());
+
+                                if nested_type == "serde_json::Value" {
+                                    quote! { serde_json::Value }
+                                } else {
                                     let type_ident = Ident::new(&nested_type, Span::call_site());
                                     quote! { #type_ident }
-                                } else {
-                                    quote! { serde_json::Value }
                                 }
                             }
-                            _ => infer_rust_type(&schema.schema_kind, true, None),
+                            _ => {
+                                // Create a dummy reference for recursive call
+                                let dummy_ref = openapiv3::ReferenceOr::Item(schema.clone());
+                                infer_rust_type(&schema.schema_kind, true, None, &dummy_ref)
+                            }
                         }
                     }
                 };
@@ -459,14 +494,34 @@ pub fn infer_rust_type(
             }
         }
         openapiv3::SchemaKind::Type(openapiv3::Type::Object(_)) => {
-            // Use nested struct name
-            if let Some((parent_name, field_name)) = parent_field {
-                let nested_type = format!(
-                    "{}{}",
-                    parent_name.to_upper_camel_case(),
-                    field_name.to_upper_camel_case()
-                );
-                let type_ident = Ident::new(&nested_type, Span::call_site());
+            // Prefer title if available from the schema_ref
+            let nested_type = if let openapiv3::ReferenceOr::Item(schema) = schema_ref {
+                schema
+                    .schema_data
+                    .title
+                    .as_ref()
+                    .map(|t| t.to_upper_camel_case())
+                    .or_else(|| {
+                        parent_field.map(|(parent_name, field_name)| {
+                            format!(
+                                "{}{}",
+                                parent_name.to_upper_camel_case(),
+                                field_name.to_upper_camel_case()
+                            )
+                        })
+                    })
+            } else {
+                parent_field.map(|(parent_name, field_name)| {
+                    format!(
+                        "{}{}",
+                        parent_name.to_upper_camel_case(),
+                        field_name.to_upper_camel_case()
+                    )
+                })
+            };
+
+            if let Some(type_name) = nested_type {
+                let type_ident = Ident::new(&type_name, Span::call_site());
                 quote! { #type_ident }
             } else {
                 quote! { serde_json::Value }

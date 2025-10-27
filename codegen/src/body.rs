@@ -512,7 +512,9 @@ fn generate_schema_struct(
         }
         _ => {
             // For non-object types, create a type alias
-            let base_type = crate::schema::infer_rust_type(&schema.schema_kind, true, None);
+            let dummy_ref = openapiv3::ReferenceOr::Item(Box::new(schema.clone()));
+            let base_type =
+                crate::schema::infer_rust_type(&schema.schema_kind, true, None, &dummy_ref);
             Ok(quote! {
                 #description
                 pub type #struct_name = #base_type;

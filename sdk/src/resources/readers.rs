@@ -18,7 +18,7 @@ pub struct CreateReaderCheckoutRequest {
     /// Affiliate metadata for the transaction.
     /// It is a field that allow for integrators to track the source of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub affiliate: Option<CreateReaderCheckoutRequestAffiliate>,
+    pub affiliate: Option<Affiliate>,
     /// The card type of the card used for the transaction.
     /// Is is required only for some countries (e.g: Brazil).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -53,7 +53,7 @@ pub struct CreateReaderCheckoutRequest {
     /// The amount is represented as an integer value altogether with the currency and the minor unit.
     ///
     /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
-    pub total_amount: CreateReaderCheckoutRequestTotalAmount,
+    pub total_amount: Money,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutResponse {
@@ -145,11 +145,11 @@ pub struct CreateReaderCheckoutErrorErrors {
 /// Additional metadata for the transaction.
 /// It is key-value object that can be associated with the transaction.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderCheckoutRequestAffiliateTags {}
+pub struct AffiliateTags {}
 /// Affiliate metadata for the transaction.
 /// It is a field that allow for integrators to track the source of the transaction.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderCheckoutRequestAffiliate {
+pub struct Affiliate {
     /// Application ID of the affiliate.
     /// It is a unique identifier for the application and should be set by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
     pub app_id: String,
@@ -163,7 +163,7 @@ pub struct CreateReaderCheckoutRequestAffiliate {
     /// Additional metadata for the transaction.
     /// It is key-value object that can be associated with the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<CreateReaderCheckoutRequestAffiliateTags>,
+    pub tags: Option<AffiliateTags>,
 }
 /// Amount structure.
 ///
@@ -171,7 +171,7 @@ pub struct CreateReaderCheckoutRequestAffiliate {
 ///
 /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderCheckoutRequestTotalAmount {
+pub struct Money {
     /// Currency ISO 4217 code
     pub currency: String,
     /// The minor units of the currency.
