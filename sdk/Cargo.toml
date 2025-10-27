@@ -7,7 +7,7 @@ edition = "2021"
 rust-version = "1.82"
 readme = "../README.md"
 authors = ["Matous Dzivjak <matous.dzivjak@sumup.com>"]
-categories = ["sdk", "sumup", "payments"]
+categories = ["api-bindings", "finance"]
 license = "Apache-2.0"
 repository = "https://github.com/sumup/sumup-rs"
 
