@@ -205,8 +205,7 @@ pub struct ListReadersResponse {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderBody {
     pub pairing_code: ReaderPairingCode,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<ReaderName>,
+    pub name: ReaderName,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub meta: Option<Meta>,
 }

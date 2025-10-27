@@ -82,6 +82,10 @@ pub struct ListMerchantMembersParams {
     /// Filter the returned members by email address prefix.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
+    /// Search for a member by user id.
+    #[serde(rename = "user.id")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
     /// Filter the returned members by the membership status.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<MembershipStatus>,
@@ -172,6 +176,9 @@ impl<'a> MembersClient<'a> {
         }
         if let Some(ref value) = params.email {
             request = request.query(&[("email", value)]);
+        }
+        if let Some(ref value) = params.user_id {
+            request = request.query(&[("user.id", value)]);
         }
         if let Some(ref value) = params.status {
             request = request.query(&[("status", value)]);
