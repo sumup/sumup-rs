@@ -90,9 +90,8 @@ pub struct ListMerchantMembersParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<MembershipStatus>,
     /// Filter the returned members by role.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    pub roles: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub roles: Option<Vec<String>>,
 }
 /// Returns a list of Member objects.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -184,8 +183,8 @@ impl<'a> MembersClient<'a> {
         if let Some(ref value) = params.status {
             request = request.query(&[("status", value)]);
         }
-        if !params.roles.is_empty() {
-            request = request.query(&[("roles", &params.roles)]);
+        if let Some(ref value) = params.roles {
+            request = request.query(&[("roles", value)]);
         }
         let response = request.send().await?;
         match response.status() {

@@ -135,13 +135,13 @@ fn generate_query_params_struct(
         let original_name = &param_data.name;
 
         // Determine field type based on schema
-        let (field_type, is_array) =
+        let field_type =
             if let openapiv3::ParameterSchemaOrContent::Schema(schema_ref) = &param_data.format {
                 infer_param_type(schema_ref, param_data.required)
             } else if param_data.required {
-                (quote! { String }, false)
+                quote! { String }
             } else {
-                (quote! { Option<String> }, false)
+                quote! { Option<String> }
             };
 
         let rename_attr = if original_name != &field_name.to_string() {
@@ -151,17 +151,7 @@ fn generate_query_params_struct(
         };
 
         let skip_attr = if !param_data.required {
-            if is_array {
-                quote! { #[serde(skip_serializing_if = "Vec::is_empty")] }
-            } else {
-                quote! { #[serde(skip_serializing_if = "Option::is_none")] }
-            }
-        } else {
-            quote! {}
-        };
-
-        let default_attr = if !param_data.required && is_array {
-            quote! { #[serde(default)] }
+            quote! { #[serde(skip_serializing_if = "Option::is_none")] }
         } else {
             quote! {}
         };
@@ -177,7 +167,6 @@ fn generate_query_params_struct(
             #description
             #rename_attr
             #skip_attr
-            #default_attr
             pub #field_name: #field_type
         });
     }
@@ -194,21 +183,21 @@ fn generate_query_params_struct(
 fn infer_param_type(
     schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
     required: bool,
-) -> (TokenStream, bool) {
-    let (base_type, is_array) = match schema_ref {
+) -> TokenStream {
+    let base_type = match schema_ref {
         openapiv3::ReferenceOr::Reference { reference } => {
             let type_name = reference.split('/').next_back().unwrap_or("Unknown");
             let type_ident = Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
-            (quote! { #type_ident }, false)
+            quote! { #type_ident }
         }
         openapiv3::ReferenceOr::Item(schema) => match &schema.schema_kind {
-            openapiv3::SchemaKind::Type(openapiv3::Type::String(_)) => (quote! { String }, false),
-            openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => (quote! { f64 }, false),
-            openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => (quote! { i64 }, false),
-            openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_)) => (quote! { bool }, false),
+            openapiv3::SchemaKind::Type(openapiv3::Type::String(_)) => quote! { String },
+            openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => quote! { f64 },
+            openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => quote! { i64 },
+            openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_)) => quote! { bool },
             openapiv3::SchemaKind::Type(openapiv3::Type::Array(arr)) => {
-                let item_type = if let Some(items) = &arr.items {
-                    match items {
+                if let Some(items) = &arr.items {
+                    let item_type = match items {
                         openapiv3::ReferenceOr::Reference { reference } => {
                             let type_name = reference.split('/').next_back().unwrap_or("Unknown");
                             let type_ident =
@@ -229,20 +218,20 @@ fn infer_param_type(
                                 _ => quote! { String },
                             }
                         }
-                    }
+                    };
+                    quote! { Vec<#item_type> }
                 } else {
-                    quote! { String }
-                };
-                (quote! { Vec<#item_type> }, true)
+                    quote! { Vec<String> }
+                }
             }
-            _ => (quote! { String }, false),
+            _ => quote! { String },
         },
     };
 
-    if required || is_array {
-        (base_type, is_array)
+    if required {
+        base_type
     } else {
-        (quote! { Option<#base_type> }, is_array)
+        quote! { Option<#base_type> }
     }
 }
 

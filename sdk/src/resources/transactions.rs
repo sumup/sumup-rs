@@ -341,21 +341,17 @@ pub struct ListTransactionsParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Filters the returned results by user email.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    pub users: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub users: Option<Vec<String>>,
     /// Filters the returned results by the specified list of final statuses of the transactions.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    pub statuses: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub statuses: Option<Vec<String>>,
     /// Filters the returned results by the specified list of payment types used for the transactions.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    pub payment_types: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_types: Option<Vec<String>>,
     /// Filters the returned results by the specified list of transaction types.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    pub types: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub types: Option<Vec<String>>,
     /// Filters the results by the latest modification time of resources and returns only transactions that are modified *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub changes_since: Option<String>,
@@ -410,21 +406,17 @@ pub struct ListTransactionsV21Params {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Filters the returned results by user email.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    pub users: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub users: Option<Vec<String>>,
     /// Filters the returned results by the specified list of final statuses of the transactions.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    pub statuses: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub statuses: Option<Vec<String>>,
     /// Filters the returned results by the specified list of payment types used for the transactions.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    pub payment_types: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_types: Option<Vec<String>>,
     /// Filters the returned results by the specified list of transaction types.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    #[serde(default)]
-    pub types: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub types: Option<Vec<String>>,
     /// Filters the results by the latest modification time of resources and returns only transactions that are modified *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub changes_since: Option<String>,
@@ -584,17 +576,17 @@ impl<'a> TransactionsClient<'a> {
         if let Some(ref value) = params.limit {
             request = request.query(&[("limit", value)]);
         }
-        if !params.users.is_empty() {
-            request = request.query(&[("users", &params.users)]);
+        if let Some(ref value) = params.users {
+            request = request.query(&[("users", value)]);
         }
-        if !params.statuses.is_empty() {
-            request = request.query(&[("statuses", &params.statuses)]);
+        if let Some(ref value) = params.statuses {
+            request = request.query(&[("statuses", value)]);
         }
-        if !params.payment_types.is_empty() {
-            request = request.query(&[("payment_types", &params.payment_types)]);
+        if let Some(ref value) = params.payment_types {
+            request = request.query(&[("payment_types", value)]);
         }
-        if !params.types.is_empty() {
-            request = request.query(&[("types", &params.types)]);
+        if let Some(ref value) = params.types {
+            request = request.query(&[("types", value)]);
         }
         if let Some(ref value) = params.changes_since {
             request = request.query(&[("changes_since", value)]);
@@ -720,17 +712,17 @@ impl<'a> TransactionsClient<'a> {
         if let Some(ref value) = params.limit {
             request = request.query(&[("limit", value)]);
         }
-        if !params.users.is_empty() {
-            request = request.query(&[("users", &params.users)]);
+        if let Some(ref value) = params.users {
+            request = request.query(&[("users", value)]);
         }
-        if !params.statuses.is_empty() {
-            request = request.query(&[("statuses", &params.statuses)]);
+        if let Some(ref value) = params.statuses {
+            request = request.query(&[("statuses", value)]);
         }
-        if !params.payment_types.is_empty() {
-            request = request.query(&[("payment_types", &params.payment_types)]);
+        if let Some(ref value) = params.payment_types {
+            request = request.query(&[("payment_types", value)]);
         }
-        if !params.types.is_empty() {
-            request = request.query(&[("types", &params.types)]);
+        if let Some(ref value) = params.types {
+            request = request.query(&[("types", value)]);
         }
         if let Some(ref value) = params.changes_since {
             request = request.query(&[("changes_since", value)]);
