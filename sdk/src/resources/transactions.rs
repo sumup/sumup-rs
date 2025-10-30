@@ -286,21 +286,6 @@ pub struct TransactionHistory {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub card_type: Option<String>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct TransactionMixinHistory {
-    /// Short description of the payment. The value is taken from the `description` property of the related checkout resource.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub product_summary: Option<String>,
-    /// Total number of payouts to the registered user specified in the `user` property.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payouts_total: Option<i64>,
-    /// Number of payouts that are made to the registered user specified in the `user` property.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payouts_received: Option<i64>,
-    /// Payout plan of the registered user at the time when the transaction was made.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payout_plan: Option<String>,
-}
 /// Details of the payment location as received from the payment terminal.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFullLocation {

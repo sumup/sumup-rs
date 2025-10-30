@@ -44,16 +44,24 @@ pub fn generate_structs_for_schemas(
     let mut items = Vec::new();
     let mut nested_schemas = Vec::new();
 
-    let schemas = match &spec.components {
-        Some(components) => &components.schemas,
+    let components = match &spec.components {
+        Some(components) => components,
         None => return Ok(quote! {}),
     };
+
+    let schemas = &components.schemas;
+
+    let skip_all_of_refs = collect_mixin_all_of_references(spec, schema_names);
 
     // Sort schemas alphabetically for deterministic output
     let mut sorted_names: Vec<_> = schema_names.iter().collect();
     sorted_names.sort();
 
     for name in sorted_names {
+        if skip_all_of_refs.contains(name.as_str()) {
+            continue;
+        }
+
         let schema_ref = match schemas.get(name) {
             Some(s) => s,
             None => continue,
@@ -335,6 +343,48 @@ impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
         });
 
         Ok(())
+    }
+}
+
+fn collect_mixin_all_of_references(
+    spec: &OpenAPI,
+    schema_names: &HashSet<String>,
+) -> HashSet<String> {
+    let mut referenced = HashSet::new();
+
+    if let Some(components) = &spec.components {
+        for schema_ref in components.schemas.values() {
+            if let openapiv3::ReferenceOr::Item(schema) = schema_ref {
+                collect_all_of_references_from_schema(schema, schema_names, &mut referenced);
+            }
+        }
+    }
+
+    referenced
+}
+
+fn collect_all_of_references_from_schema(
+    schema: &openapiv3::Schema,
+    schema_names: &HashSet<String>,
+    referenced: &mut HashSet<String>,
+) {
+    use openapiv3::ReferenceOr;
+
+    if let openapiv3::SchemaKind::AllOf { all_of } = &schema.schema_kind {
+        for entry in all_of {
+            match entry {
+                ReferenceOr::Reference { reference } => {
+                    if let Some(name) = reference.strip_prefix("#/components/schemas/") {
+                        if schema_names.contains(name) && name.contains("Mixin") {
+                            referenced.insert(name.to_string());
+                        }
+                    }
+                }
+                ReferenceOr::Item(inner) => {
+                    collect_all_of_references_from_schema(inner, schema_names, referenced);
+                }
+            }
+        }
     }
 }
 
