@@ -410,8 +410,9 @@ pub struct DoingBusinessAsLegacyAddress {
 pub struct GetAccountParams {
     /// A list of additional information you want to receive for the user. By default only personal and merchant profile information will be returned.
     #[serde(rename = "include[]")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub include: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub include: Vec<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListBankAccountsParams {
@@ -461,8 +462,8 @@ impl<'a> MerchantClient<'a> {
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
-        if let Some(ref value) = params.include {
-            request = request.query(&[("include[]", value)]);
+        if !params.include.is_empty() {
+            request = request.query(&[("include[]", &params.include)]);
         }
         let response = request.send().await?;
         match response.status() {

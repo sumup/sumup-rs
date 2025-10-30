@@ -345,10 +345,17 @@ fn generate_operation_method(
         for query_param in &query_params {
             let field_name = Ident::new(&query_param.name.to_snake_case(), Span::call_site());
             let param_name = &query_param.name;
+            let is_array = is_array_query_param(query_param);
 
             if query_param.required {
                 query_field_additions.push(quote! {
                     request = request.query(&[(#param_name, &params.#field_name)]);
+                });
+            } else if is_array {
+                query_field_additions.push(quote! {
+                    if !params.#field_name.is_empty() {
+                        request = request.query(&[(#param_name, &params.#field_name)]);
+                    }
                 });
             } else {
                 query_field_additions.push(quote! {
@@ -419,6 +426,19 @@ fn generate_operation_method(
             #response_handling
         }
     })
+}
+
+fn is_array_query_param(param: &openapiv3::ParameterData) -> bool {
+    match &param.format {
+        openapiv3::ParameterSchemaOrContent::Schema(schema_ref) => match schema_ref {
+            openapiv3::ReferenceOr::Item(schema) => matches!(
+                schema.schema_kind,
+                openapiv3::SchemaKind::Type(openapiv3::Type::Array(_))
+            ),
+            _ => false,
+        },
+        _ => false,
+    }
 }
 
 fn generate_response_handling(
