@@ -370,7 +370,7 @@ impl<'a> MerchantsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: GetMerchantParams,
-    ) -> Result<Merchant, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Merchant, String> {
         let path = format!("/v1/merchants/{}", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -386,19 +386,22 @@ impl<'a> MerchantsClient<'a> {
             request = request.query(&[("version", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Merchant = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "No user with the specified ID exists.\n", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -409,7 +412,7 @@ impl<'a> MerchantsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListPersonsParams,
-    ) -> Result<ListPersonsResponseBody, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListPersonsResponseBody, String> {
         let path = format!("/v1/merchants/{}/persons", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -425,23 +428,29 @@ impl<'a> MerchantsClient<'a> {
             request = request.query(&[("version", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListPersonsResponseBody = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "No user with the specified ID exists.\n", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "An internal server error occurred.\n", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -453,7 +462,7 @@ impl<'a> MerchantsClient<'a> {
         merchant_code: impl Into<String>,
         person_id: impl Into<String>,
         params: GetPersonParams,
-    ) -> Result<Person, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Person, String> {
         let path = format!(
             "/v1/merchants/{}/persons/{}",
             merchant_code.into(),
@@ -473,23 +482,29 @@ impl<'a> MerchantsClient<'a> {
             request = request.query(&[("version", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Person = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "No user with the specified ID exists.\n", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "An internal server error occurred.\n", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }

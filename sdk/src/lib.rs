@@ -5,10 +5,11 @@
 //! ## Quick Start
 //!
 //! ```no_run
-//! use sumup::Client;
+//! use sumup::{error::SdkResult, Client};
+//! type ListCheckoutsError = SdkResult<(), sumup::resources::common::Error>;
 //!
 //! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! async fn main() -> ListCheckoutsError {
 //!     // Create a client (reads SUMUP_API_KEY from environment)
 //!     let client = Client::default();
 //!
@@ -51,9 +52,10 @@
 //! The SDK organizes endpoints by tags:
 //!
 //! ```no_run
-//! # use sumup::{Client, CheckoutCreateRequest, Currency};
-//! # async fn example(client: Client) -> Result<(), Box<dyn std::error::Error>> {
-//! // Checkouts
+//! # use sumup::{Client, CheckoutCreateRequest, Currency, error::SdkResult};
+//! # type Error = SdkResult<(), sumup::resources::common::Error>;
+//! # async fn example(client: Client) -> Error {
+//! // Create a checkout
 //! let checkout = client.checkouts().create(Some(CheckoutCreateRequest {
 //!     checkout_reference: "unique-ref".to_string(),
 //!     amount: 10.0,
@@ -69,7 +71,12 @@
 //!     valid_until: None,
 //!     transactions: None,
 //!     redirect_url: None,
-//! })).await?;
+//! })).await;
+//! if let Ok(order) = checkout {
+//!     println!("created checkout {}", order.id.unwrap_or_default());
+//! } else {
+//!     eprintln!("create checkout request failed");
+//! }
 //!
 //! // Transactions with query parameters
 //! use sumup::resources::transactions::ListTransactionsParams;
@@ -77,6 +84,8 @@
 //!     limit: Some(10),
 //!     ..Default::default()
 //! }).await?;
+//! let count = transactions.items.as_ref().map_or(0, |items| items.len());
+//! println!("fetched {} historical transactions", count);
 //! # Ok(())
 //! # }
 //! ```
@@ -96,6 +105,33 @@
 //! sumup = { version = "0.0.1", default-features = false, features = ["jiff"] }
 //! ```
 //!
+//! ## Error Handling
+//!
+//! All SDK calls return a [`SdkResult`] whose error side is a [`SdkError`]. When the
+//! SumUp API responds with a non-success status, the SDK builds an
+//! `SdkError::Api` containing the HTTP status and either the parsed error schema
+//! (when documented) or the raw response body. You can inspect failures like
+//! this:
+//!
+//! ```no_run
+//! # use sumup::{Client, error::{ApiErrorBody, SdkError}};
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let client = Client::default();
+//! match client.checkouts().list(Default::default()).await {
+//!     Ok(checkouts) => println!("retrieved {} checkouts", checkouts.len()),
+//!     Err(SdkError::Api(api)) => {
+//!         eprintln!("request failed with status {}", api.status());
+//!         match api.body() {
+//!             ApiErrorBody::Parsed(details) => eprintln!("error payload: {:?}", details),
+//!             ApiErrorBody::Raw(body) => eprintln!("raw body: {}", body),
+//!         }
+//!     }
+//!     Err(SdkError::Network(err)) => return Err(Box::new(err)),
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//!
 //! ## Features
 //!
 //! - **chrono** (default): Use chrono for datetime types
@@ -109,6 +145,7 @@
 #![forbid(unsafe_code)]
 
 pub mod client;
+pub mod error;
 
 #[allow(deprecated)]
 #[allow(clippy::large_enum_variant)]
@@ -120,4 +157,5 @@ pub mod datetime;
 
 pub use crate::resources::*;
 pub use client::Client;
+pub use error::{ApiError, ApiErrorBody, SdkError, SdkResult};
 pub use version::VERSION;

@@ -153,7 +153,7 @@ impl<'a> MembersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListMerchantMembersParams,
-    ) -> Result<ListMerchantMembersResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListMerchantMembersResponse, String> {
         let path = format!("/v0.1/merchants/{}/members", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -187,19 +187,22 @@ impl<'a> MembersClient<'a> {
             request = request.query(&[("roles", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListMerchantMembersResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant not found.", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -210,7 +213,7 @@ impl<'a> MembersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         body: CreateMerchantMemberBody,
-    ) -> Result<Member, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Member, String> {
         let path = format!("/v0.1/merchants/{}/members", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -224,34 +227,36 @@ impl<'a> MembersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::CREATED => {
                 let data: Member = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Invalid request.", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::BAD_REQUEST,
+                    body,
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant not found.", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             reqwest::StatusCode::TOO_MANY_REQUESTS => {
                 let body = response.text().await?;
-                Err(
-                    format!(
-                        "{}: {}",
-                        "Too many invitations sent to that user. The limit is 10 requests per 5 minutes and the Retry-After header is set to the number of minutes until the reset of the limit.",
-                        body
-                    )
-                        .into(),
-                )
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::TOO_MANY_REQUESTS,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -262,7 +267,7 @@ impl<'a> MembersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         member_id: impl Into<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<(), String> {
         let path = format!(
             "/v0.1/merchants/{}/members/{}",
             merchant_code.into(),
@@ -279,16 +284,19 @@ impl<'a> MembersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => Ok(()),
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant or member not found.", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -299,7 +307,7 @@ impl<'a> MembersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         member_id: impl Into<String>,
-    ) -> Result<Member, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Member, String> {
         let path = format!(
             "/v0.1/merchants/{}/members/{}",
             merchant_code.into(),
@@ -316,19 +324,22 @@ impl<'a> MembersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Member = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant or member not found.", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -340,7 +351,7 @@ impl<'a> MembersClient<'a> {
         merchant_code: impl Into<String>,
         member_id: impl Into<String>,
         body: UpdateMerchantMemberBody,
-    ) -> Result<Member, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Member, String> {
         let path = format!(
             "/v0.1/merchants/{}/members/{}",
             merchant_code.into(),
@@ -358,44 +369,43 @@ impl<'a> MembersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Member = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body = response.text().await?;
-                Err(format!(
-                    "{}: {}",
-                    "Cannot set password or nickname for an invited user.", body
-                )
-                .into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::BAD_REQUEST,
+                    body,
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body = response.text().await?;
-                Err(format!(
-                    "{}: {}",
-                    "Cannot change password for managed user. Password was already used before.",
-                    body
-                )
-                .into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::FORBIDDEN,
+                    body,
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant or member not found.", body).into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             reqwest::StatusCode::CONFLICT => {
                 let body = response.text().await?;
-                Err(format!(
-                    "{}: {}",
-                    "Cannot update member as some data conflict with existing members.", body
-                )
-                .into())
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::CONFLICT,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }

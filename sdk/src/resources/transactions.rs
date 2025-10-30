@@ -447,7 +447,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         txn_id: impl Into<String>,
         body: Option<RefundTransactionBody>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<(), Error> {
         let path = format!("/v0.1/me/refund/{}", txn_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -463,20 +463,26 @@ impl<'a> TransactionsClient<'a> {
             request = request.json(&body);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::NO_CONTENT => Ok(()),
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             reqwest::StatusCode::CONFLICT => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::CONFLICT,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -492,7 +498,7 @@ impl<'a> TransactionsClient<'a> {
     pub async fn get_deprecated(
         &self,
         params: GetTransactionParams,
-    ) -> Result<TransactionFull, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<TransactionFull, Error> {
         let path = "/v0.1/me/transactions";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -514,23 +520,29 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("transaction_code", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: TransactionFull = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::UNAUTHORIZED,
+                    body,
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -540,7 +552,7 @@ impl<'a> TransactionsClient<'a> {
     pub async fn list_deprecated(
         &self,
         params: ListTransactionsParams,
-    ) -> Result<ListTransactionsResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListTransactionsResponse, Error> {
         let path = "/v0.1/me/transactions/history";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -589,19 +601,22 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("oldest_ref", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListTransactionsResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::UNAUTHORIZED,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -618,7 +633,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: GetTransactionV21Params,
-    ) -> Result<TransactionFull, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<TransactionFull, Error> {
         let path = format!("/v2.1/merchants/{}/transactions", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -646,23 +661,29 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("client_transaction_id", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: TransactionFull = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::UNAUTHORIZED,
+                    body,
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::NOT_FOUND,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -673,7 +694,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListTransactionsV21Params,
-    ) -> Result<ListTransactionsV21Response, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListTransactionsV21Response, Error> {
         let path = format!(
             "/v2.1/merchants/{}/transactions/history",
             merchant_code.into()
@@ -725,19 +746,22 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("oldest_ref", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListTransactionsV21Response = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::UNAUTHORIZED,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }

@@ -202,7 +202,7 @@ impl<'a> ReceiptsClient<'a> {
         &self,
         id: impl Into<String>,
         params: GetReceiptParams,
-    ) -> Result<Receipt, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Receipt, Error> {
         let path = format!("/v1.1/receipts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -219,23 +219,29 @@ impl<'a> ReceiptsClient<'a> {
             request = request.query(&[("tx_event_id", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Receipt = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::BAD_REQUEST,
+                    body,
+                ))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::UNAUTHORIZED,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }

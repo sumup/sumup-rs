@@ -96,7 +96,7 @@ impl<'a> MembershipsClient<'a> {
     pub async fn list(
         &self,
         params: ListMembershipsParams,
-    ) -> Result<ListMembershipsResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListMembershipsResponse, String> {
         let path = "/v0.1/memberships";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -124,15 +124,15 @@ impl<'a> MembershipsClient<'a> {
             request = request.query(&[("resource.name", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListMembershipsResponse = response.json().await?;
                 Ok(data)
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }

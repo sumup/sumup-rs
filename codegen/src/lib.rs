@@ -10,6 +10,8 @@ use openapiv3::OpenAPI;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
+use operation::GeneratedClientMethods;
+
 pub mod body;
 pub mod client;
 pub mod operation;
@@ -301,10 +303,21 @@ pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, Str
     let doc_comment = format!("Client for the {} API endpoints.", tag);
 
     // Generate methods for operations with this tag
-    let methods = generate_client_methods(spec, tag)?;
+    let GeneratedClientMethods {
+        methods,
+        extra_items,
+    } = generate_client_methods(spec, tag)?;
+    let methods_tokens = quote! { #(#methods)* };
+    let extra_items_tokens = if extra_items.is_empty() {
+        quote! {}
+    } else {
+        quote! { #(#extra_items)* }
+    };
 
     Ok(quote! {
         use crate::client::Client;
+
+        #extra_items_tokens
 
         #[doc = #doc_comment]
         #[derive(Debug)]
@@ -322,7 +335,7 @@ pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, Str
                 self.client
             }
 
-            #methods
+            #methods_tokens
         }
     })
 }

@@ -48,7 +48,7 @@ impl<'a> PayoutsClient<'a> {
     pub async fn list_deprecated(
         &self,
         params: ListPayoutsParams,
-    ) -> Result<FinancialPayouts, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<FinancialPayouts, Error> {
         let path = "/v0.1/me/financials/payouts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -72,19 +72,22 @@ impl<'a> PayoutsClient<'a> {
             request = request.query(&[("order", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: FinancialPayouts = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::UNAUTHORIZED,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
@@ -95,7 +98,7 @@ impl<'a> PayoutsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListPayoutsV1Params,
-    ) -> Result<FinancialPayouts, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<FinancialPayouts, Error> {
         let path = format!("/v1.0/merchants/{}/payouts", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -119,19 +122,22 @@ impl<'a> PayoutsClient<'a> {
             request = request.query(&[("order", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: FinancialPayouts = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api_parsed(
+                    reqwest::StatusCode::UNAUTHORIZED,
+                    body,
+                ))
             }
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                Err(crate::error::SdkError::api_raw(status, body))
             }
         }
     }
