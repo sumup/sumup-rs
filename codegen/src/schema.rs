@@ -66,7 +66,7 @@ pub fn generate_structs_for_schemas(
         match &schema.schema_kind {
             openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
                 // Collect nested inline schemas
-                collect_nested_schemas(name, &obj.properties, &mut nested_schemas);
+                collect_nested_schemas(spec, name, &obj.properties, &mut nested_schemas)?;
 
                 let fields = generate_struct_fields(name, &obj.properties, &obj.required);
 
@@ -102,6 +102,59 @@ pub fn generate_structs_for_schemas(
                     let error_impl =
                         generate_error_impl(&struct_name, &obj.properties, &obj.required);
                     items.push(error_impl);
+                }
+            }
+            openapiv3::SchemaKind::AllOf { all_of } => {
+                if let Some((combined_properties, combined_required)) =
+                    flatten_all_of_object(spec, all_of)?
+                {
+                    collect_nested_schemas(spec, name, &combined_properties, &mut nested_schemas)?;
+
+                    let fields =
+                        generate_struct_fields(name, &combined_properties, &combined_required);
+
+                    let can_derive_default =
+                        can_fields_derive_default(&combined_properties, &combined_required);
+
+                    let description = schema
+                        .schema_data
+                        .description
+                        .as_ref()
+                        .map(|d| generate_doc_comment(d));
+
+                    let deprecation = generate_deprecation_attribute(&schema.schema_data);
+
+                    let derives = if can_derive_default {
+                        quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
+                    } else {
+                        quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
+                    };
+
+                    let struct_def = quote! {
+                        #description
+                        #deprecation
+                        #derives
+                        pub struct #struct_name {
+                            #(#fields)*
+                        }
+                    };
+
+                    items.push(struct_def);
+
+                    if is_error_schema {
+                        let error_impl = generate_error_impl(
+                            &struct_name,
+                            &combined_properties,
+                            &combined_required,
+                        );
+                        items.push(error_impl);
+                    }
+                } else {
+                    let dummy_ref = openapiv3::ReferenceOr::Item(Box::new(schema.clone()));
+                    let base_type = infer_rust_type(&schema.schema_kind, true, None, &dummy_ref);
+                    items.push(quote! {
+                        pub type #struct_name = #base_type;
+                    });
                 }
             }
             openapiv3::SchemaKind::Type(openapiv3::Type::String(s)) => {
@@ -190,123 +243,244 @@ fn generate_deprecation_attribute(schema_data: &openapiv3::SchemaData) -> TokenS
 }
 
 pub fn collect_nested_schemas_public(
+    spec: &OpenAPI,
     parent_name: &str,
     properties: &indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
     nested_schemas: &mut Vec<TokenStream>,
-) {
-    collect_nested_schemas(parent_name, properties, nested_schemas);
+) -> Result<(), String> {
+    collect_nested_schemas(spec, parent_name, properties, nested_schemas)
 }
 
 fn collect_nested_schemas(
+    spec: &OpenAPI,
     parent_name: &str,
     properties: &indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
     nested_schemas: &mut Vec<TokenStream>,
-) {
+) -> Result<(), String> {
     for (field_name, prop_ref) in properties {
         if let openapiv3::ReferenceOr::Item(schema) = prop_ref {
             match &schema.schema_kind {
                 openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
-                    // Generate nested struct, preferring title if available
-                    let nested_struct_name = schema
-                        .schema_data
-                        .title
-                        .as_ref()
-                        .map(|t| t.to_upper_camel_case())
-                        .unwrap_or_else(|| {
-                            format!(
-                                "{}{}",
-                                parent_name.to_upper_camel_case(),
-                                field_name.to_upper_camel_case()
-                            )
-                        });
-                    let struct_ident = Ident::new(&nested_struct_name, Span::call_site());
-
-                    // Recursively collect nested schemas
-                    collect_nested_schemas(&nested_struct_name, &obj.properties, nested_schemas);
-
-                    let fields =
-                        generate_struct_fields(&nested_struct_name, &obj.properties, &obj.required);
-                    let can_derive_default =
-                        can_fields_derive_default(&obj.properties, &obj.required);
-
-                    let description = schema
-                        .schema_data
-                        .description
-                        .as_ref()
-                        .map(|d| generate_doc_comment(d));
-
-                    let derives = if can_derive_default {
-                        quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
-                    } else {
-                        quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
-                    };
-
-                    nested_schemas.push(quote! {
-                        #description
-                        #derives
-                        pub struct #struct_ident {
-                            #(#fields)*
-                        }
-                    });
+                    generate_nested_struct_for_object(
+                        spec,
+                        parent_name,
+                        field_name,
+                        schema,
+                        obj,
+                        nested_schemas,
+                    )?;
+                }
+                openapiv3::SchemaKind::AllOf { all_of } => {
+                    if let Some((combined_properties, combined_required)) =
+                        flatten_all_of_object(spec, all_of)?
+                    {
+                        generate_nested_struct_for_object_like(
+                            spec,
+                            parent_name,
+                            field_name,
+                            schema,
+                            &combined_properties,
+                            &combined_required,
+                            "",
+                            nested_schemas,
+                        )?;
+                    }
                 }
                 openapiv3::SchemaKind::Type(openapiv3::Type::Array(arr)) => {
                     if let Some(openapiv3::ReferenceOr::Item(item_schema)) = &arr.items {
-                        if let openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) =
-                            &item_schema.schema_kind
-                        {
-                            // Generate nested struct for array items, preferring title if available
-                            let nested_struct_name = item_schema
-                                .schema_data
-                                .title
-                                .as_ref()
-                                .map(|t| t.to_upper_camel_case())
-                                .unwrap_or_else(|| {
-                                    format!(
-                                        "{}{}Item",
-                                        parent_name.to_upper_camel_case(),
-                                        field_name.to_upper_camel_case()
-                                    )
-                                });
-                            let struct_ident = Ident::new(&nested_struct_name, Span::call_site());
-
-                            collect_nested_schemas(
-                                &nested_struct_name,
-                                &obj.properties,
-                                nested_schemas,
-                            );
-
-                            let fields = generate_struct_fields(
-                                &nested_struct_name,
-                                &obj.properties,
-                                &obj.required,
-                            );
-                            let can_derive_default =
-                                can_fields_derive_default(&obj.properties, &obj.required);
-
-                            let description = item_schema
-                                .schema_data
-                                .description
-                                .as_ref()
-                                .map(|d| generate_doc_comment(d));
-
-                            let derives = if can_derive_default {
-                                quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
-                            } else {
-                                quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
-                            };
-
-                            nested_schemas.push(quote! {
-                                #description
-                                #derives
-                                pub struct #struct_ident {
-                                    #(#fields)*
+                        match &item_schema.schema_kind {
+                            openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
+                                generate_nested_struct_for_object_like(
+                                    spec,
+                                    parent_name,
+                                    field_name,
+                                    item_schema,
+                                    &obj.properties,
+                                    &obj.required,
+                                    "Item",
+                                    nested_schemas,
+                                )?;
+                            }
+                            openapiv3::SchemaKind::AllOf { all_of } => {
+                                if let Some((combined_properties, combined_required)) =
+                                    flatten_all_of_object(spec, all_of)?
+                                {
+                                    generate_nested_struct_for_object_like(
+                                        spec,
+                                        parent_name,
+                                        field_name,
+                                        item_schema,
+                                        &combined_properties,
+                                        &combined_required,
+                                        "Item",
+                                        nested_schemas,
+                                    )?;
                                 }
-                            });
+                            }
+                            _ => {}
                         }
                     }
                 }
                 _ => {}
             }
+        }
+    }
+
+    Ok(())
+}
+
+fn generate_nested_struct_for_object(
+    spec: &OpenAPI,
+    parent_name: &str,
+    field_name: &str,
+    schema: &openapiv3::Schema,
+    obj: &openapiv3::ObjectType,
+    nested_schemas: &mut Vec<TokenStream>,
+) -> Result<(), String> {
+    generate_nested_struct_for_object_like(
+        spec,
+        parent_name,
+        field_name,
+        schema,
+        &obj.properties,
+        &obj.required,
+        "",
+        nested_schemas,
+    )
+}
+
+fn generate_nested_struct_for_object_like(
+    spec: &OpenAPI,
+    parent_name: &str,
+    field_name: &str,
+    schema: &openapiv3::Schema,
+    properties: &indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
+    required: &[String],
+    fallback_suffix: &str,
+    nested_schemas: &mut Vec<TokenStream>,
+) -> Result<(), String> {
+    let nested_struct_name = schema
+        .schema_data
+        .title
+        .as_ref()
+        .map(|t| t.to_upper_camel_case())
+        .unwrap_or_else(|| {
+            format!(
+                "{}{}{}",
+                parent_name.to_upper_camel_case(),
+                field_name.to_upper_camel_case(),
+                fallback_suffix
+            )
+        });
+    let struct_ident = Ident::new(&nested_struct_name, Span::call_site());
+
+    collect_nested_schemas(spec, &nested_struct_name, properties, nested_schemas)?;
+
+    let fields = generate_struct_fields(&nested_struct_name, properties, required);
+    let can_derive_default = can_fields_derive_default(properties, required);
+
+    let description = schema
+        .schema_data
+        .description
+        .as_ref()
+        .map(|d| generate_doc_comment(d));
+
+    let derives = if can_derive_default {
+        quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
+    } else {
+        quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
+    };
+
+    nested_schemas.push(quote! {
+        #description
+        #derives
+        pub struct #struct_ident {
+            #(#fields)*
+        }
+    });
+
+    Ok(())
+}
+
+pub(crate) fn flatten_all_of_object(
+    spec: &OpenAPI,
+    all_of: &[openapiv3::ReferenceOr<openapiv3::Schema>],
+) -> Result<
+    Option<(
+        indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
+        Vec<String>,
+    )>,
+    String,
+> {
+    use openapiv3::{SchemaKind, Type};
+
+    let mut combined_properties =
+        indexmap::IndexMap::<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>::new();
+    let mut combined_required: Vec<String> = Vec::new();
+    let mut found_object = false;
+
+    for schema_ref in all_of {
+        let schema = dereference_schema(spec, schema_ref)?;
+        match &schema.schema_kind {
+            SchemaKind::Type(Type::Object(obj)) => {
+                found_object = true;
+                for (name, prop) in &obj.properties {
+                    combined_properties.insert(name.clone(), prop.clone());
+                }
+                for req in &obj.required {
+                    if !combined_required.contains(req) {
+                        combined_required.push(req.clone());
+                    }
+                }
+            }
+            SchemaKind::AllOf { all_of: nested } => {
+                if let Some((nested_properties, nested_required)) =
+                    flatten_all_of_object(spec, nested)?
+                {
+                    found_object = true;
+                    for (name, prop) in nested_properties {
+                        combined_properties.insert(name, prop);
+                    }
+                    for req in nested_required {
+                        if !combined_required.contains(&req) {
+                            combined_required.push(req);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if found_object {
+        Ok(Some((combined_properties, combined_required)))
+    } else {
+        Ok(None)
+    }
+}
+
+fn dereference_schema<'a>(
+    spec: &'a OpenAPI,
+    schema_ref: &'a openapiv3::ReferenceOr<openapiv3::Schema>,
+) -> Result<&'a openapiv3::Schema, String> {
+    match schema_ref {
+        openapiv3::ReferenceOr::Item(schema) => Ok(schema),
+        openapiv3::ReferenceOr::Reference { reference } => {
+            let schema_name = reference
+                .strip_prefix("#/components/schemas/")
+                .ok_or_else(|| format!("Unsupported schema reference: {}", reference))?;
+
+            let components = spec
+                .components
+                .as_ref()
+                .ok_or_else(|| "OpenAPI spec is missing components section".to_string())?;
+
+            let target = components
+                .schemas
+                .get(schema_name)
+                .ok_or_else(|| format!("Referenced schema '{}' not found", schema_name))?;
+
+            dereference_schema(spec, target)
         }
     }
 }
@@ -327,7 +501,8 @@ pub fn can_fields_derive_default(
                 | openapiv3::SchemaKind::Type(openapiv3::Type::Number(_))
                 | openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_))
                 | openapiv3::SchemaKind::Type(openapiv3::Type::Object(_))
-                | openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_)) => return false,
+                | openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_))
+                | openapiv3::SchemaKind::AllOf { .. } => return false,
                 _ => {}
             }
         }
@@ -453,40 +628,62 @@ pub fn infer_rust_type(
                             Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
                         quote! { #type_ident }
                     }
-                    openapiv3::ReferenceOr::Item(schema) => {
-                        match &schema.schema_kind {
-                            openapiv3::SchemaKind::Type(openapiv3::Type::Object(_)) => {
-                                // Prefer title if available, otherwise use nested struct name
-                                let nested_type = schema
-                                    .schema_data
-                                    .title
-                                    .as_ref()
-                                    .map(|t| t.to_upper_camel_case())
-                                    .or_else(|| {
-                                        parent_field.map(|(parent_name, field_name)| {
-                                            format!(
-                                                "{}{}Item",
-                                                parent_name.to_upper_camel_case(),
-                                                field_name.to_upper_camel_case()
-                                            )
-                                        })
+                    openapiv3::ReferenceOr::Item(schema) => match &schema.schema_kind {
+                        openapiv3::SchemaKind::Type(openapiv3::Type::Object(_)) => {
+                            // Prefer title if available, otherwise use nested struct name
+                            let nested_type = schema
+                                .schema_data
+                                .title
+                                .as_ref()
+                                .map(|t| t.to_upper_camel_case())
+                                .or_else(|| {
+                                    parent_field.map(|(parent_name, field_name)| {
+                                        format!(
+                                            "{}{}Item",
+                                            parent_name.to_upper_camel_case(),
+                                            field_name.to_upper_camel_case()
+                                        )
                                     })
-                                    .unwrap_or_else(|| "serde_json::Value".to_string());
+                                })
+                                .unwrap_or_else(|| "serde_json::Value".to_string());
 
-                                if nested_type == "serde_json::Value" {
-                                    quote! { serde_json::Value }
-                                } else {
-                                    let type_ident = Ident::new(&nested_type, Span::call_site());
-                                    quote! { #type_ident }
-                                }
-                            }
-                            _ => {
-                                // Create a dummy reference for recursive call
-                                let dummy_ref = openapiv3::ReferenceOr::Item(schema.clone());
-                                infer_rust_type(&schema.schema_kind, true, None, &dummy_ref)
+                            if nested_type == "serde_json::Value" {
+                                quote! { serde_json::Value }
+                            } else {
+                                let type_ident = Ident::new(&nested_type, Span::call_site());
+                                quote! { #type_ident }
                             }
                         }
-                    }
+                        openapiv3::SchemaKind::AllOf { .. } => {
+                            let nested_type = schema
+                                .schema_data
+                                .title
+                                .as_ref()
+                                .map(|t| t.to_upper_camel_case())
+                                .or_else(|| {
+                                    parent_field.map(|(parent_name, field_name)| {
+                                        format!(
+                                            "{}{}Item",
+                                            parent_name.to_upper_camel_case(),
+                                            field_name.to_upper_camel_case()
+                                        )
+                                    })
+                                })
+                                .unwrap_or_else(|| "serde_json::Value".to_string());
+
+                            if nested_type == "serde_json::Value" {
+                                quote! { serde_json::Value }
+                            } else {
+                                let type_ident = Ident::new(&nested_type, Span::call_site());
+                                quote! { #type_ident }
+                            }
+                        }
+                        _ => {
+                            // Create a dummy reference for recursive call
+                            let dummy_ref = openapiv3::ReferenceOr::Item(schema.clone());
+                            infer_rust_type(&schema.schema_kind, true, None, &dummy_ref)
+                        }
+                    },
                 };
                 quote! { Vec<#item_type> }
             } else {
@@ -495,6 +692,39 @@ pub fn infer_rust_type(
         }
         openapiv3::SchemaKind::Type(openapiv3::Type::Object(_)) => {
             // Prefer title if available from the schema_ref
+            let nested_type = if let openapiv3::ReferenceOr::Item(schema) = schema_ref {
+                schema
+                    .schema_data
+                    .title
+                    .as_ref()
+                    .map(|t| t.to_upper_camel_case())
+                    .or_else(|| {
+                        parent_field.map(|(parent_name, field_name)| {
+                            format!(
+                                "{}{}",
+                                parent_name.to_upper_camel_case(),
+                                field_name.to_upper_camel_case()
+                            )
+                        })
+                    })
+            } else {
+                parent_field.map(|(parent_name, field_name)| {
+                    format!(
+                        "{}{}",
+                        parent_name.to_upper_camel_case(),
+                        field_name.to_upper_camel_case()
+                    )
+                })
+            };
+
+            if let Some(type_name) = nested_type {
+                let type_ident = Ident::new(&type_name, Span::call_site());
+                quote! { #type_ident }
+            } else {
+                quote! { serde_json::Value }
+            }
+        }
+        openapiv3::SchemaKind::AllOf { .. } => {
             let nested_type = if let openapiv3::ReferenceOr::Item(schema) = schema_ref {
                 schema
                     .schema_data

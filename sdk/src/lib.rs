@@ -111,6 +111,7 @@
 pub mod client;
 
 #[allow(deprecated)]
+#[allow(clippy::large_enum_variant)]
 pub mod resources;
 
 pub mod version;

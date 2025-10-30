@@ -61,6 +61,7 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
         // Generate request body struct if present
         if let Some(request_body_ref) = &op.request_body {
             if let Some(body_struct) = generate_request_body_struct(
+                spec,
                 &operation_id,
                 request_body_ref,
                 &mut generated_names,
@@ -72,6 +73,7 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
 
         // Generate response body struct(s)
         if let Some(response_structs) = generate_response_body_structs(
+            spec,
             &operation_id,
             &op.responses,
             &mut generated_names,
@@ -232,6 +234,7 @@ fn infer_param_type(
 }
 
 fn generate_request_body_struct(
+    spec: &OpenAPI,
     operation_id: &str,
     request_body_ref: &openapiv3::ReferenceOr<openapiv3::RequestBody>,
     generated_names: &mut std::collections::HashSet<String>,
@@ -274,8 +277,13 @@ fn generate_request_body_struct(
                         .as_ref()
                         .map(|d| crate::schema::generate_doc_comment(d));
 
-                    let body_tokens =
-                        generate_schema_struct(&struct_name, schema, description, nested_schemas)?;
+                    let body_tokens = generate_schema_struct(
+                        spec,
+                        &struct_name,
+                        schema,
+                        description,
+                        nested_schemas,
+                    )?;
 
                     return Ok(Some(body_tokens));
                 }
@@ -287,6 +295,7 @@ fn generate_request_body_struct(
 }
 
 fn generate_response_body_structs(
+    spec: &OpenAPI,
     operation_id: &str,
     responses: &openapiv3::Responses,
     generated_names: &mut std::collections::HashSet<String>,
@@ -348,6 +357,7 @@ fn generate_response_body_structs(
                             .map(|d| crate::schema::generate_doc_comment(d.as_str()));
 
                         let body_tokens = generate_schema_struct(
+                            spec,
                             &struct_name,
                             schema,
                             description,
@@ -420,6 +430,7 @@ fn generate_response_body_structs(
                                                 });
 
                                             let body_tokens = generate_schema_struct(
+                                                spec,
                                                 &struct_name,
                                                 schema,
                                                 description,
@@ -471,6 +482,7 @@ fn generate_response_body_structs(
 }
 
 fn generate_schema_struct(
+    spec: &OpenAPI,
     struct_name: &Ident,
     schema: &openapiv3::Schema,
     description: Option<TokenStream>,
@@ -482,10 +494,11 @@ fn generate_schema_struct(
 
             // Collect nested inline schemas
             crate::schema::collect_nested_schemas_public(
+                spec,
                 &struct_name_str,
                 &obj.properties,
                 nested_schemas,
-            );
+            )?;
 
             let fields = crate::schema::generate_struct_fields(
                 &struct_name_str,
@@ -509,6 +522,53 @@ fn generate_schema_struct(
                     #(#fields)*
                 }
             })
+        }
+        openapiv3::SchemaKind::AllOf { all_of } => {
+            if let Some((combined_properties, combined_required)) =
+                crate::schema::flatten_all_of_object(spec, all_of)?
+            {
+                let struct_name_str = struct_name.to_string();
+
+                crate::schema::collect_nested_schemas_public(
+                    spec,
+                    &struct_name_str,
+                    &combined_properties,
+                    nested_schemas,
+                )?;
+
+                let fields = crate::schema::generate_struct_fields(
+                    &struct_name_str,
+                    &combined_properties,
+                    &combined_required,
+                );
+
+                let can_derive_default = crate::schema::can_fields_derive_default(
+                    &combined_properties,
+                    &combined_required,
+                );
+
+                let derives = if can_derive_default {
+                    quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
+                } else {
+                    quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
+                };
+
+                Ok(quote! {
+                    #description
+                    #derives
+                    pub struct #struct_name {
+                        #(#fields)*
+                    }
+                })
+            } else {
+                let dummy_ref = openapiv3::ReferenceOr::Item(Box::new(schema.clone()));
+                let base_type =
+                    crate::schema::infer_rust_type(&schema.schema_kind, true, None, &dummy_ref);
+                Ok(quote! {
+                    #description
+                    pub type #struct_name = #base_type;
+                })
+            }
         }
         _ => {
             // For non-object types, create a type alias
