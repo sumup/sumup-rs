@@ -4,7 +4,10 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use std::collections::HashSet;
 
-/// Generate documentation attributes from a description string.
+type Properties = indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>;
+type FlattenedObject = Option<(Properties, Vec<String>)>;
+
+/// Generates documentation attributes from a description string.
 /// Splits multi-line descriptions into separate doc attributes for better formatting.
 pub fn generate_doc_comment(description: &str) -> TokenStream {
     let lines: Vec<&str> = description.lines().collect();
@@ -32,6 +35,7 @@ pub fn generate_doc_comment(description: &str) -> TokenStream {
     quote! { #(#doc_attrs)* }
 }
 
+/// Generates struct definitions for the selected component schemas.
 pub fn generate_structs_for_schemas(
     spec: &OpenAPI,
     schema_names: &HashSet<String>,
@@ -223,6 +227,7 @@ pub fn generate_structs_for_schemas(
     })
 }
 
+/// Produces a `#[deprecated]` attribute when the schema marks itself as deprecated.
 fn generate_deprecation_attribute(schema_data: &openapiv3::SchemaData) -> TokenStream {
     if !schema_data.deprecated {
         return quote! {};
@@ -242,47 +247,123 @@ fn generate_deprecation_attribute(schema_data: &openapiv3::SchemaData) -> TokenS
     }
 }
 
-pub fn collect_nested_schemas_public(
-    spec: &OpenAPI,
-    parent_name: &str,
-    properties: &indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
-    nested_schemas: &mut Vec<TokenStream>,
-) -> Result<(), String> {
-    collect_nested_schemas(spec, parent_name, properties, nested_schemas)
+struct NestedStructGenerator<'spec, 'schemas> {
+    spec: &'spec OpenAPI,
+    nested_schemas: &'schemas mut Vec<TokenStream>,
 }
 
-fn collect_nested_schemas(
+impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
+    /// Creates a helper that appends generated nested structs to the shared buffer.
+    fn new(spec: &'spec OpenAPI, nested_schemas: &'schemas mut Vec<TokenStream>) -> Self {
+        Self {
+            spec,
+            nested_schemas,
+        }
+    }
+
+    /// Generates a nested struct for an inline object schema.
+    fn generate_for_object(
+        &mut self,
+        parent_name: &str,
+        field_name: &str,
+        schema: &openapiv3::Schema,
+        obj: &openapiv3::ObjectType,
+    ) -> Result<(), String> {
+        self.generate_for_object_like(
+            parent_name,
+            field_name,
+            schema,
+            &obj.properties,
+            &obj.required,
+            "",
+        )
+    }
+
+    /// Generates a nested struct for an object-like schema, including `allOf` composites.
+    fn generate_for_object_like(
+        &mut self,
+        parent_name: &str,
+        field_name: &str,
+        schema: &openapiv3::Schema,
+        properties: &Properties,
+        required: &[String],
+        fallback_suffix: &str,
+    ) -> Result<(), String> {
+        let nested_struct_name = schema
+            .schema_data
+            .title
+            .as_ref()
+            .map(|t| t.to_upper_camel_case())
+            .unwrap_or_else(|| {
+                format!(
+                    "{}{}{}",
+                    parent_name.to_upper_camel_case(),
+                    field_name.to_upper_camel_case(),
+                    fallback_suffix
+                )
+            });
+        let struct_ident = Ident::new(&nested_struct_name, Span::call_site());
+
+        collect_nested_schemas(
+            self.spec,
+            &nested_struct_name,
+            properties,
+            &mut *self.nested_schemas,
+        )?;
+
+        let fields = generate_struct_fields(&nested_struct_name, properties, required);
+        let can_derive_default = can_fields_derive_default(properties, required);
+
+        let description = schema
+            .schema_data
+            .description
+            .as_ref()
+            .map(|d| generate_doc_comment(d));
+
+        let derives = if can_derive_default {
+            quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
+        } else {
+            quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
+        };
+
+        self.nested_schemas.push(quote! {
+            #description
+            #derives
+            pub struct #struct_ident {
+                #(#fields)*
+            }
+        });
+
+        Ok(())
+    }
+}
+
+/// Collects nested inline schemas for a parent type so callers can emit them later.
+pub fn collect_nested_schemas(
     spec: &OpenAPI,
     parent_name: &str,
-    properties: &indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
+    properties: &Properties,
     nested_schemas: &mut Vec<TokenStream>,
 ) -> Result<(), String> {
+    let mut generator = NestedStructGenerator::new(spec, nested_schemas);
+
     for (field_name, prop_ref) in properties {
         if let openapiv3::ReferenceOr::Item(schema) = prop_ref {
             match &schema.schema_kind {
                 openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
-                    generate_nested_struct_for_object(
-                        spec,
-                        parent_name,
-                        field_name,
-                        schema,
-                        obj,
-                        nested_schemas,
-                    )?;
+                    generator.generate_for_object(parent_name, field_name, schema, obj)?;
                 }
                 openapiv3::SchemaKind::AllOf { all_of } => {
                     if let Some((combined_properties, combined_required)) =
                         flatten_all_of_object(spec, all_of)?
                     {
-                        generate_nested_struct_for_object_like(
-                            spec,
+                        generator.generate_for_object_like(
                             parent_name,
                             field_name,
                             schema,
                             &combined_properties,
                             &combined_required,
                             "",
-                            nested_schemas,
                         )?;
                     }
                 }
@@ -290,30 +371,26 @@ fn collect_nested_schemas(
                     if let Some(openapiv3::ReferenceOr::Item(item_schema)) = &arr.items {
                         match &item_schema.schema_kind {
                             openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
-                                generate_nested_struct_for_object_like(
-                                    spec,
+                                generator.generate_for_object_like(
                                     parent_name,
                                     field_name,
                                     item_schema,
                                     &obj.properties,
                                     &obj.required,
                                     "Item",
-                                    nested_schemas,
                                 )?;
                             }
                             openapiv3::SchemaKind::AllOf { all_of } => {
                                 if let Some((combined_properties, combined_required)) =
                                     flatten_all_of_object(spec, all_of)?
                                 {
-                                    generate_nested_struct_for_object_like(
-                                        spec,
+                                    generator.generate_for_object_like(
                                         parent_name,
                                         field_name,
                                         item_schema,
                                         &combined_properties,
                                         &combined_required,
                                         "Item",
-                                        nested_schemas,
                                     )?;
                                 }
                             }
@@ -329,93 +406,14 @@ fn collect_nested_schemas(
     Ok(())
 }
 
-fn generate_nested_struct_for_object(
-    spec: &OpenAPI,
-    parent_name: &str,
-    field_name: &str,
-    schema: &openapiv3::Schema,
-    obj: &openapiv3::ObjectType,
-    nested_schemas: &mut Vec<TokenStream>,
-) -> Result<(), String> {
-    generate_nested_struct_for_object_like(
-        spec,
-        parent_name,
-        field_name,
-        schema,
-        &obj.properties,
-        &obj.required,
-        "",
-        nested_schemas,
-    )
-}
-
-fn generate_nested_struct_for_object_like(
-    spec: &OpenAPI,
-    parent_name: &str,
-    field_name: &str,
-    schema: &openapiv3::Schema,
-    properties: &indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
-    required: &[String],
-    fallback_suffix: &str,
-    nested_schemas: &mut Vec<TokenStream>,
-) -> Result<(), String> {
-    let nested_struct_name = schema
-        .schema_data
-        .title
-        .as_ref()
-        .map(|t| t.to_upper_camel_case())
-        .unwrap_or_else(|| {
-            format!(
-                "{}{}{}",
-                parent_name.to_upper_camel_case(),
-                field_name.to_upper_camel_case(),
-                fallback_suffix
-            )
-        });
-    let struct_ident = Ident::new(&nested_struct_name, Span::call_site());
-
-    collect_nested_schemas(spec, &nested_struct_name, properties, nested_schemas)?;
-
-    let fields = generate_struct_fields(&nested_struct_name, properties, required);
-    let can_derive_default = can_fields_derive_default(properties, required);
-
-    let description = schema
-        .schema_data
-        .description
-        .as_ref()
-        .map(|d| generate_doc_comment(d));
-
-    let derives = if can_derive_default {
-        quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
-    } else {
-        quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
-    };
-
-    nested_schemas.push(quote! {
-        #description
-        #derives
-        pub struct #struct_ident {
-            #(#fields)*
-        }
-    });
-
-    Ok(())
-}
-
+/// Flattens an `allOf` object hierarchy into a single property map and required field list.
 pub(crate) fn flatten_all_of_object(
     spec: &OpenAPI,
     all_of: &[openapiv3::ReferenceOr<openapiv3::Schema>],
-) -> Result<
-    Option<(
-        indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
-        Vec<String>,
-    )>,
-    String,
-> {
+) -> Result<FlattenedObject, String> {
     use openapiv3::{SchemaKind, Type};
 
-    let mut combined_properties =
-        indexmap::IndexMap::<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>::new();
+    let mut combined_properties = Properties::new();
     let mut combined_required: Vec<String> = Vec::new();
     let mut found_object = false;
 
@@ -459,6 +457,7 @@ pub(crate) fn flatten_all_of_object(
     }
 }
 
+/// Resolves a schema reference to the concrete schema definition within `components`.
 fn dereference_schema<'a>(
     spec: &'a OpenAPI,
     schema_ref: &'a openapiv3::ReferenceOr<openapiv3::Schema>,
@@ -485,10 +484,8 @@ fn dereference_schema<'a>(
     }
 }
 
-pub fn can_fields_derive_default(
-    properties: &indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
-    required: &[String],
-) -> bool {
+/// Checks whether all required fields support deriving `Default`.
+pub fn can_fields_derive_default(properties: &Properties, required: &[String]) -> bool {
     for (name, prop_ref) in properties {
         if required.contains(name) {
             let prop = match prop_ref {
@@ -510,9 +507,10 @@ pub fn can_fields_derive_default(
     true
 }
 
+/// Generates struct field declarations for the given property map.
 pub fn generate_struct_fields(
     parent_name: &str,
-    properties: &indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
+    properties: &Properties,
     required: &[String],
 ) -> Vec<TokenStream> {
     properties
@@ -601,6 +599,7 @@ pub fn generate_struct_fields(
         .collect()
 }
 
+/// Infers an appropriate Rust type for the provided schema kind.
 pub fn infer_rust_type(
     schema_kind: &openapiv3::SchemaKind,
     required: bool,
@@ -767,6 +766,7 @@ pub fn infer_rust_type(
     }
 }
 
+/// Normalizes raw enum variant strings into valid Rust identifiers.
 fn sanitize_enum_variant(variant: &str) -> String {
     use heck::ToPascalCase;
 
@@ -781,9 +781,10 @@ fn sanitize_enum_variant(variant: &str) -> String {
     }
 }
 
+/// Generates a `std::error::Error` implementation for schemas marked as error types.
 fn generate_error_impl(
     struct_name: &Ident,
-    properties: &indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>,
+    properties: &Properties,
     required: &[String],
 ) -> TokenStream {
     // Helper function to check if a field is required

@@ -3,7 +3,7 @@ use openapiv3::OpenAPI;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
-/// Generate request and response body structs for operations
+/// Generates request and response body structs for every operation under the given tag.
 pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
     let mut body_structs = Vec::new();
     let mut generated_names = std::collections::HashSet::new();
@@ -92,6 +92,7 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
     })
 }
 
+/// Creates a query params struct for the operation when query parameters are defined.
 fn generate_query_params_struct(
     operation_id: &str,
     operation: &openapiv3::Operation,
@@ -189,6 +190,7 @@ fn generate_query_params_struct(
     }))
 }
 
+/// Infers the Rust type for a query parameter schema and reports whether it represents an array.
 fn infer_param_type(
     schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
     required: bool,
@@ -244,6 +246,7 @@ fn infer_param_type(
     }
 }
 
+/// Emits a request body struct for inline request schemas referenced by the operation.
 fn generate_request_body_struct(
     spec: &OpenAPI,
     operation_id: &str,
@@ -305,6 +308,7 @@ fn generate_request_body_struct(
     Ok(None)
 }
 
+/// Creates response body representations for the operation's successful responses.
 fn generate_response_body_structs(
     spec: &OpenAPI,
     operation_id: &str,
@@ -492,6 +496,7 @@ fn generate_response_body_structs(
     }
 }
 
+/// Converts an inline schema into a concrete struct or type alias and tracks nested schemas.
 fn generate_schema_struct(
     spec: &OpenAPI,
     struct_name: &Ident,
@@ -504,7 +509,7 @@ fn generate_schema_struct(
             let struct_name_str = struct_name.to_string();
 
             // Collect nested inline schemas
-            crate::schema::collect_nested_schemas_public(
+            crate::schema::collect_nested_schemas(
                 spec,
                 &struct_name_str,
                 &obj.properties,
@@ -540,7 +545,7 @@ fn generate_schema_struct(
             {
                 let struct_name_str = struct_name.to_string();
 
-                crate::schema::collect_nested_schemas_public(
+                crate::schema::collect_nested_schemas(
                     spec,
                     &struct_name_str,
                     &combined_properties,

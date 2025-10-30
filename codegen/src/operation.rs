@@ -4,7 +4,7 @@ use openapiv3::OpenAPI;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
-/// Generate documentation attributes from a description string.
+/// Generates documentation attributes from a description string.
 /// Splits multi-line descriptions into separate doc attributes for better formatting.
 fn generate_doc_comment(description: &str) -> TokenStream {
     let lines: Vec<&str> = description.lines().collect();
@@ -32,6 +32,7 @@ fn generate_doc_comment(description: &str) -> TokenStream {
     quote! { #(#doc_attrs)* }
 }
 
+/// Produces client method implementations for all operations labeled with the supplied tag.
 pub fn generate_client_methods(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
     let mut methods = Vec::new();
 
@@ -84,6 +85,7 @@ pub fn generate_client_methods(spec: &OpenAPI, tag: &str) -> Result<TokenStream,
     })
 }
 
+/// Generates a concrete client method for the provided HTTP operation and path.
 fn generate_operation_method(
     spec: &OpenAPI,
     path: &str,
@@ -428,19 +430,20 @@ fn generate_operation_method(
     })
 }
 
+/// Returns true when a query parameter uses an array schema.
 fn is_array_query_param(param: &openapiv3::ParameterData) -> bool {
     match &param.format {
-        openapiv3::ParameterSchemaOrContent::Schema(schema_ref) => match schema_ref {
-            openapiv3::ReferenceOr::Item(schema) => matches!(
+        openapiv3::ParameterSchemaOrContent::Schema(openapiv3::ReferenceOr::Item(schema)) => {
+            matches!(
                 schema.schema_kind,
                 openapiv3::SchemaKind::Type(openapiv3::Type::Array(_))
-            ),
-            _ => false,
-        },
+            )
+        }
         _ => false,
     }
 }
 
+/// Builds response handling logic and determines the method's return type.
 fn generate_response_handling(
     operation: &openapiv3::Operation,
     spec: &openapiv3::OpenAPI,
@@ -507,6 +510,7 @@ fn generate_response_handling(
     Ok((return_type, response_handling))
 }
 
+/// Determines the concrete return type for a single successful response variant.
 fn get_response_type_for_single(
     operation_id: &str,
     response_ref: &openapiv3::ReferenceOr<openapiv3::Response>,
@@ -561,6 +565,7 @@ fn get_response_type_for_single(
     }
 }
 
+/// Converts a numeric status code to an equivalent `reqwest::StatusCode` token when available.
 fn status_code_to_constant(status: u16) -> TokenStream {
     match status {
         200 => quote! { reqwest::StatusCode::OK },
@@ -619,6 +624,7 @@ fn status_code_to_constant(status: u16) -> TokenStream {
     }
 }
 
+/// Generates `match` arms that deserialize known error responses or surface textual bodies.
 fn generate_error_match_arms(
     error_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
     spec: &openapiv3::OpenAPI,
@@ -735,6 +741,7 @@ fn generate_error_match_arms(
     Ok(error_arms)
 }
 
+/// Handles operations lacking explicit success responses by only validating the status.
 fn generate_no_success_response_handling(
     error_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
     spec: &openapiv3::OpenAPI,
@@ -758,6 +765,7 @@ fn generate_no_success_response_handling(
     })
 }
 
+/// Produces response handling logic for operations with one successful status code.
 fn generate_single_response_handling(
     operation_id: &str,
     (status, response_ref): &(u16, &openapiv3::ReferenceOr<openapiv3::Response>),
@@ -814,6 +822,7 @@ fn generate_single_response_handling(
     }
 }
 
+/// Emits response handling that deserializes into an enum for multi-status operations.
 fn generate_multi_response_handling(
     operation_id: &str,
     success_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],

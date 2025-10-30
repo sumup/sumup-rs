@@ -19,7 +19,7 @@ pub use operation::generate_client_methods;
 pub use schema::generate_structs_for_schemas;
 pub use tag::{collect_schemas_by_tag, SchemasByTag, TagSchemas};
 
-/// Generate the module coordinator file
+/// Generates `resources/mod.rs`, wiring up tag modules and common exports.
 pub fn generate_mod_file(out_path: &Path, schemas_by_tag: &SchemasByTag) -> Result<(), String> {
     let tag_schemas = &schemas_by_tag.tag_schemas;
     let mut mod_path = out_path.to_path_buf();
@@ -68,7 +68,7 @@ pub fn generate_mod_file(out_path: &Path, schemas_by_tag: &SchemasByTag) -> Resu
     Ok(())
 }
 
-/// Generate the common.rs file with shared schemas
+/// Generates `resources/common.rs` containing schemas shared across multiple tags.
 pub fn generate_common_file(
     out_path: &Path,
     spec: &OpenAPI,
@@ -95,7 +95,7 @@ pub fn generate_common_file(
     Ok(())
 }
 
-/// Format generated token stream into pretty Rust code
+/// Formats generated tokens into Rust source and prepends the standard header.
 pub fn format_generated_code(tokens: TokenStream) -> String {
     let header = "// The contents of this file are generated; do not modify them.\n\n";
 
@@ -112,6 +112,7 @@ pub fn format_generated_code(tokens: TokenStream) -> String {
     }
 }
 
+/// Runs `rustfmt` to polish already formatted source, falling back on failure.
 fn format_with_rustfmt(code: &str) -> Result<String, std::io::Error> {
     use std::io::Write;
     use std::process::{Command, Stdio};
@@ -136,7 +137,7 @@ fn format_with_rustfmt(code: &str) -> Result<String, std::io::Error> {
     }
 }
 
-/// Generate tag client code
+/// Builds the client struct and methods for a specific OpenAPI tag.
 pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
     let client_type = Ident::new(
         &format!("{}Client", tag.to_upper_camel_case()),
@@ -171,7 +172,7 @@ pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, Str
     })
 }
 
-/// Check if any schema in the set references a common schema
+/// Checks whether any schema in the given set references a schema marked as common.
 pub fn does_reference_common_schemas(
     spec: &OpenAPI,
     schemas: &std::collections::HashSet<String>,
@@ -198,7 +199,7 @@ pub fn does_reference_common_schemas(
     false
 }
 
-/// Check if operations with this tag reference common schemas in their responses
+/// Reports whether operations with the given tag mention common schemas in their responses.
 pub fn does_tag_operations_reference_common(
     spec: &OpenAPI,
     tag: &str,
@@ -246,6 +247,7 @@ pub fn does_tag_operations_reference_common(
     false
 }
 
+/// Returns true when the schema reference resolves to one of the common schemas.
 fn references_common_schema_ref(
     schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
     common_schemas: &std::collections::HashSet<String>,
@@ -263,6 +265,7 @@ fn references_common_schema_ref(
     false
 }
 
+/// Walks the schema tree to determine whether it references any common schema.
 fn references_common_in_schema(
     schema: &openapiv3::Schema,
     common_schemas: &std::collections::HashSet<String>,
