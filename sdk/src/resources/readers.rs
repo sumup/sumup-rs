@@ -217,6 +217,32 @@ pub struct UpdateReaderBody {
     pub meta: Option<Meta>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum GetReaderErrorBody {
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum UpdateReaderErrorBody {
+    Forbidden(String),
+}
+#[derive(Debug)]
+pub enum CreateReaderCheckoutErrorBody {
+    BadRequest(CreateReaderCheckoutError),
+    Unauthorized(CreateReaderCheckoutError),
+    UnprocessableEntity(CreateReaderCheckoutUnprocessableEntity),
+    InternalServerError(CreateReaderCheckoutError),
+    BadGateway(CreateReaderCheckoutError),
+    GatewayTimeout(CreateReaderCheckoutError),
+}
+#[derive(Debug)]
+pub enum CreateReaderTerminateErrorBody {
+    BadRequest(CreateReaderTerminateError),
+    Unauthorized(CreateReaderTerminateError),
+    UnprocessableEntity(CreateReaderTerminateUnprocessableEntity),
+    InternalServerError(CreateReaderTerminateError),
+    BadGateway(CreateReaderTerminateError),
+    GatewayTimeout(CreateReaderTerminateError),
+}
 ///Client for the Readers API endpoints.
 #[derive(Debug)]
 pub struct ReadersClient<'a> {
@@ -236,7 +262,7 @@ impl<'a> ReadersClient<'a> {
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
-    ) -> Result<ListReadersResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListReadersResponse, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -249,15 +275,16 @@ impl<'a> ReadersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListReadersResponse = response.json().await?;
                 Ok(data)
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -268,7 +295,7 @@ impl<'a> ReadersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         body: CreateReaderBody,
-    ) -> Result<Reader, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Reader, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -282,15 +309,16 @@ impl<'a> ReadersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::CREATED => {
                 let data: Reader = response.json().await?;
                 Ok(data)
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -301,7 +329,7 @@ impl<'a> ReadersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         id: impl Into<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<(), crate::error::UnknownApiBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
@@ -318,12 +346,13 @@ impl<'a> ReadersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => Ok(()),
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -334,7 +363,7 @@ impl<'a> ReadersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         id: impl Into<String>,
-    ) -> Result<Reader, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Reader, GetReaderErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
@@ -351,23 +380,22 @@ impl<'a> ReadersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Reader = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!(
-                    "{}: {}",
-                    "The requested Reader resource does not exists.", body
-                )
-                .into())
+                Err(crate::error::SdkError::api(GetReaderErrorBody::NotFound(
+                    body,
+                )))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -379,7 +407,7 @@ impl<'a> ReadersClient<'a> {
         merchant_code: impl Into<String>,
         id: impl Into<String>,
         body: UpdateReaderBody,
-    ) -> Result<Reader, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Reader, UpdateReaderErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
@@ -397,23 +425,22 @@ impl<'a> ReadersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Reader = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body = response.text().await?;
-                Err(format!(
-                    "{}: {}",
-                    "The reader is not linked to the merchant account.", body
-                )
-                .into())
+                Err(crate::error::SdkError::api(
+                    UpdateReaderErrorBody::Forbidden(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -435,7 +462,7 @@ impl<'a> ReadersClient<'a> {
         merchant_code: impl Into<String>,
         reader_id: impl Into<String>,
         body: CreateReaderCheckoutRequest,
-    ) -> Result<CreateReaderCheckoutResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<CreateReaderCheckoutResponse, CreateReaderCheckoutErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}/checkout",
             merchant_code.into(),
@@ -453,39 +480,52 @@ impl<'a> ReadersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::CREATED => {
                 let data: CreateReaderCheckoutResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let error: CreateReaderCheckoutError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderCheckoutError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::BadRequest(body),
+                ))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: CreateReaderCheckoutError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderCheckoutError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
-                let error: CreateReaderCheckoutUnprocessableEntity = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderCheckoutUnprocessableEntity = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::UnprocessableEntity(body),
+                ))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
-                let error: CreateReaderCheckoutError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderCheckoutError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::InternalServerError(body),
+                ))
             }
             reqwest::StatusCode::BAD_GATEWAY => {
-                let error: CreateReaderCheckoutError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderCheckoutError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::BadGateway(body),
+                ))
             }
             reqwest::StatusCode::GATEWAY_TIMEOUT => {
-                let error: CreateReaderCheckoutError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderCheckoutError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::GatewayTimeout(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -509,7 +549,7 @@ impl<'a> ReadersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         reader_id: impl Into<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<(), CreateReaderTerminateErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}/terminate",
             merchant_code.into(),
@@ -526,36 +566,49 @@ impl<'a> ReadersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::ACCEPTED => Ok(()),
             reqwest::StatusCode::BAD_REQUEST => {
-                let error: CreateReaderTerminateError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderTerminateError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::BadRequest(body),
+                ))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: CreateReaderTerminateError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderTerminateError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
-                let error: CreateReaderTerminateUnprocessableEntity = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderTerminateUnprocessableEntity = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::UnprocessableEntity(body),
+                ))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
-                let error: CreateReaderTerminateError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderTerminateError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::InternalServerError(body),
+                ))
             }
             reqwest::StatusCode::BAD_GATEWAY => {
-                let error: CreateReaderTerminateError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderTerminateError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::BadGateway(body),
+                ))
             }
             reqwest::StatusCode::GATEWAY_TIMEOUT => {
-                let error: CreateReaderTerminateError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CreateReaderTerminateError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::GatewayTimeout(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

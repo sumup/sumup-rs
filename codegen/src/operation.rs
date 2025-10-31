@@ -4,7 +4,42 @@ use openapiv3::OpenAPI;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
-/// Generate documentation attributes from a description string.
+struct OperationResponse {
+    return_type: TokenStream,
+    response_handling: TokenStream,
+    error_type: TokenStream,
+    error_definition: Option<TokenStream>,
+}
+
+struct ErrorGeneration {
+    match_arms: Vec<TokenStream>,
+    body_type: TokenStream,
+    body_definition: Option<TokenStream>,
+}
+
+#[derive(Clone)]
+enum BodyKind {
+    Schema(Ident),
+    Text,
+}
+
+struct ErrorEntry {
+    status_code: u16,
+    status_const: TokenStream,
+    body_kind: BodyKind,
+}
+
+pub struct GeneratedClientMethods {
+    pub methods: Vec<TokenStream>,
+    pub extra_items: Vec<TokenStream>,
+}
+
+struct GeneratedOperation {
+    method: TokenStream,
+    extra_items: Vec<TokenStream>,
+}
+
+/// Generates documentation attributes from a description string.
 /// Splits multi-line descriptions into separate doc attributes for better formatting.
 fn generate_doc_comment(description: &str) -> TokenStream {
     let lines: Vec<&str> = description.lines().collect();
@@ -32,8 +67,13 @@ fn generate_doc_comment(description: &str) -> TokenStream {
     quote! { #(#doc_attrs)* }
 }
 
-pub fn generate_client_methods(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
+/// Produces client method implementations for all operations labeled with the supplied tag.
+pub fn generate_client_methods(
+    spec: &OpenAPI,
+    tag: &str,
+) -> Result<GeneratedClientMethods, String> {
     let mut methods = Vec::new();
+    let mut extra_items = Vec::new();
 
     // Collect all operations with this tag and sort them
     let mut operations_to_process = Vec::new();
@@ -74,23 +114,26 @@ pub fn generate_client_methods(spec: &OpenAPI, tag: &str) -> Result<TokenStream,
     operations_to_process.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(b.1)));
 
     for (path, http_method, operation, path_parameters) in operations_to_process {
-        let method =
+        let generated =
             generate_operation_method(spec, &path, http_method, operation, &path_parameters)?;
-        methods.push(method);
+        methods.push(generated.method);
+        extra_items.extend(generated.extra_items);
     }
 
-    Ok(quote! {
-        #(#methods)*
+    Ok(GeneratedClientMethods {
+        methods,
+        extra_items,
     })
 }
 
+/// Generates a concrete client method for the provided HTTP operation and path.
 fn generate_operation_method(
     spec: &OpenAPI,
     path: &str,
     http_method: &str,
     operation: &openapiv3::Operation,
     path_parameters: &[openapiv3::ReferenceOr<openapiv3::Parameter>],
-) -> Result<TokenStream, String> {
+) -> Result<GeneratedOperation, String> {
     // Determine method name
     let method_name = if let Some(codegen) = operation.extensions.get("x-codegen") {
         if let Some(codegen_obj) = codegen.as_object() {
@@ -319,7 +362,12 @@ fn generate_operation_method(
     let http_method_ident = Ident::new(http_method, Span::call_site());
 
     // Determine response type and error handling
-    let (return_type, response_handling) = generate_response_handling(operation, spec)?;
+    let OperationResponse {
+        return_type,
+        response_handling,
+        error_type,
+        error_definition,
+    } = generate_response_handling(operation, spec)?;
 
     // Add doc comment if available - combine summary and description
     let doc_comment = match (&operation.summary, &operation.description) {
@@ -410,21 +458,32 @@ fn generate_operation_method(
         }
     };
 
-    Ok(quote! {
+    let method_tokens = quote! {
         #doc_comment
-        pub async fn #method_ident(&self, #(#path_params),*) -> Result<#return_type, Box<dyn std::error::Error>> {
+        pub async fn #method_ident(&self, #(#path_params),*) -> crate::error::SdkResult<#return_type, #error_type> {
             #path_construction
             let url = format!("{}{}", self.client.base_url(), path);
             #request_send
             #response_handling
         }
+    };
+
+    let mut extra_items = Vec::new();
+    if let Some(definition) = error_definition {
+        extra_items.push(definition);
+    }
+
+    Ok(GeneratedOperation {
+        method: method_tokens,
+        extra_items,
     })
 }
 
+/// Builds response handling logic and determines the method's return type.
 fn generate_response_handling(
     operation: &openapiv3::Operation,
     spec: &openapiv3::OpenAPI,
-) -> Result<(TokenStream, TokenStream), String> {
+) -> Result<OperationResponse, String> {
     use heck::ToUpperCamelCase;
 
     let operation_id = operation
@@ -432,7 +491,6 @@ fn generate_response_handling(
         .as_ref()
         .ok_or_else(|| "Operation missing operation_id".to_string())?;
 
-    // Collect success responses (2xx) and error responses (4xx, 5xx)
     let mut success_responses = Vec::new();
     let mut error_responses = Vec::new();
 
@@ -448,45 +506,39 @@ fn generate_response_handling(
         }
     }
 
-    // Sort responses by status code for deterministic output
     success_responses.sort_by_key(|(code, _)| *code);
     error_responses.sort_by_key(|(code, _)| *code);
 
-    // Determine the return type based on success responses
     let return_type = if success_responses.is_empty() {
-        // No success response defined - return unit
         quote! { () }
     } else if success_responses.len() == 1 {
-        // Single success response - determine the actual type
         let (_, response_ref) = success_responses[0];
         get_response_type_for_single(operation_id, response_ref)?
     } else {
-        // Multiple success responses - use enum
         let response_type_name = format!("{}Response", operation_id.to_upper_camel_case());
         let response_type = Ident::new(&response_type_name, Span::call_site());
         quote! { #response_type }
     };
 
-    // Generate response handling code
+    let error_generation = generate_error_handling(operation_id, &error_responses, spec)?;
+
     let response_handling = if success_responses.is_empty() {
-        // No success response - just check status
-        generate_no_success_response_handling(&error_responses, spec)?
+        generate_no_success_response_handling(&error_generation)?
     } else if success_responses.len() == 1 {
-        // Single success response
-        generate_single_response_handling(
-            operation_id,
-            &success_responses[0],
-            &error_responses,
-            spec,
-        )?
+        generate_single_response_handling(operation_id, &success_responses[0], &error_generation)?
     } else {
-        // Multiple success responses
-        generate_multi_response_handling(operation_id, &success_responses, &error_responses, spec)?
+        generate_multi_response_handling(operation_id, &success_responses, &error_generation)?
     };
 
-    Ok((return_type, response_handling))
+    Ok(OperationResponse {
+        return_type,
+        response_handling,
+        error_type: error_generation.body_type,
+        error_definition: error_generation.body_definition,
+    })
 }
 
+/// Determines the concrete return type for a single successful response variant.
 fn get_response_type_for_single(
     operation_id: &str,
     response_ref: &openapiv3::ReferenceOr<openapiv3::Response>,
@@ -541,6 +593,7 @@ fn get_response_type_for_single(
     }
 }
 
+/// Converts a numeric status code to an equivalent `reqwest::StatusCode` token when available.
 fn status_code_to_constant(status: u16) -> TokenStream {
     match status {
         200 => quote! { reqwest::StatusCode::OK },
@@ -599,158 +652,224 @@ fn status_code_to_constant(status: u16) -> TokenStream {
     }
 }
 
-fn generate_error_match_arms(
+fn status_code_to_variant_name(status: u16) -> String {
+    match status {
+        400 => "BadRequest",
+        401 => "Unauthorized",
+        402 => "PaymentRequired",
+        403 => "Forbidden",
+        404 => "NotFound",
+        405 => "MethodNotAllowed",
+        406 => "NotAcceptable",
+        407 => "ProxyAuthenticationRequired",
+        408 => "RequestTimeout",
+        409 => "Conflict",
+        410 => "Gone",
+        411 => "LengthRequired",
+        412 => "PreconditionFailed",
+        413 => "PayloadTooLarge",
+        414 => "UriTooLong",
+        415 => "UnsupportedMediaType",
+        416 => "RangeNotSatisfiable",
+        417 => "ExpectationFailed",
+        418 => "ImATeapot",
+        421 => "MisdirectedRequest",
+        422 => "UnprocessableEntity",
+        423 => "Locked",
+        424 => "FailedDependency",
+        425 => "TooEarly",
+        426 => "UpgradeRequired",
+        428 => "PreconditionRequired",
+        429 => "TooManyRequests",
+        431 => "RequestHeaderFieldsTooLarge",
+        451 => "UnavailableForLegalReasons",
+        500 => "InternalServerError",
+        501 => "NotImplemented",
+        502 => "BadGateway",
+        503 => "ServiceUnavailable",
+        504 => "GatewayTimeout",
+        505 => "HttpVersionNotSupported",
+        506 => "VariantAlsoNegotiates",
+        507 => "InsufficientStorage",
+        508 => "LoopDetected",
+        510 => "NotExtended",
+        511 => "NetworkAuthenticationRequired",
+        _ => return format!("Status{}", status),
+    }
+    .to_string()
+}
+
+/// Builds error handling match arms and endpoint-specific error metadata.
+fn generate_error_handling(
+    operation_id: &str,
     error_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
     spec: &openapiv3::OpenAPI,
-) -> Result<Vec<TokenStream>, String> {
-    let mut error_arms = Vec::new();
+) -> Result<ErrorGeneration, String> {
+    if error_responses.is_empty() {
+        return Ok(ErrorGeneration {
+            match_arms: Vec::new(),
+            body_type: quote! { crate::error::UnknownApiBody },
+            body_definition: None,
+        });
+    }
 
-    let schemas = match &spec.components {
-        Some(components) => &components.schemas,
-        None => {
-            // No schemas available, fall back to generic errors
-            for (status_code, response_ref) in error_responses {
-                let status_const = status_code_to_constant(*status_code);
-                let description = match response_ref {
-                    openapiv3::ReferenceOr::Item(resp) => &resp.description,
-                    _ => "Unknown error",
-                };
-                error_arms.push(quote! {
-                    #status_const => {
-                        let body = response.text().await?;
-                        Err(format!("{}: {}", #description, body).into())
-                    }
-                });
-            }
-            return Ok(error_arms);
-        }
-    };
+    use heck::ToUpperCamelCase;
+
+    let mut entries = Vec::new();
 
     for (status_code, response_ref) in error_responses {
         let status_const = status_code_to_constant(*status_code);
-
-        // Check if this error response has a schema
-        let error_type_opt = match response_ref {
-            openapiv3::ReferenceOr::Reference { reference } => {
-                // Referenced response - extract schema name
-                let schema_name = reference
-                    .strip_prefix("#/components/responses/")
-                    .or_else(|| reference.strip_prefix("#/components/schemas/"))
-                    .ok_or_else(|| format!("Invalid response reference: {}", reference))?;
-                Some(schema_name)
-            }
-            openapiv3::ReferenceOr::Item(response) => {
-                // Check if response has content with a schema
-                if let Some(media_type) = response
-                    .content
-                    .get("application/json")
-                    .or_else(|| response.content.values().next())
-                {
-                    if let Some(schema_ref) = &media_type.schema {
-                        match schema_ref {
-                            openapiv3::ReferenceOr::Reference { reference } => {
-                                // Schema reference
-                                reference.strip_prefix("#/components/schemas/")
-                            }
-                            openapiv3::ReferenceOr::Item(_) => {
-                                // Inline schema - skip for now
-                                None
-                            }
-                        }
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }
+        let body_kind = match extract_error_schema_ident(response_ref, spec) {
+            Some(ident) => BodyKind::Schema(ident),
+            None => BodyKind::Text,
         };
+        entries.push(ErrorEntry {
+            status_code: *status_code,
+            status_const,
+            body_kind,
+        });
+    }
 
-        if let Some(schema_name) = error_type_opt {
-            let error_type = Ident::new(schema_name, Span::call_site());
+    if entries.is_empty() {
+        return Ok(ErrorGeneration {
+            match_arms: Vec::new(),
+            body_type: quote! { crate::error::UnknownApiBody },
+            body_definition: None,
+        });
+    }
 
-            // Check if the schema is an object (struct) or something else
-            let is_struct =
-                if let Some(openapiv3::ReferenceOr::Item(schema)) = schemas.get(schema_name) {
-                    matches!(
-                        &schema.schema_kind,
-                        openapiv3::SchemaKind::Type(openapiv3::Type::Object(_))
-                    )
-                } else {
-                    false
-                };
+    let enum_name = format!("{}ErrorBody", operation_id.to_upper_camel_case());
+    let enum_ident = Ident::new(&enum_name, Span::call_site());
 
-            if is_struct {
-                // It's a struct, so it implements Error trait - box it
-                error_arms.push(quote! {
+    let mut variant_defs = Vec::new();
+    let mut seen_variants: Vec<String> = Vec::new();
+    let mut match_arms = Vec::new();
+
+    for entry in entries {
+        let status_const = entry.status_const;
+        let variant_name = status_code_to_variant_name(entry.status_code);
+        let variant_ident = Ident::new(&variant_name, Span::call_site());
+
+        if !seen_variants.contains(&variant_name) {
+            let field_type = match entry.body_kind {
+                BodyKind::Schema(ref ident) => quote! { #ident },
+                BodyKind::Text => quote! { String },
+            };
+            variant_defs.push(quote! { #variant_ident(#field_type), });
+            seen_variants.push(variant_name.clone());
+        }
+
+        match entry.body_kind {
+            BodyKind::Schema(ident) => {
+                match_arms.push(quote! {
                     #status_const => {
-                        let error: #error_type = response.json().await?;
-                        Err(Box::new(error) as Box<dyn std::error::Error>)
-                    }
-                });
-            } else {
-                // It's a type alias - format as Debug string
-                error_arms.push(quote! {
-                    #status_const => {
-                        let error: #error_type = response.json().await?;
-                        Err(format!("{:?}", error).into())
+                        let body: #ident = response.json().await?;
+                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident(body)))
                     }
                 });
             }
-        } else {
-            // No specific error schema - use generic error message
-            let description = match response_ref {
-                openapiv3::ReferenceOr::Item(resp) => &resp.description,
-                _ => "Unknown error",
-            };
-            error_arms.push(quote! {
-                #status_const => {
-                    let body = response.text().await?;
-                    Err(format!("{}: {}", #description, body).into())
-                }
-            });
+            BodyKind::Text => {
+                match_arms.push(quote! {
+                    #status_const => {
+                        let body = response.text().await?;
+                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident(body)))
+                    }
+                });
+            }
         }
     }
 
-    Ok(error_arms)
+    let body_definition = Some(quote! {
+        #[derive(Debug)]
+        pub enum #enum_ident {
+            #(#variant_defs)*
+        }
+    });
+
+    Ok(ErrorGeneration {
+        match_arms,
+        body_type: quote! { #enum_ident },
+        body_definition,
+    })
 }
 
-fn generate_no_success_response_handling(
-    error_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
+fn extract_error_schema_ident(
+    response_ref: &openapiv3::ReferenceOr<openapiv3::Response>,
     spec: &openapiv3::OpenAPI,
+) -> Option<Ident> {
+    match response_ref {
+        openapiv3::ReferenceOr::Reference { reference } => {
+            if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
+                Some(Ident::new(schema_name, Span::call_site()))
+            } else if let Some(response_name) = reference.strip_prefix("#/components/responses/") {
+                let components = spec.components.as_ref()?;
+                let response_entry = components.responses.get(response_name)?;
+                match response_entry {
+                    openapiv3::ReferenceOr::Item(response) => {
+                        extract_schema_from_response(response)
+                    }
+                    openapiv3::ReferenceOr::Reference { reference } => {
+                        let nested_ref = openapiv3::ReferenceOr::Reference {
+                            reference: reference.clone(),
+                        };
+                        extract_error_schema_ident(&nested_ref, spec)
+                    }
+                }
+            } else {
+                None
+            }
+        }
+        openapiv3::ReferenceOr::Item(response) => extract_schema_from_response(response),
+    }
+}
+
+fn extract_schema_from_response(response: &openapiv3::Response) -> Option<Ident> {
+    let media_type = response
+        .content
+        .get("application/json")
+        .or_else(|| response.content.values().next())?;
+    let schema_ref = media_type.schema.as_ref()?;
+    match schema_ref {
+        openapiv3::ReferenceOr::Reference { reference } => {
+            let schema_name = reference.strip_prefix("#/components/schemas/")?;
+            Some(Ident::new(schema_name, Span::call_site()))
+        }
+        openapiv3::ReferenceOr::Item(_) => None,
+    }
+}
+
+/// Handles operations lacking explicit success responses by only validating the status.
+fn generate_no_success_response_handling(
+    error_generation: &ErrorGeneration,
 ) -> Result<TokenStream, String> {
-    // Generate error handling match arms
-    let error_arms = generate_error_match_arms(error_responses, spec)?;
+    let error_arms = &error_generation.match_arms;
 
     Ok(quote! {
-        if response.status().is_success() {
+        let status = response.status();
+        if status.is_success() {
             Ok(())
         } else {
-            match response.status() {
+            match status {
                 #(#error_arms)*
                 _ => {
-                    let status = response.status();
-                    let body = response.text().await?;
-                    Err(format!("Request failed with status {}: {}", status, body).into())
+                    let body_bytes = response.bytes().await?;
+                    let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                    Err(crate::error::SdkError::unexpected(status, body))
                 }
             }
         }
     })
 }
 
+/// Produces response handling logic for operations with one successful status code.
 fn generate_single_response_handling(
     operation_id: &str,
     (status, response_ref): &(u16, &openapiv3::ReferenceOr<openapiv3::Response>),
-    error_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
-    spec: &openapiv3::OpenAPI,
+    error_generation: &ErrorGeneration,
 ) -> Result<TokenStream, String> {
     let status_code = *status;
     let status_const = status_code_to_constant(status_code);
 
-    // Get the response type
-    let response_type = get_response_type_for_single(operation_id, response_ref)?;
-
-    // Check if response has actual content
     let has_content = match response_ref {
         openapiv3::ReferenceOr::Reference { .. } => true,
         openapiv3::ReferenceOr::Item(response) => response
@@ -760,45 +879,46 @@ fn generate_single_response_handling(
             .is_some(),
     };
 
-    // Generate error handling match arms
-    let error_arms = generate_error_match_arms(error_responses, spec)?;
+    let error_arms = &error_generation.match_arms;
 
     if has_content {
+        let response_type = get_response_type_for_single(operation_id, response_ref)?;
         Ok(quote! {
-            match response.status() {
+            let status = response.status();
+            match status {
                 #status_const => {
                     let data: #response_type = response.json().await?;
                     Ok(data)
                 }
                 #(#error_arms)*
                 _ => {
-                    let status = response.status();
-                    let body = response.text().await?;
-                    Err(format!("Request failed with status {}: {}", status, body).into())
+                    let body_bytes = response.bytes().await?;
+                    let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                    Err(crate::error::SdkError::unexpected(status, body))
                 }
             }
         })
     } else {
-        // No content - just check status
         Ok(quote! {
-            match response.status() {
+            let status = response.status();
+            match status {
                 #status_const => Ok(()),
                 #(#error_arms)*
                 _ => {
-                    let status = response.status();
-                    let body = response.text().await?;
-                    Err(format!("Request failed with status {}: {}", status, body).into())
+                    let body_bytes = response.bytes().await?;
+                    let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                    Err(crate::error::SdkError::unexpected(status, body))
                 }
             }
         })
     }
 }
 
+/// Emits response handling that deserializes into an enum for multi-status operations.
 fn generate_multi_response_handling(
     operation_id: &str,
     success_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
-    error_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
-    spec: &openapiv3::OpenAPI,
+    error_generation: &ErrorGeneration,
 ) -> Result<TokenStream, String> {
     use heck::ToUpperCamelCase;
 
@@ -874,17 +994,17 @@ fn generate_multi_response_handling(
         }
     }
 
-    // Generate error handling match arms
-    let error_arms = generate_error_match_arms(error_responses, spec)?;
+    let error_arms = &error_generation.match_arms;
 
     Ok(quote! {
-        match response.status() {
+        let status = response.status();
+        match status {
             #(#match_arms)*
             #(#error_arms)*
             _ => {
-                let status = response.status();
                 let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body = crate::error::UnknownApiBody::from_text(body);
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     })

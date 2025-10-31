@@ -95,6 +95,14 @@ pub struct UpdateSubAccountBody {
     pub permissions: Option<UpdateSubAccountBodyPermissions>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum CreateSubAccountErrorBody {
+    Forbidden(CompatError),
+}
+#[derive(Debug)]
+pub enum UpdateSubAccountErrorBody {
+    BadRequest(CompatError),
+}
 ///Client for the Subaccounts API endpoints.
 #[derive(Debug)]
 pub struct SubaccountsClient<'a> {
@@ -114,7 +122,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn list_sub_accounts(
         &self,
         params: ListSubAccountsParams,
-    ) -> Result<ListSubAccountsResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListSubAccountsResponse, crate::error::UnknownApiBody> {
         let path = "/v0.1/me/accounts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -133,15 +141,16 @@ impl<'a> SubaccountsClient<'a> {
             request = request.query(&[("include_primary", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListSubAccountsResponse = response.json().await?;
                 Ok(data)
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -151,7 +160,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn create_sub_account(
         &self,
         body: CreateSubAccountBody,
-    ) -> Result<Operator, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Operator, CreateSubAccountErrorBody> {
         let path = "/v0.1/me/accounts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -165,19 +174,22 @@ impl<'a> SubaccountsClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Operator = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: CompatError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CompatError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateSubAccountErrorBody::Forbidden(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -187,7 +199,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn deactivate_sub_account(
         &self,
         operator_id: impl Into<String>,
-    ) -> Result<Operator, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Operator, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -200,15 +212,16 @@ impl<'a> SubaccountsClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Operator = response.json().await?;
                 Ok(data)
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -218,7 +231,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn compat_get_operator(
         &self,
         operator_id: impl Into<String>,
-    ) -> Result<Operator, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Operator, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -231,15 +244,16 @@ impl<'a> SubaccountsClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Operator = response.json().await?;
                 Ok(data)
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -250,7 +264,7 @@ impl<'a> SubaccountsClient<'a> {
         &self,
         operator_id: impl Into<String>,
         body: UpdateSubAccountBody,
-    ) -> Result<Operator, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Operator, UpdateSubAccountErrorBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -264,19 +278,22 @@ impl<'a> SubaccountsClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Operator = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let error: CompatError = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: CompatError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateSubAccountErrorBody::BadRequest(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

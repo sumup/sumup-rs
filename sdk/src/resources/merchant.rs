@@ -430,6 +430,38 @@ pub struct ListBankAccountsV11Params {
 /// OK
 pub type ListBankAccountsV11Response = Vec<BankAccount>;
 use crate::client::Client;
+#[derive(Debug)]
+pub enum GetAccountErrorBody {
+    Unauthorized(Error),
+}
+#[derive(Debug)]
+pub enum GetMerchantProfileErrorBody {
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+}
+#[derive(Debug)]
+pub enum ListBankAccountsErrorBody {
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+}
+#[derive(Debug)]
+pub enum GetDoingBusinessAsErrorBody {
+    Unauthorized(Error),
+}
+#[derive(Debug)]
+pub enum GetSettingsErrorBody {
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+}
+#[derive(Debug)]
+pub enum GetPersonalProfileErrorBody {
+    Unauthorized(Error),
+}
+#[derive(Debug)]
+pub enum ListBankAccountsV11ErrorBody {
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+}
 ///Client for the Merchant API endpoints.
 #[derive(Debug)]
 pub struct MerchantClient<'a> {
@@ -449,7 +481,7 @@ impl<'a> MerchantClient<'a> {
     pub async fn get(
         &self,
         params: GetAccountParams,
-    ) -> Result<MerchantAccount, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<MerchantAccount, GetAccountErrorBody> {
         let path = "/v0.1/me";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -465,19 +497,22 @@ impl<'a> MerchantClient<'a> {
             request = request.query(&[("include[]", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: MerchantAccount = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetAccountErrorBody::Unauthorized(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -486,7 +521,7 @@ impl<'a> MerchantClient<'a> {
     /// Retrieves merchant profile data.
     pub async fn get_merchant_profile(
         &self,
-    ) -> Result<MerchantProfileLegacy, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<MerchantProfileLegacy, GetMerchantProfileErrorBody> {
         let path = "/v0.1/me/merchant-profile";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -499,23 +534,28 @@ impl<'a> MerchantClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: MerchantProfileLegacy = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetMerchantProfileErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: ErrorForbidden = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: ErrorForbidden = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetMerchantProfileErrorBody::Forbidden(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -525,7 +565,7 @@ impl<'a> MerchantClient<'a> {
     pub async fn list_bank_accounts_deprecated(
         &self,
         params: ListBankAccountsParams,
-    ) -> Result<ListBankAccountsResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListBankAccountsResponse, ListBankAccountsErrorBody> {
         let path = "/v0.1/me/merchant-profile/bank-accounts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -541,23 +581,28 @@ impl<'a> MerchantClient<'a> {
             request = request.query(&[("primary", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListBankAccountsResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListBankAccountsErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: ErrorForbidden = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: ErrorForbidden = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListBankAccountsErrorBody::Forbidden(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -566,7 +611,7 @@ impl<'a> MerchantClient<'a> {
     /// Retrieves Doing Business As profile.
     pub async fn get_doing_business_as(
         &self,
-    ) -> Result<DoingBusinessAsLegacy, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<DoingBusinessAsLegacy, GetDoingBusinessAsErrorBody> {
         let path = "/v0.1/me/merchant-profile/doing-business-as";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -579,26 +624,31 @@ impl<'a> MerchantClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: DoingBusinessAsLegacy = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetDoingBusinessAsErrorBody::Unauthorized(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
     /// Get settings
     ///
     /// Retrieves merchant settings.
-    pub async fn get_settings(&self) -> Result<MerchantSettings, Box<dyn std::error::Error>> {
+    pub async fn get_settings(
+        &self,
+    ) -> crate::error::SdkResult<MerchantSettings, GetSettingsErrorBody> {
         let path = "/v0.1/me/merchant-profile/settings";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -611,23 +661,28 @@ impl<'a> MerchantClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: MerchantSettings = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetSettingsErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: ErrorForbidden = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: ErrorForbidden = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetSettingsErrorBody::Forbidden(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -636,7 +691,7 @@ impl<'a> MerchantClient<'a> {
     /// Retrieves personal profile data.
     pub async fn get_personal_profile(
         &self,
-    ) -> Result<PersonalProfileLegacy, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<PersonalProfileLegacy, GetPersonalProfileErrorBody> {
         let path = "/v0.1/me/personal-profile";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -649,19 +704,22 @@ impl<'a> MerchantClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: PersonalProfileLegacy = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetPersonalProfileErrorBody::Unauthorized(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -672,7 +730,7 @@ impl<'a> MerchantClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListBankAccountsV11Params,
-    ) -> Result<ListBankAccountsV11Response, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListBankAccountsV11Response, ListBankAccountsV11ErrorBody> {
         let path = format!("/v1.1/merchants/{}/bank-accounts", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -688,23 +746,28 @@ impl<'a> MerchantClient<'a> {
             request = request.query(&[("primary", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListBankAccountsV11Response = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListBankAccountsV11ErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: ErrorForbidden = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: ErrorForbidden = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListBankAccountsV11ErrorBody::Forbidden(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

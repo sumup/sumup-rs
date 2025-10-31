@@ -60,7 +60,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(e) => {
             eprintln!("✗ Failed to create checkout: {}", e);
-            return Err(e);
         }
     }
 

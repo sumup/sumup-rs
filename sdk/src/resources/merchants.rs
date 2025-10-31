@@ -224,13 +224,96 @@ pub type LegalType = String;
 pub struct ListPersonsResponseBody {
     pub items: Vec<Person>,
 }
-pub type Merchant = serde_json::Value;
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Merchant {
+    /// Short unique identifier for the merchant.
+    pub merchant_code: String,
+    /// ID of the organization the merchant belongs to (if any).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub organization_id: Option<String>,
+    /// The business type.
+    /// * `sole_trader`: The business is run by an self-employed individual.
+    /// * `company`: The business is run as a company with one or more shareholders
+    /// * `partnership`: The business is run as a company with two or more shareholders that can be also other legal entities
+    /// * `non_profit`: The business is run as a nonprofit organization that operates for public or social benefit
+    /// * `government_entity`: The business is state owned and operated
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub business_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub company: Option<Company>,
+    pub country: CountryCode,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub business_profile: Option<BusinessProfile>,
+    /// A user-facing small-format logo for use in dashboards and other user-facing applications. For customer-facing branding see `merchant.business_profile.branding`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<String>,
+    /// A user-facing name of the merchant account for use in dashboards and other user-facing applications. For customer-facing business name see `merchant.business_profile`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alias: Option<String>,
+    /// Three-letter [ISO currency code](https://en.wikipedia.org/wiki/ISO_4217) representing the default currency for the account.
+    pub default_currency: String,
+    /// Merchant's default locale, represented as a BCP47 [RFC5646](https://datatracker.ietf.org/doc/html/rfc5646) language tag. This is typically an ISO 639-1 Alpha-2 [ISO639‑1](https://www.iso.org/iso-639-language-code) language code in lowercase and an ISO 3166-1 Alpha-2 [ISO3166‑1](https://www.iso.org/iso-3166-country-codes.html) country code in uppercase, separated by a dash. For example, en-US or fr-CA.
+    /// In multilingual countries this is the merchant's preferred locale out of those, that are officially spoken in the country. In a countries with a single official language this will match the official language.
+    pub default_locale: String,
+    /// True if the merchant is a sandbox for testing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sandbox: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub meta: Option<Meta>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub classic: Option<ClassicMerchantIdentifiers>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<Version>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub change_status: Option<ChangeStatus>,
+    /// The date and time when the resource was created. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
+    pub created_at: crate::datetime::DateTime,
+    /// The date and time when the resource was last updated. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
+    pub updated_at: crate::datetime::DateTime,
+}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ownership {
     /// The percent of ownership shares held by the person expressed in percent mille (1/100000). Only persons with the relationship `owner` can have ownership.
     pub share: i64,
 }
-pub type Person = serde_json::Value;
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Person {
+    /// The unique identifier for the person. This is a [typeid](https://github.com/sumup/typeid).
+    pub id: String,
+    /// A corresponding identity user ID for the person, if they have a user account.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// The date of birth of the individual, represented as an ISO 8601:2004 [ISO8601‑2004] YYYY-MM-DD format.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub birthdate: Option<String>,
+    /// The first name(s) of the individual.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub given_name: Option<String>,
+    /// The last name(s) of the individual.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub family_name: Option<String>,
+    /// Middle name(s) of the End-User. Note that in some cultures, people can have multiple middle names; all can be present, with the names being separated by space characters. Also note that in some cultures, middle names are not used.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub middle_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phone_number: Option<PhoneNumber>,
+    /// A list of roles the person has in the merchant or towards SumUp. A merchant must have at least one person with the relationship `representative`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relationships: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ownership: Option<Ownership>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<Address>,
+    /// A list of country-specific personal identifiers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifiers: Option<Vec<PersonalIdentifier>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub citizenship: Option<CountryCode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<Version>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub change_status: Option<ChangeStatus>,
+}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PersonalIdentifier {
     /// The unique reference for the personal identifier type.
@@ -267,6 +350,20 @@ pub struct GetPersonParams {
     pub version: Option<String>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum GetMerchantErrorBody {
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum ListPersonsErrorBody {
+    NotFound(String),
+    InternalServerError(String),
+}
+#[derive(Debug)]
+pub enum GetPersonErrorBody {
+    NotFound(String),
+    InternalServerError(String),
+}
 ///Client for the Merchants API endpoints.
 #[derive(Debug)]
 pub struct MerchantsClient<'a> {
@@ -287,7 +384,7 @@ impl<'a> MerchantsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: GetMerchantParams,
-    ) -> Result<Merchant, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Merchant, GetMerchantErrorBody> {
         let path = format!("/v1/merchants/{}", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -303,19 +400,22 @@ impl<'a> MerchantsClient<'a> {
             request = request.query(&[("version", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Merchant = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "No user with the specified ID exists.\n", body).into())
+                Err(crate::error::SdkError::api(GetMerchantErrorBody::NotFound(
+                    body,
+                )))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -326,7 +426,7 @@ impl<'a> MerchantsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListPersonsParams,
-    ) -> Result<ListPersonsResponseBody, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListPersonsResponseBody, ListPersonsErrorBody> {
         let path = format!("/v1/merchants/{}/persons", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -342,23 +442,28 @@ impl<'a> MerchantsClient<'a> {
             request = request.query(&[("version", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListPersonsResponseBody = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "No user with the specified ID exists.\n", body).into())
+                Err(crate::error::SdkError::api(ListPersonsErrorBody::NotFound(
+                    body,
+                )))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "An internal server error occurred.\n", body).into())
+                Err(crate::error::SdkError::api(
+                    ListPersonsErrorBody::InternalServerError(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -370,7 +475,7 @@ impl<'a> MerchantsClient<'a> {
         merchant_code: impl Into<String>,
         person_id: impl Into<String>,
         params: GetPersonParams,
-    ) -> Result<Person, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Person, GetPersonErrorBody> {
         let path = format!(
             "/v1/merchants/{}/persons/{}",
             merchant_code.into(),
@@ -390,23 +495,28 @@ impl<'a> MerchantsClient<'a> {
             request = request.query(&[("version", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Person = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "No user with the specified ID exists.\n", body).into())
+                Err(crate::error::SdkError::api(GetPersonErrorBody::NotFound(
+                    body,
+                )))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "An internal server error occurred.\n", body).into())
+                Err(crate::error::SdkError::api(
+                    GetPersonErrorBody::InternalServerError(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

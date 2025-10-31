@@ -49,6 +49,36 @@ pub struct UpdateCustomerBody {
 /// OK
 pub type ListPaymentInstrumentsResponse = Vec<PaymentInstrumentResponse>;
 use crate::client::Client;
+#[derive(Debug)]
+pub enum CreateCustomerErrorBody {
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    Conflict(Error),
+}
+#[derive(Debug)]
+pub enum GetCustomerErrorBody {
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    NotFound(Error),
+}
+#[derive(Debug)]
+pub enum UpdateCustomerErrorBody {
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    NotFound(Error),
+}
+#[derive(Debug)]
+pub enum ListPaymentInstrumentsErrorBody {
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    NotFound(Error),
+}
+#[derive(Debug)]
+pub enum DeactivatePaymentInstrumentErrorBody {
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    NotFound(Error),
+}
 ///Client for the Customers API endpoints.
 #[derive(Debug)]
 pub struct CustomersClient<'a> {
@@ -68,7 +98,7 @@ impl<'a> CustomersClient<'a> {
     pub async fn create(
         &self,
         body: Option<Customer>,
-    ) -> Result<Customer, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Customer, CreateCustomerErrorBody> {
         let path = "/v0.1/customers";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -84,27 +114,34 @@ impl<'a> CustomersClient<'a> {
             request = request.json(&body);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::CREATED => {
                 let data: Customer = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateCustomerErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: ErrorForbidden = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: ErrorForbidden = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateCustomerErrorBody::Forbidden(body),
+                ))
             }
             reqwest::StatusCode::CONFLICT => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateCustomerErrorBody::Conflict(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -114,7 +151,7 @@ impl<'a> CustomersClient<'a> {
     pub async fn get(
         &self,
         customer_id: impl Into<String>,
-    ) -> Result<Customer, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Customer, GetCustomerErrorBody> {
         let path = format!("/v0.1/customers/{}", customer_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -127,27 +164,34 @@ impl<'a> CustomersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Customer = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetCustomerErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: ErrorForbidden = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: ErrorForbidden = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetCustomerErrorBody::Forbidden(body),
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(GetCustomerErrorBody::NotFound(
+                    body,
+                )))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -160,7 +204,7 @@ impl<'a> CustomersClient<'a> {
         &self,
         customer_id: impl Into<String>,
         body: Option<UpdateCustomerBody>,
-    ) -> Result<Customer, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Customer, UpdateCustomerErrorBody> {
         let path = format!("/v0.1/customers/{}", customer_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -176,27 +220,34 @@ impl<'a> CustomersClient<'a> {
             request = request.json(&body);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Customer = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateCustomerErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: ErrorForbidden = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: ErrorForbidden = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateCustomerErrorBody::Forbidden(body),
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateCustomerErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -206,7 +257,8 @@ impl<'a> CustomersClient<'a> {
     pub async fn list_payment_instruments(
         &self,
         customer_id: impl Into<String>,
-    ) -> Result<ListPaymentInstrumentsResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListPaymentInstrumentsResponse, ListPaymentInstrumentsErrorBody>
+    {
         let path = format!("/v0.1/customers/{}/payment-instruments", customer_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -219,27 +271,34 @@ impl<'a> CustomersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListPaymentInstrumentsResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListPaymentInstrumentsErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: ErrorForbidden = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: ErrorForbidden = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListPaymentInstrumentsErrorBody::Forbidden(body),
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListPaymentInstrumentsErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -250,7 +309,7 @@ impl<'a> CustomersClient<'a> {
         &self,
         customer_id: impl Into<String>,
         token: impl Into<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<(), DeactivatePaymentInstrumentErrorBody> {
         let path = format!(
             "/v0.1/customers/{}/payment-instruments/{}",
             customer_id.into(),
@@ -267,24 +326,31 @@ impl<'a> CustomersClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::NO_CONTENT => Ok(()),
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    DeactivatePaymentInstrumentErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let error: ErrorForbidden = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: ErrorForbidden = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    DeactivatePaymentInstrumentErrorBody::Forbidden(body),
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    DeactivatePaymentInstrumentErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

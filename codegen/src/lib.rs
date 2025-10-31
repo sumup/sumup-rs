@@ -1,11 +1,16 @@
 #![forbid(unsafe_code)]
 
-use std::path::Path;
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use openapiv3::OpenAPI;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+
+use operation::GeneratedClientMethods;
 
 pub mod body;
 pub mod client;
@@ -19,7 +24,160 @@ pub use operation::generate_client_methods;
 pub use schema::generate_structs_for_schemas;
 pub use tag::{collect_schemas_by_tag, SchemasByTag, TagSchemas};
 
-/// Generate the module coordinator file
+/// Coordinates SDK generation for a given OpenAPI spec and output location.
+pub struct Generator {
+    spec: OpenAPI,
+    out_path: PathBuf,
+    schemas_by_tag: SchemasByTag,
+}
+
+impl Generator {
+    /// Prepares a generator by loading derived schema metadata for later use.
+    pub fn new(spec: OpenAPI, out_path: impl Into<PathBuf>) -> Result<Self, String> {
+        let mut out_path = out_path.into();
+        out_path.push("src");
+        let schemas_by_tag = collect_schemas_by_tag(&spec)?;
+        Ok(Self {
+            spec,
+            out_path,
+            schemas_by_tag,
+        })
+    }
+
+    /// Generates the full SDK into the configured output directory.
+    pub fn generate(&self) -> Result<(), String> {
+        Self::log("[generate sdk] analyzing tags and operations ...");
+        Self::log(&format!(
+            "[generate sdk] found {} tags, {} common schemas",
+            self.schemas_by_tag.tag_schemas.len(),
+            self.schemas_by_tag.common_schemas.len()
+        ));
+
+        self.ensure_directories()?;
+        self.generate_common_module()?;
+        self.generate_tag_modules()?;
+        self.generate_client_module()?;
+        self.generate_mod_rs()?;
+
+        Self::log("[generate sdk] ... done");
+        Ok(())
+    }
+
+    fn ensure_directories(&self) -> Result<(), String> {
+        let resources_path = self.resources_dir();
+        std::fs::create_dir_all(&resources_path)
+            .map_err(|e| format!("Failed to create resources directory: {}", e))
+    }
+
+    fn generate_common_module(&self) -> Result<(), String> {
+        if self.schemas_by_tag.common_schemas.is_empty() {
+            return Ok(());
+        }
+
+        Self::log(&format!(
+            "[generate sdk] generating common.rs with {} shared schemas ({} error schemas) ...",
+            self.schemas_by_tag.common_schemas.len(),
+            self.schemas_by_tag.common_error_schemas.len()
+        ));
+
+        generate_common_file(&self.out_path, &self.spec, &self.schemas_by_tag)
+    }
+
+    fn generate_tag_modules(&self) -> Result<(), String> {
+        let mut sorted_tags: Vec<_> = self.schemas_by_tag.tag_schemas.iter().collect();
+        sorted_tags.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+        for (tag, tag_data) in sorted_tags {
+            self.generate_tag_module(tag, tag_data)?;
+        }
+
+        Ok(())
+    }
+
+    fn generate_tag_module(&self, tag: &str, tag_data: &TagSchemas) -> Result<(), String> {
+        Self::log(&format!(
+            "[generate sdk] generating {} with {} schemas ({} error schemas) ...",
+            tag,
+            tag_data.all_schemas.len(),
+            tag_data.error_schemas.len()
+        ));
+
+        let schema_tokens = generate_structs_for_schemas(
+            &self.spec,
+            &tag_data.all_schemas,
+            &tag_data.error_schemas,
+        )?;
+        let body_tokens = generate_operation_bodies(&self.spec, tag)?;
+        let client_tokens = generate_tag_client(&self.spec, tag)?;
+
+        let use_common = if self.should_import_common(tag, tag_data) {
+            quote! {
+                use super::common::*;
+            }
+        } else {
+            quote! {}
+        };
+
+        let combined_tokens = quote! {
+            #use_common
+
+            #schema_tokens
+
+            #body_tokens
+
+            #client_tokens
+        };
+
+        let contents = format_generated_code(combined_tokens);
+
+        let file_name = format!("{}.rs", tag.to_snake_case());
+        let mut tag_out_path = self.resources_dir();
+        tag_out_path.push(&file_name);
+
+        std::fs::write(&tag_out_path, &contents)
+            .map_err(|e| format!("Failed to write {}: {}", file_name, e))?;
+
+        Ok(())
+    }
+
+    fn should_import_common(&self, tag: &str, tag_data: &TagSchemas) -> bool {
+        if self.schemas_by_tag.common_schemas.is_empty() {
+            return false;
+        }
+
+        does_reference_common_schemas(
+            &self.spec,
+            &tag_data.all_schemas,
+            &self.schemas_by_tag.common_schemas,
+        ) || does_tag_operations_reference_common(
+            &self.spec,
+            tag,
+            &self.schemas_by_tag.common_schemas,
+        )
+    }
+
+    fn generate_client_module(&self) -> Result<(), String> {
+        Self::log("[generate sdk] generating client.rs ...");
+        generate_client_file(&self.out_path, &self.schemas_by_tag.tag_schemas)
+    }
+
+    fn generate_mod_rs(&self) -> Result<(), String> {
+        generate_mod_file(&self.out_path, &self.schemas_by_tag)
+    }
+
+    fn resources_dir(&self) -> PathBuf {
+        let mut resources_path = self.out_path.clone();
+        resources_path.push("resources");
+        resources_path
+    }
+
+    fn log(message: &str) {
+        println!("{}", message);
+        let _ = std::io::stdout().flush();
+    }
+}
+
+/// Generates `resources/mod.rs`, wiring up tag modules and common exports.
 pub fn generate_mod_file(out_path: &Path, schemas_by_tag: &SchemasByTag) -> Result<(), String> {
     let tag_schemas = &schemas_by_tag.tag_schemas;
     let mut mod_path = out_path.to_path_buf();
@@ -68,7 +226,7 @@ pub fn generate_mod_file(out_path: &Path, schemas_by_tag: &SchemasByTag) -> Resu
     Ok(())
 }
 
-/// Generate the common.rs file with shared schemas
+/// Generates `resources/common.rs` containing schemas shared across multiple tags.
 pub fn generate_common_file(
     out_path: &Path,
     spec: &OpenAPI,
@@ -95,7 +253,7 @@ pub fn generate_common_file(
     Ok(())
 }
 
-/// Format generated token stream into pretty Rust code
+/// Formats generated tokens into Rust source and prepends the standard header.
 pub fn format_generated_code(tokens: TokenStream) -> String {
     let header = "// The contents of this file are generated; do not modify them.\n\n";
 
@@ -112,8 +270,8 @@ pub fn format_generated_code(tokens: TokenStream) -> String {
     }
 }
 
+/// Runs `rustfmt` to polish already formatted source, falling back on failure.
 fn format_with_rustfmt(code: &str) -> Result<String, std::io::Error> {
-    use std::io::Write;
     use std::process::{Command, Stdio};
 
     let mut child = Command::new("rustfmt")
@@ -136,7 +294,7 @@ fn format_with_rustfmt(code: &str) -> Result<String, std::io::Error> {
     }
 }
 
-/// Generate tag client code
+/// Builds the client struct and methods for a specific OpenAPI tag.
 pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
     let client_type = Ident::new(
         &format!("{}Client", tag.to_upper_camel_case()),
@@ -145,10 +303,21 @@ pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, Str
     let doc_comment = format!("Client for the {} API endpoints.", tag);
 
     // Generate methods for operations with this tag
-    let methods = generate_client_methods(spec, tag)?;
+    let GeneratedClientMethods {
+        methods,
+        extra_items,
+    } = generate_client_methods(spec, tag)?;
+    let methods_tokens = quote! { #(#methods)* };
+    let extra_items_tokens = if extra_items.is_empty() {
+        quote! {}
+    } else {
+        quote! { #(#extra_items)* }
+    };
 
     Ok(quote! {
         use crate::client::Client;
+
+        #extra_items_tokens
 
         #[doc = #doc_comment]
         #[derive(Debug)]
@@ -166,12 +335,12 @@ pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, Str
                 self.client
             }
 
-            #methods
+            #methods_tokens
         }
     })
 }
 
-/// Check if any schema in the set references a common schema
+/// Checks whether any schema in the given set references a schema marked as common.
 pub fn does_reference_common_schemas(
     spec: &OpenAPI,
     schemas: &std::collections::HashSet<String>,
@@ -198,7 +367,7 @@ pub fn does_reference_common_schemas(
     false
 }
 
-/// Check if operations with this tag reference common schemas in their responses
+/// Reports whether operations with the given tag mention common schemas in their responses.
 pub fn does_tag_operations_reference_common(
     spec: &OpenAPI,
     tag: &str,
@@ -246,6 +415,7 @@ pub fn does_tag_operations_reference_common(
     false
 }
 
+/// Returns true when the schema reference resolves to one of the common schemas.
 fn references_common_schema_ref(
     schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
     common_schemas: &std::collections::HashSet<String>,
@@ -263,6 +433,7 @@ fn references_common_schema_ref(
     false
 }
 
+/// Walks the schema tree to determine whether it references any common schema.
 fn references_common_in_schema(
     schema: &openapiv3::Schema,
     common_schemas: &std::collections::HashSet<String>,

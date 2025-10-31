@@ -1,17 +1,20 @@
 use openapiv3::OpenAPI;
 use std::collections::{HashMap, HashSet};
 
+/// Holds the schemas associated with a single OpenAPI tag.
 pub struct TagSchemas {
     pub all_schemas: HashSet<String>,
     pub error_schemas: HashSet<String>,
 }
 
+/// Groups schemas by tag while tracking shared schema usage.
 pub struct SchemasByTag {
     pub tag_schemas: HashMap<String, TagSchemas>,
     pub common_schemas: HashSet<String>,
     pub common_error_schemas: HashSet<String>,
 }
 
+/// Collects schemas referenced by each tag and identifies shared/common schemas.
 pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
     let mut tag_schemas: HashMap<String, TagSchemas> = HashMap::new();
 
@@ -194,6 +197,7 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
     })
 }
 
+/// Finds schemas that appear under more than one tag.
 fn identify_common_schemas(tag_schemas: &HashMap<String, TagSchemas>) -> HashSet<String> {
     let mut schema_tag_count: HashMap<String, usize> = HashMap::new();
 
@@ -211,6 +215,7 @@ fn identify_common_schemas(tag_schemas: &HashMap<String, TagSchemas>) -> HashSet
         .collect()
 }
 
+/// Records the top-level schema name when the reference points into components.
 fn collect_top_level_schema(
     schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
     schemas: &mut HashSet<String>,
@@ -223,6 +228,7 @@ fn collect_top_level_schema(
     }
 }
 
+/// Adds schema names referenced by boxed schema values to the accumulator.
 fn collect_schema_references_boxed(
     schema_ref: &openapiv3::ReferenceOr<Box<openapiv3::Schema>>,
     schemas: &mut HashSet<String>,
@@ -239,6 +245,7 @@ fn collect_schema_references_boxed(
     }
 }
 
+/// Adds schema names referenced by inline schema values to the accumulator.
 fn collect_schema_references_unboxed(
     schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
     schemas: &mut HashSet<String>,
@@ -255,6 +262,7 @@ fn collect_schema_references_unboxed(
     }
 }
 
+/// Traverses a schema and collects every referenced schema name.
 fn collect_schema_references_from_schema(
     schema: &openapiv3::Schema,
     schemas: &mut HashSet<String>,

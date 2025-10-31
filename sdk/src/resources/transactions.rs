@@ -56,7 +56,25 @@ pub struct Link {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub type_: Option<String>,
 }
-pub type LinkRefund = serde_json::Value;
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct LinkRefund {
+    /// Specifies the relation to the current resource.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rel: Option<String>,
+    /// URL for accessing the related resource.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub href: Option<String>,
+    /// Specifies the media type of the related resource.
+    #[serde(rename = "type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    /// Minimum allowed amount for the refund.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_amount: Option<f64>,
+    /// Maximum allowed amount for the refund.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_amount: Option<f64>,
+}
 pub type Lon = f64;
 /// Details of the product for which the payment is made.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -112,10 +130,49 @@ pub struct TransactionEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<TimestampEvent>,
 }
-pub type TransactionFull = serde_json::Value;
-pub type TransactionHistory = serde_json::Value;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct TransactionMixinHistory {
+pub struct TransactionFull {
+    /// Unique ID of the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// Transaction code returned by the acquirer/processing entity after processing the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transaction_code: Option<String>,
+    /// Total amount of the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub currency: Option<Currency>,
+    /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<crate::datetime::DateTime>,
+    /// Current status of the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Payment type used for the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_type: Option<String>,
+    /// Current number of the installment for deferred payments.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub installments_count: Option<i64>,
+    /// Unique code of the registered merchant to whom the payment is made.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub merchant_code: Option<String>,
+    /// Amount of the applicable VAT (out of the total transaction amount).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vat_amount: Option<f64>,
+    /// Amount of the tip (out of the total transaction amount).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tip_amount: Option<f64>,
+    /// Entry mode of the payment details.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entry_mode: Option<String>,
+    /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth_code: Option<String>,
+    /// Internal unique ID of the transaction on the SumUp platform.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub internal_id: Option<i64>,
     /// Short description of the payment. The value is taken from the `description` property of the related checkout resource.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub product_summary: Option<String>,
@@ -128,6 +185,116 @@ pub struct TransactionMixinHistory {
     /// Payout plan of the registered user at the time when the transaction was made.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payout_plan: Option<String>,
+    /// Email address of the registered user (merchant) to whom the payment is made.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lat: Option<Lat>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lon: Option<Lon>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub horizontal_accuracy: Option<HorizontalAccuracy>,
+    /// Simple name of the payment type.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub simple_payment_type: Option<String>,
+    /// Verification method used for the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verification_method: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub card: Option<CardResponse>,
+    /// Local date and time of the creation of the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub local_time: Option<crate::datetime::DateTime>,
+    /// Payout type for the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payout_type: Option<String>,
+    /// List of products from the merchant's catalogue for which the transaction serves as a payment.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub products: Option<Vec<Product>>,
+    /// List of VAT rates applicable to the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vat_rates: Option<Vec<serde_json::Value>>,
+    /// List of transaction events related to the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transaction_events: Option<Vec<TransactionEvent>>,
+    /// Status generated from the processing status and the latest transaction state.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub simple_status: Option<String>,
+    /// List of hyperlinks for accessing related resources.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<Vec<serde_json::Value>>,
+    /// List of events related to the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub events: Option<Vec<Event>>,
+    /// Details of the payment location as received from the payment terminal.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub location: Option<TransactionFullLocation>,
+    /// Indicates whether tax deduction is enabled for the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tax_enabled: Option<bool>,
+}
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct TransactionHistory {
+    /// Unique ID of the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// Transaction code returned by the acquirer/processing entity after processing the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transaction_code: Option<String>,
+    /// Total amount of the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub currency: Option<Currency>,
+    /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<crate::datetime::DateTime>,
+    /// Current status of the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Payment type used for the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_type: Option<String>,
+    /// Current number of the installment for deferred payments.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub installments_count: Option<i64>,
+    /// Short description of the payment. The value is taken from the `description` property of the related checkout resource.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub product_summary: Option<String>,
+    /// Total number of payouts to the registered user specified in the `user` property.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payouts_total: Option<i64>,
+    /// Number of payouts that are made to the registered user specified in the `user` property.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payouts_received: Option<i64>,
+    /// Payout plan of the registered user at the time when the transaction was made.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payout_plan: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transaction_id: Option<TransactionId>,
+    /// Client-specific ID of the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_transaction_id: Option<String>,
+    /// Email address of the registered user (merchant) to whom the payment is made.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
+    /// Type of the transaction for the registered user specified in the `user` property.
+    #[serde(rename = "type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub type_: Option<String>,
+    /// Issuing card network of the payment card used for the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub card_type: Option<String>,
+}
+/// Details of the payment location as received from the payment terminal.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct TransactionFullLocation {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lat: Option<Lat>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lon: Option<Lon>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub horizontal_accuracy: Option<HorizontalAccuracy>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct RefundTransactionBody {
@@ -260,6 +427,29 @@ pub struct ListTransactionsV21Response {
     pub links: Option<Vec<Link>>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum RefundTransactionErrorBody {
+    NotFound(Error),
+    Conflict(Error),
+}
+#[derive(Debug)]
+pub enum GetTransactionErrorBody {
+    Unauthorized(Error),
+    NotFound(Error),
+}
+#[derive(Debug)]
+pub enum ListTransactionsErrorBody {
+    Unauthorized(Error),
+}
+#[derive(Debug)]
+pub enum GetTransactionV21ErrorBody {
+    Unauthorized(Error),
+    NotFound(Error),
+}
+#[derive(Debug)]
+pub enum ListTransactionsV21ErrorBody {
+    Unauthorized(Error),
+}
 ///Client for the Transactions API endpoints.
 #[derive(Debug)]
 pub struct TransactionsClient<'a> {
@@ -280,7 +470,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         txn_id: impl Into<String>,
         body: Option<RefundTransactionBody>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<(), RefundTransactionErrorBody> {
         let path = format!("/v0.1/me/refund/{}", txn_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -296,20 +486,25 @@ impl<'a> TransactionsClient<'a> {
             request = request.json(&body);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::NO_CONTENT => Ok(()),
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    RefundTransactionErrorBody::NotFound(body),
+                ))
             }
             reqwest::StatusCode::CONFLICT => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    RefundTransactionErrorBody::Conflict(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -325,7 +520,7 @@ impl<'a> TransactionsClient<'a> {
     pub async fn get_deprecated(
         &self,
         params: GetTransactionParams,
-    ) -> Result<TransactionFull, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<TransactionFull, GetTransactionErrorBody> {
         let path = "/v0.1/me/transactions";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -347,23 +542,28 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("transaction_code", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: TransactionFull = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetTransactionErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetTransactionErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -373,7 +573,7 @@ impl<'a> TransactionsClient<'a> {
     pub async fn list_deprecated(
         &self,
         params: ListTransactionsParams,
-    ) -> Result<ListTransactionsResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListTransactionsResponse, ListTransactionsErrorBody> {
         let path = "/v0.1/me/transactions/history";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -422,19 +622,22 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("oldest_ref", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListTransactionsResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListTransactionsErrorBody::Unauthorized(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -451,7 +654,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: GetTransactionV21Params,
-    ) -> Result<TransactionFull, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<TransactionFull, GetTransactionV21ErrorBody> {
         let path = format!("/v2.1/merchants/{}/transactions", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -479,23 +682,28 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("client_transaction_id", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: TransactionFull = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetTransactionV21ErrorBody::Unauthorized(body),
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetTransactionV21ErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -506,7 +714,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListTransactionsV21Params,
-    ) -> Result<ListTransactionsV21Response, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListTransactionsV21Response, ListTransactionsV21ErrorBody> {
         let path = format!(
             "/v2.1/merchants/{}/transactions/history",
             merchant_code.into()
@@ -558,19 +766,22 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("oldest_ref", value)]);
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListTransactionsV21Response = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let error: Error = response.json().await?;
-                Err(Box::new(error) as Box<dyn std::error::Error>)
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListTransactionsV21ErrorBody::Unauthorized(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

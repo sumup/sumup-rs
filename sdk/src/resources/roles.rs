@@ -52,6 +52,29 @@ pub struct UpdateMerchantRoleBody {
     pub description: Option<String>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum ListMerchantRolesErrorBody {
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum CreateMerchantRoleErrorBody {
+    BadRequest(String),
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum DeleteMerchantRoleErrorBody {
+    BadRequest(String),
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum GetMerchantRoleErrorBody {
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum UpdateMerchantRoleErrorBody {
+    BadRequest(String),
+    NotFound(String),
+}
 ///Client for the Roles API endpoints.
 #[derive(Debug)]
 pub struct RolesClient<'a> {
@@ -71,7 +94,7 @@ impl<'a> RolesClient<'a> {
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
-    ) -> Result<ListMerchantRolesResponse, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<ListMerchantRolesResponse, ListMerchantRolesErrorBody> {
         let path = format!("/v0.1/merchants/{}/roles", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -84,19 +107,22 @@ impl<'a> RolesClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: ListMerchantRolesResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant not found.", body).into())
+                Err(crate::error::SdkError::api(
+                    ListMerchantRolesErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -107,7 +133,7 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         body: CreateMerchantRoleBody,
-    ) -> Result<Role, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Role, CreateMerchantRoleErrorBody> {
         let path = format!("/v0.1/merchants/{}/roles", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -121,23 +147,28 @@ impl<'a> RolesClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::CREATED => {
                 let data: Role = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Invalid request.", body).into())
+                Err(crate::error::SdkError::api(
+                    CreateMerchantRoleErrorBody::BadRequest(body),
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant not found.", body).into())
+                Err(crate::error::SdkError::api(
+                    CreateMerchantRoleErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -148,7 +179,7 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<(), DeleteMerchantRoleErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
             merchant_code.into(),
@@ -165,20 +196,25 @@ impl<'a> RolesClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => Ok(()),
             reqwest::StatusCode::BAD_REQUEST => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Invalid request.", body).into())
+                Err(crate::error::SdkError::api(
+                    DeleteMerchantRoleErrorBody::BadRequest(body),
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant not found.", body).into())
+                Err(crate::error::SdkError::api(
+                    DeleteMerchantRoleErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -189,7 +225,7 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
-    ) -> Result<Role, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Role, GetMerchantRoleErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
             merchant_code.into(),
@@ -206,19 +242,22 @@ impl<'a> RolesClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Role = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant or role not found.", body).into())
+                Err(crate::error::SdkError::api(
+                    GetMerchantRoleErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -230,7 +269,7 @@ impl<'a> RolesClient<'a> {
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
         body: UpdateMerchantRoleBody,
-    ) -> Result<Role, Box<dyn std::error::Error>> {
+    ) -> crate::error::SdkResult<Role, UpdateMerchantRoleErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
             merchant_code.into(),
@@ -248,23 +287,28 @@ impl<'a> RolesClient<'a> {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
         let response = request.send().await?;
-        match response.status() {
+        let status = response.status();
+        match status {
             reqwest::StatusCode::OK => {
                 let data: Role = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Invalid request.", body).into())
+                Err(crate::error::SdkError::api(
+                    UpdateMerchantRoleErrorBody::BadRequest(body),
+                ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(format!("{}: {}", "Merchant not found.", body).into())
+                Err(crate::error::SdkError::api(
+                    UpdateMerchantRoleErrorBody::NotFound(body),
+                ))
             }
             _ => {
-                let status = response.status();
-                let body = response.text().await?;
-                Err(format!("Request failed with status {}: {}", status, body).into())
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

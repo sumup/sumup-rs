@@ -6,6 +6,7 @@ use std::path::Path;
 
 use crate::TagSchemas;
 
+/// Writes the top-level API client file and tag accessors to the output directory.
 pub fn generate_client_file(
     out_path: &Path,
     tag_schemas: &HashMap<String, TagSchemas>,

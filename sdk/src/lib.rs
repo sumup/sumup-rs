@@ -8,14 +8,17 @@
 //! use sumup::Client;
 //!
 //! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! async fn main() {
 //!     // Create a client (reads SUMUP_API_KEY from environment)
 //!     let client = Client::default();
 //!
 //!     // Call an API endpoint
-//!     let checkouts = client.checkouts().list(Default::default()).await?;
-//!     
-//!     Ok(())
+//!     let checkouts = client
+//!         .checkouts()
+//!         .list(Default::default())
+//!         .await
+//!         .expect("list checkouts request failed");
+//!     println!("found {} checkouts", checkouts.len());
 //! }
 //! ```
 //!
@@ -52,8 +55,8 @@
 //!
 //! ```no_run
 //! # use sumup::{Client, CheckoutCreateRequest, Currency};
-//! # async fn example(client: Client) -> Result<(), Box<dyn std::error::Error>> {
-//! // Checkouts
+//! # async fn example(client: Client) {
+//! // Create a checkout
 //! let checkout = client.checkouts().create(Some(CheckoutCreateRequest {
 //!     checkout_reference: "unique-ref".to_string(),
 //!     amount: 10.0,
@@ -69,15 +72,23 @@
 //!     valid_until: None,
 //!     transactions: None,
 //!     redirect_url: None,
-//! })).await?;
+//! }))
+//! .await
+//! .expect("create checkout");
+//! println!("created checkout {}", checkout.id.unwrap_or_default());
 //!
 //! // Transactions with query parameters
 //! use sumup::resources::transactions::ListTransactionsParams;
-//! let transactions = client.transactions().list_deprecated(ListTransactionsParams {
+//! let transactions = client
+//!     .transactions()
+//!     .list_deprecated(ListTransactionsParams {
 //!     limit: Some(10),
 //!     ..Default::default()
-//! }).await?;
-//! # Ok(())
+//! })
+//! .await
+//! .expect("list transactions");
+//! let count = transactions.items.as_ref().map_or(0, |items| items.len());
+//! println!("fetched {} historical transactions", count);
 //! # }
 //! ```
 //!
@@ -96,6 +107,33 @@
 //! sumup = { version = "0.0.1", default-features = false, features = ["jiff"] }
 //! ```
 //!
+//! ## Error Handling
+//!
+//! All SDK calls return a [`SdkResult`] whose error side is a [`SdkError`]. When the
+//! SumUp API responds with a non-success status, the SDK builds an
+//! `SdkError::Api` containing an endpoint-specific payload (e.g. a `Unauthorized`
+//! enum variant). Any undocumented status codes fall back to
+//! `SdkError::Unexpected`, which preserves the HTTP status and best-effort body
+//! parsing. You can inspect failures like this:
+//!
+//! ```no_run
+//! # use sumup::{Client, error::SdkError};
+//! # use sumup::resources::checkouts::ListCheckoutsErrorBody;
+//! # async fn example() {
+//! let client = Client::default();
+//! match client.checkouts().list(Default::default()).await {
+//!     Ok(checkouts) => println!("retrieved {} checkouts", checkouts.len()),
+//!     Err(SdkError::Api(body)) => match body {
+//!         ListCheckoutsErrorBody::Unauthorized(details) => eprintln!("unauthorized: {:?}", details),
+//!     },
+//!     Err(SdkError::Unexpected(status, body)) => {
+//!         eprintln!("unexpected {} response: {}", status, body);
+//!     }
+//!     Err(SdkError::Network(err)) => panic!("network error: {}", err),
+//! }
+//! # }
+//! ```
+//!
 //! ## Features
 //!
 //! - **chrono** (default): Use chrono for datetime types
@@ -109,8 +147,10 @@
 #![forbid(unsafe_code)]
 
 pub mod client;
+pub mod error;
 
 #[allow(deprecated)]
+#[allow(clippy::large_enum_variant)]
 pub mod resources;
 
 pub mod version;
@@ -119,4 +159,5 @@ pub mod datetime;
 
 pub use crate::resources::*;
 pub use client::Client;
+pub use error::{SdkError, SdkResult, UnknownApiBody};
 pub use version::VERSION;
