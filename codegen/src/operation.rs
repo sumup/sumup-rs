@@ -20,7 +20,7 @@ struct ErrorGeneration {
 #[derive(Clone)]
 enum BodyKind {
     Schema(Ident),
-    Text,
+    Empty,
 }
 
 struct ErrorEntry {
@@ -721,7 +721,7 @@ fn generate_error_handling(
         let status_const = status_code_to_constant(*status_code);
         let body_kind = match extract_error_schema_ident(response_ref, spec) {
             Some(ident) => BodyKind::Schema(ident),
-            None => BodyKind::Text,
+            None => BodyKind::Empty,
         };
         entries.push(ErrorEntry {
             status_code: *status_code,
@@ -749,17 +749,21 @@ fn generate_error_handling(
         let status_const = entry.status_const;
         let variant_name = status_code_to_variant_name(entry.status_code);
         let variant_ident = Ident::new(&variant_name, Span::call_site());
+        let body_kind = entry.body_kind;
 
         if !seen_variants.contains(&variant_name) {
-            let field_type = match entry.body_kind {
-                BodyKind::Schema(ref ident) => quote! { #ident },
-                BodyKind::Text => quote! { String },
-            };
-            variant_defs.push(quote! { #variant_ident(#field_type), });
+            match &body_kind {
+                BodyKind::Schema(ident) => {
+                    variant_defs.push(quote! { #variant_ident(#ident), });
+                }
+                BodyKind::Empty => {
+                    variant_defs.push(quote! { #variant_ident, });
+                }
+            }
             seen_variants.push(variant_name.clone());
         }
 
-        match entry.body_kind {
+        match body_kind {
             BodyKind::Schema(ident) => {
                 match_arms.push(quote! {
                     #status_const => {
@@ -768,11 +772,10 @@ fn generate_error_handling(
                     }
                 });
             }
-            BodyKind::Text => {
+            BodyKind::Empty => {
                 match_arms.push(quote! {
                     #status_const => {
-                        let body = response.text().await?;
-                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident(body)))
+                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident))
                     }
                 });
             }
