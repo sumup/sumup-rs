@@ -182,6 +182,11 @@ pub struct GetReceiptParams {
     pub tx_event_id: Option<i64>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum GetReceiptErrorBody {
+    BadRequest(Error),
+    Unauthorized(Error),
+}
 ///Client for the Receipts API endpoints.
 #[derive(Debug)]
 pub struct ReceiptsClient<'a> {
@@ -202,7 +207,7 @@ impl<'a> ReceiptsClient<'a> {
         &self,
         id: impl Into<String>,
         params: GetReceiptParams,
-    ) -> crate::error::SdkResult<Receipt, Error> {
+    ) -> crate::error::SdkResult<Receipt, GetReceiptErrorBody> {
         let path = format!("/v1.1/receipts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -227,21 +232,20 @@ impl<'a> ReceiptsClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::BAD_REQUEST,
-                    body,
+                Err(crate::error::SdkError::api(
+                    GetReceiptErrorBody::BadRequest(body),
                 ))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    body,
+                Err(crate::error::SdkError::api(
+                    GetReceiptErrorBody::Unauthorized(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

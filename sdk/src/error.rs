@@ -2,13 +2,17 @@
 //!
 //! Provides a concrete error hierarchy for all generated clients.
 
+use serde::{Deserialize, Serialize};
+
 /// Generic SDK error type for SumUp API operations.
 #[derive(Debug)]
-pub enum SdkError<E> {
+pub enum SdkError<E = UnknownApiBody> {
     /// Errors originating from the underlying HTTP client (network, TLS, etc.).
     Network(reqwest::Error),
-    /// The server returned an API response with an error status code.
-    Api(ApiError<E>),
+    /// The server returned an API response with an expected error payload.
+    Api(E),
+    /// The server returned an unexpected status or payload.
+    Unexpected(reqwest::StatusCode, UnknownApiBody),
 }
 
 impl<E> SdkError<E> {
@@ -17,33 +21,45 @@ impl<E> SdkError<E> {
         Self::Network(error)
     }
 
-    /// Creates a new API error using the supplied body descriptor.
-    pub fn api(status: reqwest::StatusCode, body: ApiErrorBody<E>) -> Self {
-        Self::Api(ApiError::new(status, body))
+    /// Creates a new API error using the supplied body payload.
+    pub fn api(body: E) -> Self {
+        Self::Api(body)
     }
 
-    /// Creates an API error with a successfully parsed body.
-    pub fn api_parsed(status: reqwest::StatusCode, body: E) -> Self {
-        Self::Api(ApiError::parsed(status, body))
-    }
-
-    /// Creates an API error that preserves the raw response body.
-    pub fn api_raw(status: reqwest::StatusCode, body: impl Into<String>) -> Self {
-        Self::Api(ApiError::raw(status, body))
+    /// Creates an unexpected API error preserving the raw payload.
+    pub fn unexpected(status: reqwest::StatusCode, body: UnknownApiBody) -> Self {
+        Self::Unexpected(status, body)
     }
 
     /// Returns the HTTP status code associated with this error when available.
     pub fn status(&self) -> Option<reqwest::StatusCode> {
         match self {
             Self::Network(err) => err.status(),
-            Self::Api(api_err) => Some(api_err.status()),
+            Self::Unexpected(status, _) => Some(*status),
+            Self::Api(_) => None,
         }
     }
 
-    /// Returns the captured error body when the server responded with an error status.
-    pub fn body(&self) -> Option<&ApiErrorBody<E>> {
+    /// Returns the captured error body when the server responded with an expected error payload.
+    pub fn body(&self) -> Option<&E> {
         match self {
-            Self::Api(api_err) => Some(api_err.body()),
+            Self::Api(body) => Some(body),
+            _ => None,
+        }
+    }
+
+    /// Returns the captured unexpected body, when available.
+    pub fn unexpected_body(&self) -> Option<&UnknownApiBody> {
+        match self {
+            Self::Unexpected(_, body) => Some(body),
+            _ => None,
+        }
+    }
+
+    /// Consumes the error, yielding the captured API body when available.
+    pub fn into_body(self) -> Option<E> {
+        match self {
+            Self::Api(body) => Some(body),
             _ => None,
         }
     }
@@ -62,7 +78,10 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Network(err) => write!(f, "network error: {}", err),
-            Self::Api(err) => write!(f, "API error: {}", err),
+            Self::Api(body) => write!(f, "API error: {:?}", body),
+            Self::Unexpected(status, body) => {
+                write!(f, "unexpected API error ({}): {}", status, body)
+            }
         }
     }
 }
@@ -79,85 +98,81 @@ where
     }
 }
 
-/// Detailed information about an API error response.
-#[derive(Debug, Clone)]
-pub struct ApiError<E> {
-    status: reqwest::StatusCode,
-    body: ApiErrorBody<E>,
+/// Describes an unexpected SumUp API error payload.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum UnknownApiBody {
+    /// JSON payload when the body was valid JSON but schema is unknown.
+    Json(serde_json::Value),
+    /// Plain text fallback.
+    Text(String),
+    /// Empty body.
+    Empty,
 }
 
-impl<E> ApiError<E> {
-    /// Constructs a new API error descriptor.
-    pub fn new(status: reqwest::StatusCode, body: ApiErrorBody<E>) -> Self {
-        Self { status, body }
+impl UnknownApiBody {
+    /// Converts a raw response body into an [`UnknownApiBody`].
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        if bytes.is_empty() {
+            return Self::Empty;
+        }
+
+        if let Ok(json) = serde_json::from_slice(bytes) {
+            Self::Json(json)
+        } else if let Ok(text) = std::str::from_utf8(bytes) {
+            Self::Text(text.to_owned())
+        } else {
+            Self::Empty
+        }
     }
 
-    /// Constructs an API error with a successfully parsed body.
-    pub fn parsed(status: reqwest::StatusCode, body: E) -> Self {
-        Self::new(status, ApiErrorBody::Parsed(body))
-    }
-
-    /// Constructs an API error capturing the raw response body.
-    pub fn raw(status: reqwest::StatusCode, body: impl Into<String>) -> Self {
-        Self::new(status, ApiErrorBody::Raw(body.into()))
-    }
-
-    /// Returns the HTTP status code that triggered this error.
-    pub fn status(&self) -> reqwest::StatusCode {
-        self.status
-    }
-
-    /// Returns a reference to the captured error body.
-    pub fn body(&self) -> &ApiErrorBody<E> {
-        &self.body
-    }
-
-    /// Consumes the error and returns the captured body.
-    pub fn into_body(self) -> ApiErrorBody<E> {
-        self.body
+    /// Converts a raw UTF-8 response body into an [`UnknownApiBody`].
+    pub fn from_text(body: String) -> Self {
+        Self::from_bytes(body.as_bytes())
     }
 }
 
-impl<E> std::fmt::Display for ApiError<E>
-where
-    E: std::fmt::Debug,
-{
+impl std::fmt::Display for UnknownApiBody {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.body {
-            ApiErrorBody::Parsed(body) => write!(f, "{}: {:?}", self.status, body),
-            ApiErrorBody::Raw(body) => write!(f, "{}: {}", self.status, body),
-        }
-    }
-}
-
-impl<E> std::error::Error for ApiError<E> where E: std::fmt::Debug + 'static {}
-
-/// Describes whether an API error body was parsed or captured raw.
-#[derive(Debug, Clone)]
-pub enum ApiErrorBody<E> {
-    /// Body successfully parsed into the documented schema.
-    Parsed(E),
-    /// Raw response body captured as plain text.
-    Raw(String),
-}
-
-impl<E> ApiErrorBody<E> {
-    /// Returns the parsed body if available.
-    pub fn parsed(&self) -> Option<&E> {
         match self {
-            Self::Parsed(value) => Some(value),
-            Self::Raw(_) => None,
-        }
-    }
-
-    /// Returns the raw body when parsing was not possible.
-    pub fn raw(&self) -> Option<&str> {
-        match self {
-            Self::Parsed(_) => None,
-            Self::Raw(body) => Some(body),
+            Self::Json(value) => write!(f, "{}", value),
+            Self::Text(text) => write!(f, "{}", text),
+            Self::Empty => write!(f, "<empty>"),
         }
     }
 }
 
 /// Result alias that uses [`SdkError`] as its error type.
-pub type SdkResult<T, E> = std::result::Result<T, SdkError<E>>;
+pub type SdkResult<T, E = UnknownApiBody> = std::result::Result<T, SdkError<E>>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unknown_api_body_parses_json_payloads() {
+        let payload = br#"{"error":"invalid"}"#;
+        match UnknownApiBody::from_bytes(payload) {
+            UnknownApiBody::Json(value) => assert_eq!(value["error"], "invalid"),
+            other => panic!("expected Json variant, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn unknown_api_body_handles_plain_text() {
+        let payload = b"plain text error";
+        match UnknownApiBody::from_bytes(payload) {
+            UnknownApiBody::Text(text) => assert_eq!(text, "plain text error"),
+            other => panic!("expected Text variant, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn unknown_api_body_handles_non_utf8_bytes() {
+        let payload = [0xff, 0xfe];
+        match UnknownApiBody::from_bytes(&payload) {
+            UnknownApiBody::Empty => {}
+            other => panic!("expected Empty variant, got {:?}", other),
+        }
+    }
+}

@@ -29,15 +29,6 @@ struct ErrorEntry {
     body_kind: BodyKind,
 }
 
-impl BodyKind {
-    fn key(&self) -> String {
-        match self {
-            BodyKind::Schema(ident) => ident.to_string(),
-            BodyKind::Text => "String".to_string(),
-        }
-    }
-}
-
 pub struct GeneratedClientMethods {
     pub methods: Vec<TokenStream>,
     pub extra_items: Vec<TokenStream>,
@@ -661,6 +652,53 @@ fn status_code_to_constant(status: u16) -> TokenStream {
     }
 }
 
+fn status_code_to_variant_name(status: u16) -> String {
+    match status {
+        400 => "BadRequest",
+        401 => "Unauthorized",
+        402 => "PaymentRequired",
+        403 => "Forbidden",
+        404 => "NotFound",
+        405 => "MethodNotAllowed",
+        406 => "NotAcceptable",
+        407 => "ProxyAuthenticationRequired",
+        408 => "RequestTimeout",
+        409 => "Conflict",
+        410 => "Gone",
+        411 => "LengthRequired",
+        412 => "PreconditionFailed",
+        413 => "PayloadTooLarge",
+        414 => "UriTooLong",
+        415 => "UnsupportedMediaType",
+        416 => "RangeNotSatisfiable",
+        417 => "ExpectationFailed",
+        418 => "ImATeapot",
+        421 => "MisdirectedRequest",
+        422 => "UnprocessableEntity",
+        423 => "Locked",
+        424 => "FailedDependency",
+        425 => "TooEarly",
+        426 => "UpgradeRequired",
+        428 => "PreconditionRequired",
+        429 => "TooManyRequests",
+        431 => "RequestHeaderFieldsTooLarge",
+        451 => "UnavailableForLegalReasons",
+        500 => "InternalServerError",
+        501 => "NotImplemented",
+        502 => "BadGateway",
+        503 => "ServiceUnavailable",
+        504 => "GatewayTimeout",
+        505 => "HttpVersionNotSupported",
+        506 => "VariantAlsoNegotiates",
+        507 => "InsufficientStorage",
+        508 => "LoopDetected",
+        510 => "NotExtended",
+        511 => "NetworkAuthenticationRequired",
+        _ => return format!("Status{}", status),
+    }
+    .to_string()
+}
+
 /// Builds error handling match arms and endpoint-specific error metadata.
 fn generate_error_handling(
     operation_id: &str,
@@ -670,7 +708,7 @@ fn generate_error_handling(
     if error_responses.is_empty() {
         return Ok(ErrorGeneration {
             match_arms: Vec::new(),
-            body_type: quote! { String },
+            body_type: quote! { crate::error::UnknownApiBody },
             body_definition: None,
         });
     }
@@ -692,101 +730,65 @@ fn generate_error_handling(
         });
     }
 
-    let mut unique_keys = Vec::new();
-    let mut unique_kinds = Vec::new();
-    for entry in &entries {
-        let key = entry.body_kind.key();
-        if !unique_keys.contains(&key) {
-            unique_keys.push(key.clone());
-            unique_kinds.push(entry.body_kind.clone());
-        }
+    if entries.is_empty() {
+        return Ok(ErrorGeneration {
+            match_arms: Vec::new(),
+            body_type: quote! { crate::error::UnknownApiBody },
+            body_definition: None,
+        });
     }
 
-    let body_definition;
-    let body_type;
+    let enum_name = format!("{}ErrorBody", operation_id.to_upper_camel_case());
+    let enum_ident = Ident::new(&enum_name, Span::call_site());
+
+    let mut variant_defs = Vec::new();
+    let mut seen_variants: Vec<String> = Vec::new();
     let mut match_arms = Vec::new();
 
-    if unique_kinds.len() == 1 {
-        let kind = &unique_kinds[0];
-        body_type = match kind {
-            BodyKind::Schema(ident) => quote! { #ident },
-            BodyKind::Text => quote! { String },
-        };
+    for entry in entries {
+        let status_const = entry.status_const;
+        let variant_name = status_code_to_variant_name(entry.status_code);
+        let variant_ident = Ident::new(&variant_name, Span::call_site());
 
-        for entry in entries {
-            let status_const = entry.status_const;
-            match entry.body_kind {
-                BodyKind::Schema(ident) => {
-                    match_arms.push(quote! {
-                        #status_const => {
-                            let body: #ident = response.json().await?;
-                            Err(crate::error::SdkError::api_parsed(#status_const, body))
-                        }
-                    });
-                }
-                BodyKind::Text => {
-                    match_arms.push(quote! {
-                        #status_const => {
-                            let body = response.text().await?;
-                            Err(crate::error::SdkError::api_parsed(#status_const, body))
-                        }
-                    });
-                }
-            }
+        if !seen_variants.contains(&variant_name) {
+            let field_type = match entry.body_kind {
+                BodyKind::Schema(ref ident) => quote! { #ident },
+                BodyKind::Text => quote! { String },
+            };
+            variant_defs.push(quote! { #variant_ident(#field_type), });
+            seen_variants.push(variant_name.clone());
         }
 
-        body_definition = None;
-    } else {
-        let enum_name = format!("{}ErrorBody", operation_id.to_upper_camel_case());
-        let enum_ident = Ident::new(&enum_name, Span::call_site());
-
-        let mut variant_defs = Vec::new();
-
-        for entry in entries {
-            let status_const = entry.status_const;
-            let variant_name = format!("Status{}", entry.status_code);
-            let variant_ident = Ident::new(&variant_name, Span::call_site());
-
-            match entry.body_kind {
-                BodyKind::Schema(ident) => {
-                    variant_defs.push(quote! { #variant_ident(#ident), });
-                    match_arms.push(quote! {
-                        #status_const => {
-                            let body: #ident = response.json().await?;
-                            Err(crate::error::SdkError::api_parsed(
-                                #status_const,
-                                #enum_ident::#variant_ident(body),
-                            ))
-                        }
-                    });
-                }
-                BodyKind::Text => {
-                    variant_defs.push(quote! { #variant_ident(String), });
-                    match_arms.push(quote! {
-                        #status_const => {
-                            let body = response.text().await?;
-                            Err(crate::error::SdkError::api_parsed(
-                                #status_const,
-                                #enum_ident::#variant_ident(body),
-                            ))
-                        }
-                    });
-                }
+        match entry.body_kind {
+            BodyKind::Schema(ident) => {
+                match_arms.push(quote! {
+                    #status_const => {
+                        let body: #ident = response.json().await?;
+                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident(body)))
+                    }
+                });
+            }
+            BodyKind::Text => {
+                match_arms.push(quote! {
+                    #status_const => {
+                        let body = response.text().await?;
+                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident(body)))
+                    }
+                });
             }
         }
-
-        body_definition = Some(quote! {
-            #[derive(Debug)]
-            pub enum #enum_ident {
-                #(#variant_defs)*
-            }
-        });
-        body_type = quote! { #enum_ident };
     }
+
+    let body_definition = Some(quote! {
+        #[derive(Debug)]
+        pub enum #enum_ident {
+            #(#variant_defs)*
+        }
+    });
 
     Ok(ErrorGeneration {
         match_arms,
-        body_type,
+        body_type: quote! { #enum_ident },
         body_definition,
     })
 }
@@ -850,8 +852,9 @@ fn generate_no_success_response_handling(
             match status {
                 #(#error_arms)*
                 _ => {
-                    let body = response.text().await?;
-                    Err(crate::error::SdkError::api_raw(status, body))
+                    let body_bytes = response.bytes().await?;
+                    let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                    Err(crate::error::SdkError::unexpected(status, body))
                 }
             }
         }
@@ -889,8 +892,9 @@ fn generate_single_response_handling(
                 }
                 #(#error_arms)*
                 _ => {
-                    let body = response.text().await?;
-                    Err(crate::error::SdkError::api_raw(status, body))
+                    let body_bytes = response.bytes().await?;
+                    let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                    Err(crate::error::SdkError::unexpected(status, body))
                 }
             }
         })
@@ -901,8 +905,9 @@ fn generate_single_response_handling(
                 #status_const => Ok(()),
                 #(#error_arms)*
                 _ => {
-                    let body = response.text().await?;
-                    Err(crate::error::SdkError::api_raw(status, body))
+                    let body_bytes = response.bytes().await?;
+                    let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                    Err(crate::error::SdkError::unexpected(status, body))
                 }
             }
         })
@@ -998,7 +1003,8 @@ fn generate_multi_response_handling(
             #(#error_arms)*
             _ => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body = crate::error::UnknownApiBody::from_text(body);
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     })

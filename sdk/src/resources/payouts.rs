@@ -29,6 +29,14 @@ pub struct ListPayoutsV1Params {
     pub order: Option<String>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum ListPayoutsErrorBody {
+    Unauthorized(Error),
+}
+#[derive(Debug)]
+pub enum ListPayoutsV1ErrorBody {
+    Unauthorized(Error),
+}
 ///Client for the Payouts API endpoints.
 #[derive(Debug)]
 pub struct PayoutsClient<'a> {
@@ -48,7 +56,7 @@ impl<'a> PayoutsClient<'a> {
     pub async fn list_deprecated(
         &self,
         params: ListPayoutsParams,
-    ) -> crate::error::SdkResult<FinancialPayouts, Error> {
+    ) -> crate::error::SdkResult<FinancialPayouts, ListPayoutsErrorBody> {
         let path = "/v0.1/me/financials/payouts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -80,14 +88,14 @@ impl<'a> PayoutsClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    body,
+                Err(crate::error::SdkError::api(
+                    ListPayoutsErrorBody::Unauthorized(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -98,7 +106,7 @@ impl<'a> PayoutsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListPayoutsV1Params,
-    ) -> crate::error::SdkResult<FinancialPayouts, Error> {
+    ) -> crate::error::SdkResult<FinancialPayouts, ListPayoutsV1ErrorBody> {
         let path = format!("/v1.0/merchants/{}/payouts", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -130,14 +138,14 @@ impl<'a> PayoutsClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    body,
+                Err(crate::error::SdkError::api(
+                    ListPayoutsV1ErrorBody::Unauthorized(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

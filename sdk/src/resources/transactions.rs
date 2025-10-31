@@ -427,6 +427,29 @@ pub struct ListTransactionsV21Response {
     pub links: Option<Vec<Link>>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum RefundTransactionErrorBody {
+    NotFound(Error),
+    Conflict(Error),
+}
+#[derive(Debug)]
+pub enum GetTransactionErrorBody {
+    Unauthorized(Error),
+    NotFound(Error),
+}
+#[derive(Debug)]
+pub enum ListTransactionsErrorBody {
+    Unauthorized(Error),
+}
+#[derive(Debug)]
+pub enum GetTransactionV21ErrorBody {
+    Unauthorized(Error),
+    NotFound(Error),
+}
+#[derive(Debug)]
+pub enum ListTransactionsV21ErrorBody {
+    Unauthorized(Error),
+}
 ///Client for the Transactions API endpoints.
 #[derive(Debug)]
 pub struct TransactionsClient<'a> {
@@ -447,7 +470,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         txn_id: impl Into<String>,
         body: Option<RefundTransactionBody>,
-    ) -> crate::error::SdkResult<(), Error> {
+    ) -> crate::error::SdkResult<(), RefundTransactionErrorBody> {
         let path = format!("/v0.1/me/refund/{}", txn_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -468,21 +491,20 @@ impl<'a> TransactionsClient<'a> {
             reqwest::StatusCode::NO_CONTENT => Ok(()),
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    body,
+                Err(crate::error::SdkError::api(
+                    RefundTransactionErrorBody::NotFound(body),
                 ))
             }
             reqwest::StatusCode::CONFLICT => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::CONFLICT,
-                    body,
+                Err(crate::error::SdkError::api(
+                    RefundTransactionErrorBody::Conflict(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -498,7 +520,7 @@ impl<'a> TransactionsClient<'a> {
     pub async fn get_deprecated(
         &self,
         params: GetTransactionParams,
-    ) -> crate::error::SdkResult<TransactionFull, Error> {
+    ) -> crate::error::SdkResult<TransactionFull, GetTransactionErrorBody> {
         let path = "/v0.1/me/transactions";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -528,21 +550,20 @@ impl<'a> TransactionsClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    body,
+                Err(crate::error::SdkError::api(
+                    GetTransactionErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    body,
+                Err(crate::error::SdkError::api(
+                    GetTransactionErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -552,7 +573,7 @@ impl<'a> TransactionsClient<'a> {
     pub async fn list_deprecated(
         &self,
         params: ListTransactionsParams,
-    ) -> crate::error::SdkResult<ListTransactionsResponse, Error> {
+    ) -> crate::error::SdkResult<ListTransactionsResponse, ListTransactionsErrorBody> {
         let path = "/v0.1/me/transactions/history";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -609,14 +630,14 @@ impl<'a> TransactionsClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    body,
+                Err(crate::error::SdkError::api(
+                    ListTransactionsErrorBody::Unauthorized(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -633,7 +654,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: GetTransactionV21Params,
-    ) -> crate::error::SdkResult<TransactionFull, Error> {
+    ) -> crate::error::SdkResult<TransactionFull, GetTransactionV21ErrorBody> {
         let path = format!("/v2.1/merchants/{}/transactions", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -669,21 +690,20 @@ impl<'a> TransactionsClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    body,
+                Err(crate::error::SdkError::api(
+                    GetTransactionV21ErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    body,
+                Err(crate::error::SdkError::api(
+                    GetTransactionV21ErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -694,7 +714,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListTransactionsV21Params,
-    ) -> crate::error::SdkResult<ListTransactionsV21Response, Error> {
+    ) -> crate::error::SdkResult<ListTransactionsV21Response, ListTransactionsV21ErrorBody> {
         let path = format!(
             "/v2.1/merchants/{}/transactions/history",
             merchant_code.into()
@@ -754,14 +774,14 @@ impl<'a> TransactionsClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    body,
+                Err(crate::error::SdkError::api(
+                    ListTransactionsV21ErrorBody::Unauthorized(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

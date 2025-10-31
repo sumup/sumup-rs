@@ -5,18 +5,20 @@
 //! ## Quick Start
 //!
 //! ```no_run
-//! use sumup::{error::SdkResult, Client};
-//! type ListCheckoutsError = SdkResult<(), sumup::resources::common::Error>;
+//! use sumup::Client;
 //!
 //! #[tokio::main]
-//! async fn main() -> ListCheckoutsError {
+//! async fn main() {
 //!     // Create a client (reads SUMUP_API_KEY from environment)
 //!     let client = Client::default();
 //!
 //!     // Call an API endpoint
-//!     let checkouts = client.checkouts().list(Default::default()).await?;
-//!     
-//!     Ok(())
+//!     let checkouts = client
+//!         .checkouts()
+//!         .list(Default::default())
+//!         .await
+//!         .expect("list checkouts request failed");
+//!     println!("found {} checkouts", checkouts.len());
 //! }
 //! ```
 //!
@@ -52,9 +54,8 @@
 //! The SDK organizes endpoints by tags:
 //!
 //! ```no_run
-//! # use sumup::{Client, CheckoutCreateRequest, Currency, error::SdkResult};
-//! # type Error = SdkResult<(), sumup::resources::common::Error>;
-//! # async fn example(client: Client) -> Error {
+//! # use sumup::{Client, CheckoutCreateRequest, Currency};
+//! # async fn example(client: Client) {
 //! // Create a checkout
 //! let checkout = client.checkouts().create(Some(CheckoutCreateRequest {
 //!     checkout_reference: "unique-ref".to_string(),
@@ -71,22 +72,23 @@
 //!     valid_until: None,
 //!     transactions: None,
 //!     redirect_url: None,
-//! })).await;
-//! if let Ok(order) = checkout {
-//!     println!("created checkout {}", order.id.unwrap_or_default());
-//! } else {
-//!     eprintln!("create checkout request failed");
-//! }
+//! }))
+//! .await
+//! .expect("create checkout");
+//! println!("created checkout {}", checkout.id.unwrap_or_default());
 //!
 //! // Transactions with query parameters
 //! use sumup::resources::transactions::ListTransactionsParams;
-//! let transactions = client.transactions().list_deprecated(ListTransactionsParams {
+//! let transactions = client
+//!     .transactions()
+//!     .list_deprecated(ListTransactionsParams {
 //!     limit: Some(10),
 //!     ..Default::default()
-//! }).await?;
+//! })
+//! .await
+//! .expect("list transactions");
 //! let count = transactions.items.as_ref().map_or(0, |items| items.len());
 //! println!("fetched {} historical transactions", count);
-//! # Ok(())
 //! # }
 //! ```
 //!
@@ -109,26 +111,26 @@
 //!
 //! All SDK calls return a [`SdkResult`] whose error side is a [`SdkError`]. When the
 //! SumUp API responds with a non-success status, the SDK builds an
-//! `SdkError::Api` containing the HTTP status and either the parsed error schema
-//! (when documented) or the raw response body. You can inspect failures like
-//! this:
+//! `SdkError::Api` containing an endpoint-specific payload (e.g. a `Unauthorized`
+//! enum variant). Any undocumented status codes fall back to
+//! `SdkError::Unexpected`, which preserves the HTTP status and best-effort body
+//! parsing. You can inspect failures like this:
 //!
 //! ```no_run
-//! # use sumup::{Client, error::{ApiErrorBody, SdkError}};
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! # use sumup::{Client, error::SdkError};
+//! # use sumup::resources::checkouts::ListCheckoutsErrorBody;
+//! # async fn example() {
 //! let client = Client::default();
 //! match client.checkouts().list(Default::default()).await {
 //!     Ok(checkouts) => println!("retrieved {} checkouts", checkouts.len()),
-//!     Err(SdkError::Api(api)) => {
-//!         eprintln!("request failed with status {}", api.status());
-//!         match api.body() {
-//!             ApiErrorBody::Parsed(details) => eprintln!("error payload: {:?}", details),
-//!             ApiErrorBody::Raw(body) => eprintln!("raw body: {}", body),
-//!         }
+//!     Err(SdkError::Api(body)) => match body {
+//!         ListCheckoutsErrorBody::Unauthorized(details) => eprintln!("unauthorized: {:?}", details),
+//!     },
+//!     Err(SdkError::Unexpected(status, body)) => {
+//!         eprintln!("unexpected {} response: {}", status, body);
 //!     }
-//!     Err(SdkError::Network(err)) => return Err(Box::new(err)),
+//!     Err(SdkError::Network(err)) => panic!("network error: {}", err),
 //! }
-//! # Ok(())
 //! # }
 //! ```
 //!
@@ -157,5 +159,5 @@ pub mod datetime;
 
 pub use crate::resources::*;
 pub use client::Client;
-pub use error::{ApiError, ApiErrorBody, SdkError, SdkResult};
+pub use error::{SdkError, SdkResult, UnknownApiBody};
 pub use version::VERSION;

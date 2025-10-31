@@ -51,33 +51,33 @@ pub type ListPaymentInstrumentsResponse = Vec<PaymentInstrumentResponse>;
 use crate::client::Client;
 #[derive(Debug)]
 pub enum CreateCustomerErrorBody {
-    Status401(Error),
-    Status403(ErrorForbidden),
-    Status409(Error),
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    Conflict(Error),
 }
 #[derive(Debug)]
 pub enum GetCustomerErrorBody {
-    Status401(Error),
-    Status403(ErrorForbidden),
-    Status404(Error),
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    NotFound(Error),
 }
 #[derive(Debug)]
 pub enum UpdateCustomerErrorBody {
-    Status401(Error),
-    Status403(ErrorForbidden),
-    Status404(Error),
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    NotFound(Error),
 }
 #[derive(Debug)]
 pub enum ListPaymentInstrumentsErrorBody {
-    Status401(Error),
-    Status403(ErrorForbidden),
-    Status404(Error),
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    NotFound(Error),
 }
 #[derive(Debug)]
 pub enum DeactivatePaymentInstrumentErrorBody {
-    Status401(Error),
-    Status403(ErrorForbidden),
-    Status404(Error),
+    Unauthorized(Error),
+    Forbidden(ErrorForbidden),
+    NotFound(Error),
 }
 ///Client for the Customers API endpoints.
 #[derive(Debug)]
@@ -122,28 +122,26 @@ impl<'a> CustomersClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    CreateCustomerErrorBody::Status401(body),
+                Err(crate::error::SdkError::api(
+                    CreateCustomerErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::FORBIDDEN,
-                    CreateCustomerErrorBody::Status403(body),
+                Err(crate::error::SdkError::api(
+                    CreateCustomerErrorBody::Forbidden(body),
                 ))
             }
             reqwest::StatusCode::CONFLICT => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::CONFLICT,
-                    CreateCustomerErrorBody::Status409(body),
+                Err(crate::error::SdkError::api(
+                    CreateCustomerErrorBody::Conflict(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -174,28 +172,26 @@ impl<'a> CustomersClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    GetCustomerErrorBody::Status401(body),
+                Err(crate::error::SdkError::api(
+                    GetCustomerErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::FORBIDDEN,
-                    GetCustomerErrorBody::Status403(body),
+                Err(crate::error::SdkError::api(
+                    GetCustomerErrorBody::Forbidden(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    GetCustomerErrorBody::Status404(body),
-                ))
+                Err(crate::error::SdkError::api(GetCustomerErrorBody::NotFound(
+                    body,
+                )))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -232,28 +228,26 @@ impl<'a> CustomersClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    UpdateCustomerErrorBody::Status401(body),
+                Err(crate::error::SdkError::api(
+                    UpdateCustomerErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::FORBIDDEN,
-                    UpdateCustomerErrorBody::Status403(body),
+                Err(crate::error::SdkError::api(
+                    UpdateCustomerErrorBody::Forbidden(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    UpdateCustomerErrorBody::Status404(body),
+                Err(crate::error::SdkError::api(
+                    UpdateCustomerErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -285,28 +279,26 @@ impl<'a> CustomersClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    ListPaymentInstrumentsErrorBody::Status401(body),
+                Err(crate::error::SdkError::api(
+                    ListPaymentInstrumentsErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::FORBIDDEN,
-                    ListPaymentInstrumentsErrorBody::Status403(body),
+                Err(crate::error::SdkError::api(
+                    ListPaymentInstrumentsErrorBody::Forbidden(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    ListPaymentInstrumentsErrorBody::Status404(body),
+                Err(crate::error::SdkError::api(
+                    ListPaymentInstrumentsErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -339,28 +331,26 @@ impl<'a> CustomersClient<'a> {
             reqwest::StatusCode::NO_CONTENT => Ok(()),
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    DeactivatePaymentInstrumentErrorBody::Status401(body),
+                Err(crate::error::SdkError::api(
+                    DeactivatePaymentInstrumentErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::FORBIDDEN,
-                    DeactivatePaymentInstrumentErrorBody::Status403(body),
+                Err(crate::error::SdkError::api(
+                    DeactivatePaymentInstrumentErrorBody::Forbidden(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    DeactivatePaymentInstrumentErrorBody::Status404(body),
+                Err(crate::error::SdkError::api(
+                    DeactivatePaymentInstrumentErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

@@ -95,6 +95,14 @@ pub struct UpdateSubAccountBody {
     pub permissions: Option<UpdateSubAccountBodyPermissions>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum CreateSubAccountErrorBody {
+    Forbidden(CompatError),
+}
+#[derive(Debug)]
+pub enum UpdateSubAccountErrorBody {
+    BadRequest(CompatError),
+}
 ///Client for the Subaccounts API endpoints.
 #[derive(Debug)]
 pub struct SubaccountsClient<'a> {
@@ -114,7 +122,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn list_sub_accounts(
         &self,
         params: ListSubAccountsParams,
-    ) -> crate::error::SdkResult<ListSubAccountsResponse, String> {
+    ) -> crate::error::SdkResult<ListSubAccountsResponse, crate::error::UnknownApiBody> {
         let path = "/v0.1/me/accounts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -140,8 +148,9 @@ impl<'a> SubaccountsClient<'a> {
                 Ok(data)
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -151,7 +160,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn create_sub_account(
         &self,
         body: CreateSubAccountBody,
-    ) -> crate::error::SdkResult<Operator, CompatError> {
+    ) -> crate::error::SdkResult<Operator, CreateSubAccountErrorBody> {
         let path = "/v0.1/me/accounts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -173,14 +182,14 @@ impl<'a> SubaccountsClient<'a> {
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body: CompatError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::FORBIDDEN,
-                    body,
+                Err(crate::error::SdkError::api(
+                    CreateSubAccountErrorBody::Forbidden(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -190,7 +199,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn deactivate_sub_account(
         &self,
         operator_id: impl Into<String>,
-    ) -> crate::error::SdkResult<Operator, String> {
+    ) -> crate::error::SdkResult<Operator, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -210,8 +219,9 @@ impl<'a> SubaccountsClient<'a> {
                 Ok(data)
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -221,7 +231,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn compat_get_operator(
         &self,
         operator_id: impl Into<String>,
-    ) -> crate::error::SdkResult<Operator, String> {
+    ) -> crate::error::SdkResult<Operator, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -241,8 +251,9 @@ impl<'a> SubaccountsClient<'a> {
                 Ok(data)
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -253,7 +264,7 @@ impl<'a> SubaccountsClient<'a> {
         &self,
         operator_id: impl Into<String>,
         body: UpdateSubAccountBody,
-    ) -> crate::error::SdkResult<Operator, CompatError> {
+    ) -> crate::error::SdkResult<Operator, UpdateSubAccountErrorBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -275,14 +286,14 @@ impl<'a> SubaccountsClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: CompatError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::BAD_REQUEST,
-                    body,
+                Err(crate::error::SdkError::api(
+                    UpdateSubAccountErrorBody::BadRequest(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

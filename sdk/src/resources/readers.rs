@@ -218,22 +218,30 @@ pub struct UpdateReaderBody {
 }
 use crate::client::Client;
 #[derive(Debug)]
+pub enum GetReaderErrorBody {
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum UpdateReaderErrorBody {
+    Forbidden(String),
+}
+#[derive(Debug)]
 pub enum CreateReaderCheckoutErrorBody {
-    Status400(CreateReaderCheckoutError),
-    Status401(CreateReaderCheckoutError),
-    Status422(CreateReaderCheckoutUnprocessableEntity),
-    Status500(CreateReaderCheckoutError),
-    Status502(CreateReaderCheckoutError),
-    Status504(CreateReaderCheckoutError),
+    BadRequest(CreateReaderCheckoutError),
+    Unauthorized(CreateReaderCheckoutError),
+    UnprocessableEntity(CreateReaderCheckoutUnprocessableEntity),
+    InternalServerError(CreateReaderCheckoutError),
+    BadGateway(CreateReaderCheckoutError),
+    GatewayTimeout(CreateReaderCheckoutError),
 }
 #[derive(Debug)]
 pub enum CreateReaderTerminateErrorBody {
-    Status400(CreateReaderTerminateError),
-    Status401(CreateReaderTerminateError),
-    Status422(CreateReaderTerminateUnprocessableEntity),
-    Status500(CreateReaderTerminateError),
-    Status502(CreateReaderTerminateError),
-    Status504(CreateReaderTerminateError),
+    BadRequest(CreateReaderTerminateError),
+    Unauthorized(CreateReaderTerminateError),
+    UnprocessableEntity(CreateReaderTerminateUnprocessableEntity),
+    InternalServerError(CreateReaderTerminateError),
+    BadGateway(CreateReaderTerminateError),
+    GatewayTimeout(CreateReaderTerminateError),
 }
 ///Client for the Readers API endpoints.
 #[derive(Debug)]
@@ -254,7 +262,7 @@ impl<'a> ReadersClient<'a> {
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
-    ) -> crate::error::SdkResult<ListReadersResponse, String> {
+    ) -> crate::error::SdkResult<ListReadersResponse, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -274,8 +282,9 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -286,7 +295,7 @@ impl<'a> ReadersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         body: CreateReaderBody,
-    ) -> crate::error::SdkResult<Reader, String> {
+    ) -> crate::error::SdkResult<Reader, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -307,8 +316,9 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -319,7 +329,7 @@ impl<'a> ReadersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         id: impl Into<String>,
-    ) -> crate::error::SdkResult<(), String> {
+    ) -> crate::error::SdkResult<(), crate::error::UnknownApiBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
@@ -340,8 +350,9 @@ impl<'a> ReadersClient<'a> {
         match status {
             reqwest::StatusCode::OK => Ok(()),
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -352,7 +363,7 @@ impl<'a> ReadersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         id: impl Into<String>,
-    ) -> crate::error::SdkResult<Reader, String> {
+    ) -> crate::error::SdkResult<Reader, GetReaderErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
@@ -377,14 +388,14 @@ impl<'a> ReadersClient<'a> {
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
+                Err(crate::error::SdkError::api(GetReaderErrorBody::NotFound(
                     body,
-                ))
+                )))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -396,7 +407,7 @@ impl<'a> ReadersClient<'a> {
         merchant_code: impl Into<String>,
         id: impl Into<String>,
         body: UpdateReaderBody,
-    ) -> crate::error::SdkResult<Reader, String> {
+    ) -> crate::error::SdkResult<Reader, UpdateReaderErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
@@ -422,14 +433,14 @@ impl<'a> ReadersClient<'a> {
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::FORBIDDEN,
-                    body,
+                Err(crate::error::SdkError::api(
+                    UpdateReaderErrorBody::Forbidden(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -477,49 +488,44 @@ impl<'a> ReadersClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: CreateReaderCheckoutError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::BAD_REQUEST,
-                    CreateReaderCheckoutErrorBody::Status400(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::BadRequest(body),
                 ))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: CreateReaderCheckoutError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    CreateReaderCheckoutErrorBody::Status401(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
                 let body: CreateReaderCheckoutUnprocessableEntity = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNPROCESSABLE_ENTITY,
-                    CreateReaderCheckoutErrorBody::Status422(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::UnprocessableEntity(body),
                 ))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
                 let body: CreateReaderCheckoutError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-                    CreateReaderCheckoutErrorBody::Status500(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::InternalServerError(body),
                 ))
             }
             reqwest::StatusCode::BAD_GATEWAY => {
                 let body: CreateReaderCheckoutError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::BAD_GATEWAY,
-                    CreateReaderCheckoutErrorBody::Status502(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::BadGateway(body),
                 ))
             }
             reqwest::StatusCode::GATEWAY_TIMEOUT => {
                 let body: CreateReaderCheckoutError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::GATEWAY_TIMEOUT,
-                    CreateReaderCheckoutErrorBody::Status504(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderCheckoutErrorBody::GatewayTimeout(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -565,49 +571,44 @@ impl<'a> ReadersClient<'a> {
             reqwest::StatusCode::ACCEPTED => Ok(()),
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: CreateReaderTerminateError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::BAD_REQUEST,
-                    CreateReaderTerminateErrorBody::Status400(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::BadRequest(body),
                 ))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: CreateReaderTerminateError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNAUTHORIZED,
-                    CreateReaderTerminateErrorBody::Status401(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
                 let body: CreateReaderTerminateUnprocessableEntity = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::UNPROCESSABLE_ENTITY,
-                    CreateReaderTerminateErrorBody::Status422(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::UnprocessableEntity(body),
                 ))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
                 let body: CreateReaderTerminateError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-                    CreateReaderTerminateErrorBody::Status500(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::InternalServerError(body),
                 ))
             }
             reqwest::StatusCode::BAD_GATEWAY => {
                 let body: CreateReaderTerminateError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::BAD_GATEWAY,
-                    CreateReaderTerminateErrorBody::Status502(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::BadGateway(body),
                 ))
             }
             reqwest::StatusCode::GATEWAY_TIMEOUT => {
                 let body: CreateReaderTerminateError = response.json().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::GATEWAY_TIMEOUT,
-                    CreateReaderTerminateErrorBody::Status504(body),
+                Err(crate::error::SdkError::api(
+                    CreateReaderTerminateErrorBody::GatewayTimeout(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

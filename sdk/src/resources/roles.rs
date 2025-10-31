@@ -52,6 +52,29 @@ pub struct UpdateMerchantRoleBody {
     pub description: Option<String>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum ListMerchantRolesErrorBody {
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum CreateMerchantRoleErrorBody {
+    BadRequest(String),
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum DeleteMerchantRoleErrorBody {
+    BadRequest(String),
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum GetMerchantRoleErrorBody {
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum UpdateMerchantRoleErrorBody {
+    BadRequest(String),
+    NotFound(String),
+}
 ///Client for the Roles API endpoints.
 #[derive(Debug)]
 pub struct RolesClient<'a> {
@@ -71,7 +94,7 @@ impl<'a> RolesClient<'a> {
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
-    ) -> crate::error::SdkResult<ListMerchantRolesResponse, String> {
+    ) -> crate::error::SdkResult<ListMerchantRolesResponse, ListMerchantRolesErrorBody> {
         let path = format!("/v0.1/merchants/{}/roles", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -92,14 +115,14 @@ impl<'a> RolesClient<'a> {
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    body,
+                Err(crate::error::SdkError::api(
+                    ListMerchantRolesErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -110,7 +133,7 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         body: CreateMerchantRoleBody,
-    ) -> crate::error::SdkResult<Role, String> {
+    ) -> crate::error::SdkResult<Role, CreateMerchantRoleErrorBody> {
         let path = format!("/v0.1/merchants/{}/roles", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -132,21 +155,20 @@ impl<'a> RolesClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::BAD_REQUEST,
-                    body,
+                Err(crate::error::SdkError::api(
+                    CreateMerchantRoleErrorBody::BadRequest(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    body,
+                Err(crate::error::SdkError::api(
+                    CreateMerchantRoleErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -157,7 +179,7 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
-    ) -> crate::error::SdkResult<(), String> {
+    ) -> crate::error::SdkResult<(), DeleteMerchantRoleErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
             merchant_code.into(),
@@ -179,21 +201,20 @@ impl<'a> RolesClient<'a> {
             reqwest::StatusCode::OK => Ok(()),
             reqwest::StatusCode::BAD_REQUEST => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::BAD_REQUEST,
-                    body,
+                Err(crate::error::SdkError::api(
+                    DeleteMerchantRoleErrorBody::BadRequest(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    body,
+                Err(crate::error::SdkError::api(
+                    DeleteMerchantRoleErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -204,7 +225,7 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
-    ) -> crate::error::SdkResult<Role, String> {
+    ) -> crate::error::SdkResult<Role, GetMerchantRoleErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
             merchant_code.into(),
@@ -229,14 +250,14 @@ impl<'a> RolesClient<'a> {
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    body,
+                Err(crate::error::SdkError::api(
+                    GetMerchantRoleErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -248,7 +269,7 @@ impl<'a> RolesClient<'a> {
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
         body: UpdateMerchantRoleBody,
-    ) -> crate::error::SdkResult<Role, String> {
+    ) -> crate::error::SdkResult<Role, UpdateMerchantRoleErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
             merchant_code.into(),
@@ -274,21 +295,20 @@ impl<'a> RolesClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::BAD_REQUEST,
-                    body,
+                Err(crate::error::SdkError::api(
+                    UpdateMerchantRoleErrorBody::BadRequest(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
-                    body,
+                Err(crate::error::SdkError::api(
+                    UpdateMerchantRoleErrorBody::NotFound(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

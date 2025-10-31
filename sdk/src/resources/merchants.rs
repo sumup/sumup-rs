@@ -350,6 +350,20 @@ pub struct GetPersonParams {
     pub version: Option<String>,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum GetMerchantErrorBody {
+    NotFound(String),
+}
+#[derive(Debug)]
+pub enum ListPersonsErrorBody {
+    NotFound(String),
+    InternalServerError(String),
+}
+#[derive(Debug)]
+pub enum GetPersonErrorBody {
+    NotFound(String),
+    InternalServerError(String),
+}
 ///Client for the Merchants API endpoints.
 #[derive(Debug)]
 pub struct MerchantsClient<'a> {
@@ -370,7 +384,7 @@ impl<'a> MerchantsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: GetMerchantParams,
-    ) -> crate::error::SdkResult<Merchant, String> {
+    ) -> crate::error::SdkResult<Merchant, GetMerchantErrorBody> {
         let path = format!("/v1/merchants/{}", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -394,14 +408,14 @@ impl<'a> MerchantsClient<'a> {
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
+                Err(crate::error::SdkError::api(GetMerchantErrorBody::NotFound(
                     body,
-                ))
+                )))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -412,7 +426,7 @@ impl<'a> MerchantsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         params: ListPersonsParams,
-    ) -> crate::error::SdkResult<ListPersonsResponseBody, String> {
+    ) -> crate::error::SdkResult<ListPersonsResponseBody, ListPersonsErrorBody> {
         let path = format!("/v1/merchants/{}/persons", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -436,21 +450,20 @@ impl<'a> MerchantsClient<'a> {
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
+                Err(crate::error::SdkError::api(ListPersonsErrorBody::NotFound(
                     body,
-                ))
+                )))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-                    body,
+                Err(crate::error::SdkError::api(
+                    ListPersonsErrorBody::InternalServerError(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
@@ -462,7 +475,7 @@ impl<'a> MerchantsClient<'a> {
         merchant_code: impl Into<String>,
         person_id: impl Into<String>,
         params: GetPersonParams,
-    ) -> crate::error::SdkResult<Person, String> {
+    ) -> crate::error::SdkResult<Person, GetPersonErrorBody> {
         let path = format!(
             "/v1/merchants/{}/persons/{}",
             merchant_code.into(),
@@ -490,21 +503,20 @@ impl<'a> MerchantsClient<'a> {
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::NOT_FOUND,
+                Err(crate::error::SdkError::api(GetPersonErrorBody::NotFound(
                     body,
-                ))
+                )))
             }
             reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
                 let body = response.text().await?;
-                Err(crate::error::SdkError::api_parsed(
-                    reqwest::StatusCode::INTERNAL_SERVER_ERROR,
-                    body,
+                Err(crate::error::SdkError::api(
+                    GetPersonErrorBody::InternalServerError(body),
                 ))
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }

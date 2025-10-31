@@ -96,7 +96,7 @@ impl<'a> MembershipsClient<'a> {
     pub async fn list(
         &self,
         params: ListMembershipsParams,
-    ) -> crate::error::SdkResult<ListMembershipsResponse, String> {
+    ) -> crate::error::SdkResult<ListMembershipsResponse, crate::error::UnknownApiBody> {
         let path = "/v0.1/memberships";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -131,8 +131,9 @@ impl<'a> MembershipsClient<'a> {
                 Ok(data)
             }
             _ => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api_raw(status, body))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
             }
         }
     }
