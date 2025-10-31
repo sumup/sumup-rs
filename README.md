@@ -27,6 +27,26 @@ Install with:
 cargo add sumup
 ```
 
+## Quick Start
+
+```rust
+use sumup::Client;
+
+#[tokio::main]
+async fn main() {
+    // Initialize the client (reads SUMUP_API_KEY from environment)
+    let client = Client::default();
+
+    // List existing checkouts
+    let checkouts = client
+        .checkouts()
+        .list(Default::default())
+        .await
+        .expect("list checkouts");
+    println!("retrieved {} checkouts", checkouts.len());
+}
+```
+
 ## Examples
 
 You can find all examples under [examples/](/examples/). To run an example, use:
