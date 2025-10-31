@@ -352,17 +352,17 @@ pub struct GetPersonParams {
 use crate::client::Client;
 #[derive(Debug)]
 pub enum GetMerchantErrorBody {
-    NotFound(String),
+    NotFound,
 }
 #[derive(Debug)]
 pub enum ListPersonsErrorBody {
-    NotFound(String),
-    InternalServerError(String),
+    NotFound,
+    InternalServerError,
 }
 #[derive(Debug)]
 pub enum GetPersonErrorBody {
-    NotFound(String),
-    InternalServerError(String),
+    NotFound,
+    InternalServerError,
 }
 ///Client for the Merchants API endpoints.
 #[derive(Debug)]
@@ -407,10 +407,7 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(GetMerchantErrorBody::NotFound(
-                    body,
-                )))
+                Err(crate::error::SdkError::api(GetMerchantErrorBody::NotFound))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -449,17 +446,11 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(ListPersonsErrorBody::NotFound(
-                    body,
-                )))
+                Err(crate::error::SdkError::api(ListPersonsErrorBody::NotFound))
             }
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    ListPersonsErrorBody::InternalServerError(body),
-                ))
-            }
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR => Err(crate::error::SdkError::api(
+                ListPersonsErrorBody::InternalServerError,
+            )),
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
@@ -502,17 +493,11 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(GetPersonErrorBody::NotFound(
-                    body,
-                )))
+                Err(crate::error::SdkError::api(GetPersonErrorBody::NotFound))
             }
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    GetPersonErrorBody::InternalServerError(body),
-                ))
-            }
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR => Err(crate::error::SdkError::api(
+                GetPersonErrorBody::InternalServerError,
+            )),
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());

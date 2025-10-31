@@ -135,28 +135,28 @@ pub struct UpdateMerchantMemberBody {
 use crate::client::Client;
 #[derive(Debug)]
 pub enum ListMerchantMembersErrorBody {
-    NotFound(String),
+    NotFound,
 }
 #[derive(Debug)]
 pub enum CreateMerchantMemberErrorBody {
-    BadRequest(String),
-    NotFound(String),
-    TooManyRequests(String),
+    BadRequest,
+    NotFound,
+    TooManyRequests,
 }
 #[derive(Debug)]
 pub enum DeleteMerchantMemberErrorBody {
-    NotFound(String),
+    NotFound,
 }
 #[derive(Debug)]
 pub enum GetMerchantMemberErrorBody {
-    NotFound(String),
+    NotFound,
 }
 #[derive(Debug)]
 pub enum UpdateMerchantMemberErrorBody {
-    BadRequest(String),
-    Forbidden(String),
-    NotFound(String),
-    Conflict(String),
+    BadRequest,
+    Forbidden,
+    NotFound,
+    Conflict,
 }
 ///Client for the Members API endpoints.
 #[derive(Debug)]
@@ -218,12 +218,9 @@ impl<'a> MembersClient<'a> {
                 let data: ListMerchantMembersResponse = response.json().await?;
                 Ok(data)
             }
-            reqwest::StatusCode::NOT_FOUND => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    ListMerchantMembersErrorBody::NotFound(body),
-                ))
-            }
+            reqwest::StatusCode::NOT_FOUND => Err(crate::error::SdkError::api(
+                ListMerchantMembersErrorBody::NotFound,
+            )),
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
@@ -258,24 +255,15 @@ impl<'a> MembersClient<'a> {
                 let data: Member = response.json().await?;
                 Ok(data)
             }
-            reqwest::StatusCode::BAD_REQUEST => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    CreateMerchantMemberErrorBody::BadRequest(body),
-                ))
-            }
-            reqwest::StatusCode::NOT_FOUND => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    CreateMerchantMemberErrorBody::NotFound(body),
-                ))
-            }
-            reqwest::StatusCode::TOO_MANY_REQUESTS => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    CreateMerchantMemberErrorBody::TooManyRequests(body),
-                ))
-            }
+            reqwest::StatusCode::BAD_REQUEST => Err(crate::error::SdkError::api(
+                CreateMerchantMemberErrorBody::BadRequest,
+            )),
+            reqwest::StatusCode::NOT_FOUND => Err(crate::error::SdkError::api(
+                CreateMerchantMemberErrorBody::NotFound,
+            )),
+            reqwest::StatusCode::TOO_MANY_REQUESTS => Err(crate::error::SdkError::api(
+                CreateMerchantMemberErrorBody::TooManyRequests,
+            )),
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
@@ -310,12 +298,9 @@ impl<'a> MembersClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => Ok(()),
-            reqwest::StatusCode::NOT_FOUND => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    DeleteMerchantMemberErrorBody::NotFound(body),
-                ))
-            }
+            reqwest::StatusCode::NOT_FOUND => Err(crate::error::SdkError::api(
+                DeleteMerchantMemberErrorBody::NotFound,
+            )),
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
@@ -353,12 +338,9 @@ impl<'a> MembersClient<'a> {
                 let data: Member = response.json().await?;
                 Ok(data)
             }
-            reqwest::StatusCode::NOT_FOUND => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    GetMerchantMemberErrorBody::NotFound(body),
-                ))
-            }
+            reqwest::StatusCode::NOT_FOUND => Err(crate::error::SdkError::api(
+                GetMerchantMemberErrorBody::NotFound,
+            )),
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
@@ -398,30 +380,18 @@ impl<'a> MembersClient<'a> {
                 let data: Member = response.json().await?;
                 Ok(data)
             }
-            reqwest::StatusCode::BAD_REQUEST => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    UpdateMerchantMemberErrorBody::BadRequest(body),
-                ))
-            }
-            reqwest::StatusCode::FORBIDDEN => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    UpdateMerchantMemberErrorBody::Forbidden(body),
-                ))
-            }
-            reqwest::StatusCode::NOT_FOUND => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    UpdateMerchantMemberErrorBody::NotFound(body),
-                ))
-            }
-            reqwest::StatusCode::CONFLICT => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    UpdateMerchantMemberErrorBody::Conflict(body),
-                ))
-            }
+            reqwest::StatusCode::BAD_REQUEST => Err(crate::error::SdkError::api(
+                UpdateMerchantMemberErrorBody::BadRequest,
+            )),
+            reqwest::StatusCode::FORBIDDEN => Err(crate::error::SdkError::api(
+                UpdateMerchantMemberErrorBody::Forbidden,
+            )),
+            reqwest::StatusCode::NOT_FOUND => Err(crate::error::SdkError::api(
+                UpdateMerchantMemberErrorBody::NotFound,
+            )),
+            reqwest::StatusCode::CONFLICT => Err(crate::error::SdkError::api(
+                UpdateMerchantMemberErrorBody::Conflict,
+            )),
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());

@@ -219,11 +219,11 @@ pub struct UpdateReaderBody {
 use crate::client::Client;
 #[derive(Debug)]
 pub enum GetReaderErrorBody {
-    NotFound(String),
+    NotFound,
 }
 #[derive(Debug)]
 pub enum UpdateReaderErrorBody {
-    Forbidden(String),
+    Forbidden,
 }
 #[derive(Debug)]
 pub enum CreateReaderCheckoutErrorBody {
@@ -387,10 +387,7 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(GetReaderErrorBody::NotFound(
-                    body,
-                )))
+                Err(crate::error::SdkError::api(GetReaderErrorBody::NotFound))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -431,12 +428,9 @@ impl<'a> ReadersClient<'a> {
                 let data: Reader = response.json().await?;
                 Ok(data)
             }
-            reqwest::StatusCode::FORBIDDEN => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    UpdateReaderErrorBody::Forbidden(body),
-                ))
-            }
+            reqwest::StatusCode::FORBIDDEN => Err(crate::error::SdkError::api(
+                UpdateReaderErrorBody::Forbidden,
+            )),
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());

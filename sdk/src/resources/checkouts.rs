@@ -572,7 +572,7 @@ pub enum GetCheckoutErrorBody {
 }
 #[derive(Debug)]
 pub enum ProcessCheckoutErrorBody {
-    BadRequest(String),
+    BadRequest,
     Unauthorized(Error),
     NotFound(Error),
     Conflict(Error),
@@ -828,12 +828,9 @@ impl<'a> CheckoutsClient<'a> {
                 let data: CheckoutAccepted = response.json().await?;
                 Ok(ProcessCheckoutResponse::Status202(data))
             }
-            reqwest::StatusCode::BAD_REQUEST => {
-                let body = response.text().await?;
-                Err(crate::error::SdkError::api(
-                    ProcessCheckoutErrorBody::BadRequest(body),
-                ))
-            }
+            reqwest::StatusCode::BAD_REQUEST => Err(crate::error::SdkError::api(
+                ProcessCheckoutErrorBody::BadRequest,
+            )),
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(
