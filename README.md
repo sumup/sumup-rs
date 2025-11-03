@@ -1,6 +1,6 @@
 <div align="center">
 
-# sumup-rs
+# SumUp Rust SDK
 
 [![SumUp's crates.io badge](https://img.shields.io/crates/v/sumup.svg)](https://crates.io/crates/sumup)
 [![SumUp's docs.rs badge](https://docs.rs/sumup/badge.svg)](https://docs.rs/sumup)
@@ -13,7 +13,7 @@
 
 _**IMPORTANT:** This SDK is under heavy development and subject to breaking changes._
 
-The Rust SDK for the SumUp [API](https://developer.sumup.com).
+The [Rust](https://rust-lang.org/) SDK for the SumUp [API](https://developer.sumup.com).
 
 ## Requirements
 
