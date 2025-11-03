@@ -113,7 +113,7 @@ pub struct CreateMerchantMemberBody {
     /// Nickname of the member to add. Only used if `is_managed_user` is true. Used for display purposes only.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
-    /// List of roles to assign to the new member. In the case of service accounts, the roles are predefined.
+    /// List of roles to assign to the new member.
     pub roles: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,

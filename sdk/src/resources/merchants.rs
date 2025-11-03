@@ -380,7 +380,7 @@ impl<'a> MerchantsClient<'a> {
     /// Retrieve a Merchant
     ///
     /// Retrieve a merchant.
-    pub async fn get_merchant(
+    pub async fn get(
         &self,
         merchant_code: impl Into<String>,
         params: GetMerchantParams,
