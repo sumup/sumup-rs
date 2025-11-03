@@ -14,26 +14,26 @@ impl Client {
     /// Creates a new SumUp API client with the default base URL.
     /// Tries to read the authorization token from the SUMUP_API_KEY environment variable.
     /// Default timeout is 10 seconds.
-    pub fn new(http_client: reqwest::Client) -> Self {
+    pub fn new() -> Self {
         let authorization_token = std::env::var("SUMUP_API_KEY").ok();
         Self {
-            http_client,
+            http_client: reqwest::Client::new(),
             base_url: "https://api.sumup.com".to_string(),
             authorization_token,
             timeout: std::time::Duration::from_secs(10),
         }
     }
-    /// Creates a new SumUp API client with a custom base URL.
-    /// Tries to read the authorization token from the SUMUP_API_KEY environment variable.
-    /// Default timeout is 10 seconds.
-    pub fn with_base_url(http_client: reqwest::Client, base_url: impl Into<String>) -> Self {
-        let authorization_token = std::env::var("SUMUP_API_KEY").ok();
-        Self {
-            http_client,
-            base_url: base_url.into(),
-            authorization_token,
-            timeout: std::time::Duration::from_secs(10),
-        }
+    /// Overrides the underlying HTTP client used for requests.
+    /// Returns a new client with the provided `reqwest::Client`.
+    pub fn with_client(mut self, http_client: reqwest::Client) -> Self {
+        self.http_client = http_client;
+        self
+    }
+    /// Sets the base URL for API requests.
+    /// Returns a new client with the updated base URL.
+    pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
+        self.base_url = base_url.into();
+        self
     }
     /// Sets the authorization token for API requests.
     /// Returns a new client with the updated token.
@@ -48,7 +48,7 @@ impl Client {
         self
     }
     /// Returns a reference to the HTTP client.
-    pub fn http_client(&self) -> &reqwest::Client {
+    pub(crate) fn http_client(&self) -> &reqwest::Client {
         &self.http_client
     }
     /// Returns the base URL for the API.
@@ -102,6 +102,6 @@ impl Client {
 }
 impl Default for Client {
     fn default() -> Self {
-        Self::new(reqwest::Client::new())
+        Self::new()
     }
 }
