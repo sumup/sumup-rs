@@ -1,0 +1,16 @@
+[workspace]
+release = false
+release_always = false
+pr_draft = false
+pr_labels = ["release"]
+git_release_draft = true
+git_release_latest = false
+
+[[package]]
+name = "sumup"
+release = true
+publish = true
+semver_check = false
+changelog_path = "sdk/CHANGELOG.md"
+git_tag_name = "v{{ version }}"
+git_release_enable = true

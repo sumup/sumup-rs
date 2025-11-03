@@ -1,5 +1,5 @@
 /// The version of the SDK
-pub const VERSION: &str = "0.5.1"; // x-release-please-version
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Returns the user agent string for SDK requests
 pub fn user_agent() -> String {

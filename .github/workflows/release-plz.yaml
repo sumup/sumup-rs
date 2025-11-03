@@ -1,0 +1,91 @@
+name: Release-plz
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-plz-release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'sumup' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@1780873c7b576612439a134613cc4cc74ce5538c # v1.15.2
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --package sumup -- --deny warnings
+
+      - name: Build
+        run: cargo build --package sumup --locked
+
+      - name: Test
+        run: cargo test --package sumup --locked
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Package for publication
+        run: cargo package --package sumup --list
+
+      - name: Run release-plz
+        uses: release-plz/action@d529f731ae3e89610ada96eda34e5c6ba3b12214 # v0.5.118
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+
+  release-plz-pr:
+    name: Prepare release PR
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'sumup' }}
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@1780873c7b576612439a134613cc4cc74ce5538c # v1.15.2
+        with:
+          components: rustfmt, clippy
+
+      - name: Create GitHub token
+        id: create-token
+        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        with:
+          app-id: ${{ secrets.SUMUP_BOT_APP_ID }}
+          private-key: ${{ secrets.SUMUP_BOT_PRIVATE_KEY }}
+
+      - name: Run release-plz
+        uses: release-plz/action@d529f731ae3e89610ada96eda34e5c6ba3b12214 # v0.5.118
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ steps.create-token.outputs.token }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
