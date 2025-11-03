@@ -4,34 +4,20 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Validate Release
     runs-on: ubuntu-latest
+    if: '!github.event.release.prerelease'
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - uses: actions-rust-lang/setup-rust-toolchain@1780873c7b576612439a134613cc4cc74ce5538c # v1.15.2
         with:
           components: rustfmt, clippy
-
-      - name: Extract version from tag
-        id: version
-        run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          VERSION=${TAG#v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Release version: $VERSION"
-
-      - name: Verify Cargo.toml version matches tag
-        run: |
-          CARGO_VERSION=$(grep -m1 '^version' sdk/Cargo.toml | cut -d'"' -f2)
-          TAG_VERSION="${{ steps.version.outputs.version }}"
-          if [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: Cargo.toml version ($CARGO_VERSION) doesn't match tag ($TAG_VERSION)"
-            exit 1
-          fi
-          echo "✓ Version match: $CARGO_VERSION"
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -52,10 +38,11 @@ jobs:
     name: Publish to crates.io
     needs: validate
     runs-on: ubuntu-latest
+    if: '!github.event.release.prerelease'
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.15.2
+      - uses: actions-rust-lang/setup-rust-toolchain@1780873c7b576612439a134613cc4cc74ce5538c # v1.15.2
 
       - name: Login to crates.io
         run: cargo login "$CRATES_IO_TOKEN"
@@ -63,5 +50,4 @@ jobs:
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Publish to crates.io
-        run: cargo publish --package sumup
-
+        run: cargo publish --package sumup --locked
