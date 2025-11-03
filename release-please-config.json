@@ -12,7 +12,14 @@
 	"packages": {
 		"sdk": {
 			"release-type": "rust",
-			"extra-files": ["src/version.rs"]
+			"extra-files": [
+				"src/version.rs",
+				{
+					"type": "toml",
+					"path": "/Cargo.lock",
+					"jsonpath": "$.package[?(@.name==\"sumup\")].version"
+				}
+			]
 		}
 	}
 }

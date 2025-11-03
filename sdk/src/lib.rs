@@ -147,15 +147,13 @@
 #![forbid(unsafe_code)]
 
 pub mod client;
+pub mod datetime;
 pub mod error;
+pub mod version;
 
 #[allow(deprecated)]
 #[allow(clippy::large_enum_variant)]
 pub mod resources;
-
-pub mod version;
-
-pub mod datetime;
 
 pub use crate::resources::*;
 pub use client::Client;
