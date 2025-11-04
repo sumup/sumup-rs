@@ -15,7 +15,7 @@ impl std::error::Error for CompatError {}
 /// Operator account for a merchant.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Operator {
-    pub id: i64,
+    pub id: i32,
     pub username: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,

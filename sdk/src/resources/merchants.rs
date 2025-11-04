@@ -73,7 +73,7 @@ pub struct BasePerson {
     pub user_id: Option<String>,
     /// The date of birth of the individual, represented as an ISO 8601:2004 [ISO8601‑2004] YYYY-MM-DD format.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub birthdate: Option<String>,
+    pub birthdate: Option<crate::datetime::Date>,
     /// The first name(s) of the individual.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub given_name: Option<String>,
@@ -274,7 +274,7 @@ pub struct Merchant {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ownership {
     /// The percent of ownership shares held by the person expressed in percent mille (1/100000). Only persons with the relationship `owner` can have ownership.
-    pub share: i64,
+    pub share: i32,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Person {
@@ -285,7 +285,7 @@ pub struct Person {
     pub user_id: Option<String>,
     /// The date of birth of the individual, represented as an ISO 8601:2004 [ISO8601‑2004] YYYY-MM-DD format.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub birthdate: Option<String>,
+    pub birthdate: Option<crate::datetime::Date>,
     /// The first name(s) of the individual.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub given_name: Option<String>,

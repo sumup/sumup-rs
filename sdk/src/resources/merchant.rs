@@ -103,7 +103,7 @@ pub struct AppSettings {
     pub tipping: Option<String>,
     /// Tip rates.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tip_rates: Option<Vec<f64>>,
+    pub tip_rates: Option<Vec<f32>>,
     /// Barcode scanner.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub barcode_scanner: Option<String>,

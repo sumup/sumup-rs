@@ -29,19 +29,19 @@ pub struct Event {
     pub timestamp: Option<TimestampEvent>,
     /// Amount of the fee related to the event.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub fee_amount: Option<f64>,
+    pub fee_amount: Option<f32>,
     /// Consecutive number of the installment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installment_number: Option<i64>,
     /// Amount deducted for the event.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub deducted_amount: Option<f64>,
+    pub deducted_amount: Option<f32>,
     /// Amount of the fee deducted for the event.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub deducted_fee_amount: Option<f64>,
+    pub deducted_fee_amount: Option<f32>,
 }
-pub type HorizontalAccuracy = f64;
-pub type Lat = f64;
+pub type HorizontalAccuracy = f32;
+pub type Lat = f32;
 /// Details of a link to a related resource.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Link {
@@ -70,12 +70,12 @@ pub struct LinkRefund {
     pub type_: Option<String>,
     /// Minimum allowed amount for the refund.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub min_amount: Option<f64>,
+    pub min_amount: Option<f32>,
     /// Maximum allowed amount for the refund.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_amount: Option<f64>,
+    pub max_amount: Option<f32>,
 }
-pub type Lon = f64;
+pub type Lon = f32;
 /// Details of the product for which the payment is made.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Product {
@@ -84,28 +84,28 @@ pub struct Product {
     pub name: Option<String>,
     /// Price of the product without VAT.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub price: Option<f64>,
+    pub price: Option<f32>,
     /// VAT rate applicable to the product.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_rate: Option<f64>,
+    pub vat_rate: Option<f32>,
     /// Amount of the VAT for a single product item (calculated as the product of `price` and `vat_rate`, i.e. `single_vat_amount = price * vat_rate`).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub single_vat_amount: Option<f64>,
+    pub single_vat_amount: Option<f32>,
     /// Price of a single product item with VAT.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub price_with_vat: Option<f64>,
+    pub price_with_vat: Option<f32>,
     /// Total VAT amount for the purchase (calculated as the product of `single_vat_amount` and `quantity`, i.e. `vat_amount = single_vat_amount * quantity`).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_amount: Option<f64>,
+    pub vat_amount: Option<f32>,
     /// Number of product items for the purchase.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quantity: Option<f64>,
     /// Total price of the product items without VAT (calculated as the product of `price` and `quantity`, i.e. `total_price = price * quantity`).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_price: Option<f64>,
+    pub total_price: Option<f32>,
     /// Total price of the product items including VAT (calculated as the product of `price_with_vat` and `quantity`, i.e. `total_with_vat = price_with_vat * quantity`).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_with_vat: Option<f64>,
+    pub total_with_vat: Option<f32>,
 }
 /// Details of a transaction event.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -120,10 +120,10 @@ pub struct TransactionEvent {
     pub amount: Option<AmountEvent>,
     /// Date when the transaction event is due to occur.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub due_date: Option<String>,
+    pub due_date: Option<crate::datetime::Date>,
     /// Date when the transaction event occurred.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub date: Option<String>,
+    pub date: Option<crate::datetime::Date>,
     /// Consecutive number of the installment that is paid. Applicable only payout events, i.e. `event_type = PAYOUT`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installment_number: Option<i64>,
@@ -140,7 +140,7 @@ pub struct TransactionFull {
     pub transaction_code: Option<String>,
     /// Total amount of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
@@ -160,10 +160,10 @@ pub struct TransactionFull {
     pub merchant_code: Option<String>,
     /// Amount of the applicable VAT (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_amount: Option<f64>,
+    pub vat_amount: Option<f32>,
     /// Amount of the tip (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tip_amount: Option<f64>,
+    pub tip_amount: Option<f32>,
     /// Entry mode of the payment details.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entry_mode: Option<String>,
@@ -243,7 +243,7 @@ pub struct TransactionHistory {
     pub transaction_code: Option<String>,
     /// Total amount of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
@@ -300,7 +300,7 @@ pub struct TransactionFullLocation {
 pub struct RefundTransactionBody {
     /// Amount to be refunded. Eligible amount can't exceed the amount of the transaction and varies based on country and currency. If you do not specify a value, the system performs a full refund of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct GetTransactionParams {

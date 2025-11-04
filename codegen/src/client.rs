@@ -91,7 +91,7 @@ pub fn generate_client_file(
             }
 
             /// Returns a reference to the HTTP client.
-            pub fn http_client(&self) -> &reqwest::Client {
+            pub(crate) fn http_client(&self) -> &reqwest::Client {
                 &self.http_client
             }
 
