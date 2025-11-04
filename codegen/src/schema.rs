@@ -662,11 +662,37 @@ pub fn infer_rust_type(
                 openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::DateTime) => {
                     quote! { crate::datetime::DateTime }
                 }
+                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Date) => {
+                    quote! { crate::datetime::Date }
+                }
+                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Password) => {
+                    quote! { crate::secret::Password }
+                }
                 _ => quote! { String },
             }
         }
-        openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => quote! { f64 },
-        openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => quote! { i64 },
+        openapiv3::SchemaKind::Type(openapiv3::Type::Number(number_type)) => {
+            match &number_type.format {
+                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::NumberFormat::Float) => {
+                    quote! { f32 }
+                }
+                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::NumberFormat::Double) => {
+                    quote! { f64 }
+                }
+                _ => quote! { f64 },
+            }
+        }
+        openapiv3::SchemaKind::Type(openapiv3::Type::Integer(integer_type)) => {
+            match &integer_type.format {
+                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::IntegerFormat::Int32) => {
+                    quote! { i32 }
+                }
+                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::IntegerFormat::Int64) => {
+                    quote! { i64 }
+                }
+                _ => quote! { i64 },
+            }
+        }
         openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_)) => quote! { bool },
         openapiv3::SchemaKind::Type(openapiv3::Type::Array(arr)) => {
             if let Some(items) = &arr.items {

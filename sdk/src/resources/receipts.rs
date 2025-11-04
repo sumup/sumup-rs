@@ -150,28 +150,28 @@ pub struct ReceiptTransactionProductsItem {
     pub description: Option<String>,
     /// Product price.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub price: Option<f64>,
+    pub price: Option<f32>,
     /// Product quantity.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
     /// Quantity x product price.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_price: Option<f64>,
+    pub total_price: Option<f32>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptTransactionVatRatesItem {
     /// Gross
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub gross: Option<f64>,
+    pub gross: Option<f32>,
     /// Net
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub net: Option<f64>,
+    pub net: Option<f32>,
     /// Rate
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub rate: Option<f64>,
+    pub rate: Option<f32>,
     /// Vat
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat: Option<f64>,
+    pub vat: Option<f32>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct GetReceiptParams {

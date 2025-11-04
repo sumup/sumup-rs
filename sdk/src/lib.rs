@@ -149,6 +149,7 @@
 pub mod client;
 pub mod datetime;
 pub mod error;
+pub mod secret;
 pub mod version;
 
 #[allow(deprecated)]
@@ -158,4 +159,5 @@ pub mod resources;
 pub use crate::resources::*;
 pub use client::Client;
 pub use error::{SdkError, SdkResult, UnknownApiBody};
+pub use secret::Password;
 pub use version::VERSION;

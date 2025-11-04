@@ -22,7 +22,7 @@ pub struct AddressLegacy {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
 }
-pub type AmountEvent = f64;
+pub type AmountEvent = f32;
 /// Object attributes that are modifiable only by SumUp applications.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Attributes {}
@@ -192,7 +192,7 @@ pub struct PersonalDetails {
     pub phone: Option<String>,
     /// Date of birth of the customer.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub birth_date: Option<String>,
+    pub birth_date: Option<crate::datetime::Date>,
     /// An identification number user for tax purposes (e.g. CPF)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tax_id: Option<String>,

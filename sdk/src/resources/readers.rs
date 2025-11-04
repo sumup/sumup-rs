@@ -39,7 +39,7 @@ pub struct CreateReaderCheckoutRequest {
     /// The rates are in percentage and should be between 0.01 and 0.99.
     /// The list should be sorted in ascending order.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tip_rates: Option<Vec<f64>>,
+    pub tip_rates: Option<Vec<f32>>,
     /// Time in seconds the cardholder has to select a tip rate.
     /// If not provided, the default value is 30 seconds.
     ///

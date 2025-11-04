@@ -31,7 +31,7 @@ pub struct Checkout {
     pub checkout_reference: Option<String>,
     /// Amount of the payment.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Unique identifying code of the merchant profile.
@@ -77,7 +77,7 @@ pub struct CheckoutCreateRequest {
     /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
     pub checkout_reference: String,
     /// Amount of the payment.
-    pub amount: f64,
+    pub amount: f32,
     pub currency: Currency,
     /// Unique identifying code of the merchant profile.
     pub merchant_code: String,
@@ -140,7 +140,7 @@ pub struct CheckoutSuccess {
     pub checkout_reference: Option<String>,
     /// Amount of the payment.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Unique identifying code of the merchant profile.
@@ -258,7 +258,7 @@ pub struct CheckoutTransactionsItem {
     pub transaction_code: Option<String>,
     /// Total amount of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
@@ -278,10 +278,10 @@ pub struct CheckoutTransactionsItem {
     pub merchant_code: Option<String>,
     /// Amount of the applicable VAT (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_amount: Option<f64>,
+    pub vat_amount: Option<f32>,
     /// Amount of the tip (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tip_amount: Option<f64>,
+    pub tip_amount: Option<f32>,
     /// Entry mode of the payment details.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entry_mode: Option<String>,
@@ -334,7 +334,7 @@ pub struct CheckoutCreateRequestTransactionsItem {
     pub transaction_code: Option<String>,
     /// Total amount of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
@@ -354,10 +354,10 @@ pub struct CheckoutCreateRequestTransactionsItem {
     pub merchant_code: Option<String>,
     /// Amount of the applicable VAT (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_amount: Option<f64>,
+    pub vat_amount: Option<f32>,
     /// Amount of the tip (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tip_amount: Option<f64>,
+    pub tip_amount: Option<f32>,
     /// Entry mode of the payment details.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entry_mode: Option<String>,
@@ -378,7 +378,7 @@ pub struct CheckoutSuccessTransactionsItem {
     pub transaction_code: Option<String>,
     /// Total amount of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
@@ -398,10 +398,10 @@ pub struct CheckoutSuccessTransactionsItem {
     pub merchant_code: Option<String>,
     /// Amount of the applicable VAT (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_amount: Option<f64>,
+    pub vat_amount: Option<f32>,
     /// Amount of the tip (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tip_amount: Option<f64>,
+    pub tip_amount: Option<f32>,
     /// Entry mode of the payment details.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entry_mode: Option<String>,
@@ -436,7 +436,7 @@ pub struct DeactivateCheckoutResponseTransactionsItem {
     pub transaction_code: Option<String>,
     /// Total amount of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
@@ -456,10 +456,10 @@ pub struct DeactivateCheckoutResponseTransactionsItem {
     pub merchant_code: Option<String>,
     /// Amount of the applicable VAT (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_amount: Option<f64>,
+    pub vat_amount: Option<f32>,
     /// Amount of the tip (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tip_amount: Option<f64>,
+    pub tip_amount: Option<f32>,
     /// Entry mode of the payment details.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entry_mode: Option<String>,
@@ -494,7 +494,7 @@ pub struct DeactivateCheckoutResponse {
     pub id: Option<String>,
     /// Amount of the payment.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f64>,
+    pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Unique identifying code of the merchant profile.
