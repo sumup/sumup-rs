@@ -97,6 +97,12 @@ pub struct BasePerson {
     pub identifiers: Option<Vec<PersonalIdentifier>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub citizenship: Option<CountryCode>,
+    /// The persons nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nationality: Option<String>,
+    /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code representing the country where the person resides.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country_of_residence: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<Version>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -309,6 +315,12 @@ pub struct Person {
     pub identifiers: Option<Vec<PersonalIdentifier>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub citizenship: Option<CountryCode>,
+    /// The persons nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nationality: Option<String>,
+    /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code representing the country where the person resides.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country_of_residence: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<Version>,
     #[serde(skip_serializing_if = "Option::is_none")]
