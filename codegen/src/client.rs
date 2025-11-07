@@ -1,4 +1,5 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
+use openapiv3::OpenAPI;
 use proc_macro2::{Ident, Span};
 use quote::quote;
 use std::collections::HashMap;
@@ -9,6 +10,7 @@ use crate::TagSchemas;
 /// Writes the top-level API client file and tag accessors to the output directory.
 pub fn generate_client_file(
     out_path: &Path,
+    spec: &OpenAPI,
     tag_schemas: &HashMap<String, TagSchemas>,
 ) -> Result<(), String> {
     let mut client_path = out_path.to_path_buf();
@@ -17,6 +19,15 @@ pub fn generate_client_file(
     // Sort tags alphabetically for deterministic output
     let mut sorted_tags: Vec<_> = tag_schemas.keys().collect();
     sorted_tags.sort();
+
+    // Build a map of tag names to their deprecation notices
+    let mut tag_deprecations: HashMap<String, String> = HashMap::new();
+    for tag in &spec.tags {
+        if let Some(serde_json::Value::String(notice)) = tag.extensions.get("x-deprecation-notice")
+        {
+            tag_deprecations.insert(tag.name.clone(), notice.clone());
+        }
+    }
 
     // Generate accessor methods for each tag client
     let mut tag_methods = Vec::new();
@@ -29,7 +40,16 @@ pub fn generate_client_file(
             Span::call_site(),
         );
 
+        let deprecation_attr = if let Some(notice) = tag_deprecations.get(tag.as_str()) {
+            quote! {
+                #[deprecated = #notice]
+            }
+        } else {
+            quote! {}
+        };
+
         tag_methods.push(quote! {
+            #deprecation_attr
             pub fn #method_name(&self) -> crate::resources::#client_module::#client_type<'_> {
                 crate::resources::#client_module::#client_type::new(self)
             }
