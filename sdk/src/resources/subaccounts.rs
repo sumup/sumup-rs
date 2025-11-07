@@ -104,6 +104,9 @@ pub enum UpdateSubAccountErrorBody {
     BadRequest(CompatError),
 }
 ///Client for the Subaccounts API endpoints.
+#[deprecated(
+    note = "Subaccounts API is deprecated, please use [Members](https://developer.sumup.com/api/members) API instead to manage your account members."
+)]
 #[derive(Debug)]
 pub struct SubaccountsClient<'a> {
     client: &'a Client,

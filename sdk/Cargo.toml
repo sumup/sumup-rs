@@ -15,6 +15,7 @@ repository = "https://github.com/sumup/sumup-rs"
 default = ["chrono"]
 chrono = ["dep:chrono"]
 jiff = ["dep:jiff"]
+deprecated-resources = []
 
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = [

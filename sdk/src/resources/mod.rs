@@ -11,6 +11,7 @@ pub mod payouts;
 pub mod readers;
 pub mod receipts;
 pub mod roles;
+#[cfg(feature = "deprecated-resources")]
 pub mod subaccounts;
 pub mod transactions;
 pub use checkouts::*;
@@ -24,5 +25,6 @@ pub use payouts::*;
 pub use readers::*;
 pub use receipts::*;
 pub use roles::*;
+#[cfg(feature = "deprecated-resources")]
 pub use subaccounts::*;
 pub use transactions::*;

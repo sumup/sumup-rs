@@ -108,7 +108,8 @@ impl Generator {
             &tag_data.error_schemas,
         )?;
         let body_tokens = generate_operation_bodies(&self.spec, tag)?;
-        let client_tokens = generate_tag_client(&self.spec, tag)?;
+        let client_tokens =
+            generate_tag_client(&self.spec, tag, tag_data.deprecation_notice.as_deref())?;
 
         let use_common = if self.should_import_common(tag, tag_data) {
             quote! {
@@ -204,13 +205,26 @@ pub fn generate_mod_file(out_path: &Path, schemas_by_tag: &SchemasByTag) -> Resu
     // Add tag modules (schemas + clients)
     for tag in sorted_tags {
         let module_name = Ident::new(&tag.to_snake_case(), Span::call_site());
+        let tag_data = &tag_schemas[tag];
+        let is_deprecated = tag_data.deprecation_notice.is_some();
 
-        modules.push(quote! {
-            pub mod #module_name;
-        });
-        re_exports.push(quote! {
-            pub use #module_name::*;
-        });
+        if is_deprecated {
+            modules.push(quote! {
+                #[cfg(feature = "deprecated-resources")]
+                pub mod #module_name;
+            });
+            re_exports.push(quote! {
+                #[cfg(feature = "deprecated-resources")]
+                pub use #module_name::*;
+            });
+        } else {
+            modules.push(quote! {
+                pub mod #module_name;
+            });
+            re_exports.push(quote! {
+                pub use #module_name::*;
+            });
+        }
     }
 
     let tokens = quote! {
@@ -295,7 +309,11 @@ fn format_with_rustfmt(code: &str) -> Result<String, std::io::Error> {
 }
 
 /// Builds the client struct and methods for a specific OpenAPI tag.
-pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
+pub fn generate_tag_client(
+    spec: &OpenAPI,
+    tag: &str,
+    deprecation_notice: Option<&str>,
+) -> Result<TokenStream, String> {
     let client_type = Ident::new(
         &format!("{}Client", tag.to_upper_camel_case()),
         Span::call_site(),
@@ -314,12 +332,21 @@ pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, Str
         quote! { #(#extra_items)* }
     };
 
+    let deprecation_attr = if let Some(notice) = deprecation_notice {
+        quote! {
+            #[deprecated(note = #notice)]
+        }
+    } else {
+        quote! {}
+    };
+
     Ok(quote! {
         use crate::client::Client;
 
         #extra_items_tokens
 
         #[doc = #doc_comment]
+        #deprecation_attr
         #[derive(Debug)]
         pub struct #client_type<'a> {
             client: &'a Client,
