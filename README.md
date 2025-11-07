@@ -47,6 +47,14 @@ async fn main() {
 }
 ```
 
+## Deprecations
+
+Deprecated resources are hidden behind a feature. We strongly encourage to use their non-deprecated alternatives but if you need to keep using them, you can opt-in via the `deprecated-resources` feature:
+
+```toml
+sumup = { version = "0.5", features = ["deprecated-resources"] }
+```
+
 ## Examples
 
 You can find all examples under [examples/](/examples/). To run an example, use:

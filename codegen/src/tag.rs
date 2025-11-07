@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 pub struct TagSchemas {
     pub all_schemas: HashSet<String>,
     pub error_schemas: HashSet<String>,
+    pub deprecation_notice: Option<String>,
 }
 
 /// Groups schemas by tag while tracking shared schema usage.
@@ -17,6 +18,15 @@ pub struct SchemasByTag {
 /// Collects schemas referenced by each tag and identifies shared/common schemas.
 pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
     let mut tag_schemas: HashMap<String, TagSchemas> = HashMap::new();
+
+    // Extract deprecation notices from tag definitions
+    let mut tag_deprecations: HashMap<String, String> = HashMap::new();
+    for tag in &spec.tags {
+        if let Some(serde_json::Value::String(notice)) = tag.extensions.get("x-deprecation-notice")
+        {
+            tag_deprecations.insert(tag.name.clone(), notice.clone());
+        }
+    }
 
     // Iterate through all paths and operations
     for (_path, path_item) in &spec.paths.paths {
@@ -47,6 +57,7 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
                     .or_insert_with(|| TagSchemas {
                         all_schemas: HashSet::new(),
                         error_schemas: HashSet::new(),
+                        deprecation_notice: tag_deprecations.get(&tag).cloned(),
                     });
 
                 // Collect schemas from request body

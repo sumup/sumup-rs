@@ -29,11 +29,26 @@ pub fn generate_client_file(
             Span::call_site(),
         );
 
-        tag_methods.push(quote! {
-            pub fn #method_name(&self) -> crate::resources::#client_module::#client_type<'_> {
-                crate::resources::#client_module::#client_type::new(self)
-            }
-        });
+        let tag_data = &tag_schemas[tag];
+        let is_deprecated = tag_data.deprecation_notice.is_some();
+
+        if is_deprecated {
+            let notice = tag_data.deprecation_notice.as_ref().unwrap();
+            tag_methods.push(quote! {
+                #[cfg(feature = "deprecated-resources")]
+                #[allow(deprecated)]
+                #[deprecated(note = #notice)]
+                pub fn #method_name(&self) -> crate::resources::#client_module::#client_type<'_> {
+                    crate::resources::#client_module::#client_type::new(self)
+                }
+            });
+        } else {
+            tag_methods.push(quote! {
+                pub fn #method_name(&self) -> crate::resources::#client_module::#client_type<'_> {
+                    crate::resources::#client_module::#client_type::new(self)
+                }
+            });
+        }
     }
 
     let tokens = quote! {
