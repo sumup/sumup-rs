@@ -413,22 +413,6 @@ pub struct GetAccountParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub include: Option<Vec<String>>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListBankAccountsParams {
-    /// If true only the primary bank account (the one used for payouts) will be returned.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub primary: Option<bool>,
-}
-/// OK
-pub type ListBankAccountsResponse = Vec<BankAccount>;
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListBankAccountsV11Params {
-    /// If true only the primary bank account (the one used for payouts) will be returned.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub primary: Option<bool>,
-}
-/// OK
-pub type ListBankAccountsV11Response = Vec<BankAccount>;
 use crate::client::Client;
 #[derive(Debug)]
 pub enum GetAccountErrorBody {
@@ -440,27 +424,12 @@ pub enum GetMerchantProfileErrorBody {
     Forbidden(ErrorForbidden),
 }
 #[derive(Debug)]
-pub enum ListBankAccountsErrorBody {
-    Unauthorized(Error),
-    Forbidden(ErrorForbidden),
-}
-#[derive(Debug)]
 pub enum GetDoingBusinessAsErrorBody {
     Unauthorized(Error),
 }
 #[derive(Debug)]
-pub enum GetSettingsErrorBody {
-    Unauthorized(Error),
-    Forbidden(ErrorForbidden),
-}
-#[derive(Debug)]
 pub enum GetPersonalProfileErrorBody {
     Unauthorized(Error),
-}
-#[derive(Debug)]
-pub enum ListBankAccountsV11ErrorBody {
-    Unauthorized(Error),
-    Forbidden(ErrorForbidden),
 }
 ///Client for the Merchant API endpoints.
 #[derive(Debug)]
@@ -559,53 +528,6 @@ impl<'a> MerchantClient<'a> {
             }
         }
     }
-    /// List bank accounts
-    ///
-    /// Retrieves bank accounts of the merchant.
-    pub async fn list_bank_accounts_deprecated(
-        &self,
-        params: ListBankAccountsParams,
-    ) -> crate::error::SdkResult<ListBankAccountsResponse, ListBankAccountsErrorBody> {
-        let path = "/v0.1/me/merchant-profile/bank-accounts";
-        let url = format!("{}{}", self.client.base_url(), path);
-        let mut request = self
-            .client
-            .http_client()
-            .get(&url)
-            .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
-        if let Some(token) = self.client.authorization_token() {
-            request = request.header("Authorization", format!("Bearer {}", token));
-        }
-        if let Some(ref value) = params.primary {
-            request = request.query(&[("primary", value)]);
-        }
-        let response = request.send().await?;
-        let status = response.status();
-        match status {
-            reqwest::StatusCode::OK => {
-                let data: ListBankAccountsResponse = response.json().await?;
-                Ok(data)
-            }
-            reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListBankAccountsErrorBody::Unauthorized(body),
-                ))
-            }
-            reqwest::StatusCode::FORBIDDEN => {
-                let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListBankAccountsErrorBody::Forbidden(body),
-                ))
-            }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
-        }
-    }
     /// Retrieve DBA
     ///
     /// Retrieves Doing Business As profile.
@@ -643,49 +565,6 @@ impl<'a> MerchantClient<'a> {
             }
         }
     }
-    /// Get settings
-    ///
-    /// Retrieves merchant settings.
-    pub async fn get_settings(
-        &self,
-    ) -> crate::error::SdkResult<MerchantSettings, GetSettingsErrorBody> {
-        let path = "/v0.1/me/merchant-profile/settings";
-        let url = format!("{}{}", self.client.base_url(), path);
-        let mut request = self
-            .client
-            .http_client()
-            .get(&url)
-            .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
-        if let Some(token) = self.client.authorization_token() {
-            request = request.header("Authorization", format!("Bearer {}", token));
-        }
-        let response = request.send().await?;
-        let status = response.status();
-        match status {
-            reqwest::StatusCode::OK => {
-                let data: MerchantSettings = response.json().await?;
-                Ok(data)
-            }
-            reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetSettingsErrorBody::Unauthorized(body),
-                ))
-            }
-            reqwest::StatusCode::FORBIDDEN => {
-                let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetSettingsErrorBody::Forbidden(body),
-                ))
-            }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
-        }
-    }
     /// Retrieve a personal profile
     ///
     /// Retrieves personal profile data.
@@ -714,54 +593,6 @@ impl<'a> MerchantClient<'a> {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(
                     GetPersonalProfileErrorBody::Unauthorized(body),
-                ))
-            }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
-        }
-    }
-    /// List bank accounts
-    ///
-    /// Retrieves bank accounts of the merchant.
-    pub async fn list_bank_accounts(
-        &self,
-        merchant_code: impl Into<String>,
-        params: ListBankAccountsV11Params,
-    ) -> crate::error::SdkResult<ListBankAccountsV11Response, ListBankAccountsV11ErrorBody> {
-        let path = format!("/v1.1/merchants/{}/bank-accounts", merchant_code.into());
-        let url = format!("{}{}", self.client.base_url(), path);
-        let mut request = self
-            .client
-            .http_client()
-            .get(&url)
-            .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
-        if let Some(token) = self.client.authorization_token() {
-            request = request.header("Authorization", format!("Bearer {}", token));
-        }
-        if let Some(ref value) = params.primary {
-            request = request.query(&[("primary", value)]);
-        }
-        let response = request.send().await?;
-        let status = response.status();
-        match status {
-            reqwest::StatusCode::OK => {
-                let data: ListBankAccountsV11Response = response.json().await?;
-                Ok(data)
-            }
-            reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListBankAccountsV11ErrorBody::Unauthorized(body),
-                ))
-            }
-            reqwest::StatusCode::FORBIDDEN => {
-                let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListBankAccountsV11ErrorBody::Forbidden(body),
                 ))
             }
             _ => {
