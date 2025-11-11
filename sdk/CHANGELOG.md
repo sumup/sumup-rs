@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3](https://github.com/sumup/sumup-rs/compare/v0.5.2...v0.5.3) - 2025-11-11
+
+### Other
+
+- synced file(s) with sumup/apis ([#31](https://github.com/sumup/sumup-rs/pull/31))
+- synced file(s) with sumup/apis ([#26](https://github.com/sumup/sumup-rs/pull/26))
+
 ## [0.5.2](https://github.com/sumup/sumup-rs/compare/v0.5.1...v0.5.2) - 2025-11-05
 
 ### Other
