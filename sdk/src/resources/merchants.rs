@@ -201,11 +201,6 @@ pub struct CompanyIdentifier {
 }
 pub type CompanyIdentifiers = Vec<CompanyIdentifier>;
 pub type CountryCode = String;
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct DeletePersonsResponseBody {
-    /// A list of IDs of the persons deleted.
-    pub items: Vec<String>,
-}
 /// The category of the error.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ErrorCategoryClient {
@@ -354,12 +349,6 @@ pub struct GetMerchantParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(untagged)]
-pub enum DeletePersonsResponse {
-    Status200(DeletePersonsResponseBody),
-    Status202(DeletePersonsResponseBody),
-}
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListPersonsParams {
     /// The version of the resource. At the moment, the only supported value is `latest`. When provided and the requested resource's `change_status` is pending, the resource will be returned with all pending changes applied. When no changes are pending the resource is returned as is. The `change_status` in the response body will reflect the current state of the resource.
@@ -376,11 +365,6 @@ use crate::client::Client;
 #[derive(Debug)]
 pub enum GetMerchantErrorBody {
     NotFound,
-}
-#[derive(Debug)]
-pub enum DeletePersonsErrorBody {
-    NotFound,
-    InternalServerError,
 }
 #[derive(Debug)]
 pub enum ListPersonsErrorBody {
@@ -440,48 +424,6 @@ impl<'a> MerchantsClient<'a> {
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
-        }
-    }
-    /// Delete Persons
-    ///
-    /// Deletes all Persons of a Merchant except the legal representative.
-    pub async fn delete_persons(
-        &self,
-        merchant_code: impl Into<String>,
-    ) -> crate::error::SdkResult<DeletePersonsResponse, DeletePersonsErrorBody> {
-        let path = format!("/v1/merchants/{}/persons", merchant_code.into());
-        let url = format!("{}{}", self.client.base_url(), path);
-        let mut request = self
-            .client
-            .http_client()
-            .delete(&url)
-            .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
-        if let Some(token) = self.client.authorization_token() {
-            request = request.header("Authorization", format!("Bearer {}", token));
-        }
-        let response = request.send().await?;
-        let status = response.status();
-        match status {
-            reqwest::StatusCode::OK => {
-                let data: DeletePersonsResponseBody = response.json().await?;
-                Ok(DeletePersonsResponse::Status200(data))
-            }
-            reqwest::StatusCode::ACCEPTED => {
-                let data: DeletePersonsResponseBody = response.json().await?;
-                Ok(DeletePersonsResponse::Status202(data))
-            }
-            reqwest::StatusCode::NOT_FOUND => Err(crate::error::SdkError::api(
-                DeletePersonsErrorBody::NotFound,
-            )),
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => Err(crate::error::SdkError::api(
-                DeletePersonsErrorBody::InternalServerError,
-            )),
-            _ => {
-                let body = response.text().await?;
-                let body = crate::error::UnknownApiBody::from_text(body);
                 Err(crate::error::SdkError::unexpected(status, body))
             }
         }
