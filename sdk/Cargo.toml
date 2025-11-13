@@ -2,7 +2,7 @@
 name = "sumup"
 description = "Rust SDK for the SumUp API."
 documentation = "https://docs.rs/sumup"
-version = "0.5.3"
+version = "0.5.4"
 edition = "2021"
 rust-version = "1.82"
 readme = "../README.md"
