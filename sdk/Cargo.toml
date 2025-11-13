@@ -35,7 +35,15 @@ tokio = { version = "1", features = ["full"] }
 serial_test = "3.2"
 wiremock = "0.6"
 uuid = { version = "1.11", features = ["serde", "v4"] }
+oauth2 = { version = "4", default-features = false, features = [
+  "reqwest",
+  "rustls-tls",
+] }
 
 [[example]]
 name = "checkout_card_reader"
 path = "../examples/checkout_card_reader.rs"
+
+[[example]]
+name = "oauth2"
+path = "../examples/oauth2.rs"
