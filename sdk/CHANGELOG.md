@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4](https://github.com/sumup/sumup-rs/compare/v0.5.3...v0.5.4) - 2025-11-13
+
+### Added
+
+- *(examples)* oauth2 ([#32](https://github.com/sumup/sumup-rs/pull/32))
+
 ## [0.5.3](https://github.com/sumup/sumup-rs/compare/v0.5.2...v0.5.3) - 2025-11-11
 
 ### Other
