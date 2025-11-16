@@ -1,11 +1,11 @@
 /// Wrapper for password values that keeps the inner string private.
 #[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 #[serde(transparent)]
-pub struct Password {
+pub struct Secret {
     secret: String,
 }
 
-impl Password {
+impl Secret {
     /// Creates a new password wrapper from a string-like value.
     pub fn new<S: Into<String>>(secret: S) -> Self {
         Self {
@@ -24,21 +24,21 @@ impl Password {
     }
 }
 
-impl From<String> for Password {
+impl From<String> for Secret {
     fn from(secret: String) -> Self {
         Self::new(secret)
     }
 }
 
-impl From<&str> for Password {
+impl From<&str> for Secret {
     fn from(secret: &str) -> Self {
         Self::new(secret)
     }
 }
 
-impl std::fmt::Debug for Password {
+impl std::fmt::Debug for Secret {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Password").field("secret", &"***").finish()
+        f.debug_struct("Secret").field("secret", &"***").finish()
     }
 }
 
@@ -48,14 +48,14 @@ mod tests {
 
     #[test]
     fn new_exposes_secret() {
-        let password = Password::new("super-secret");
+        let password = Secret::new("super-secret");
 
         assert_eq!(password.secret(), "super-secret");
     }
 
     #[test]
     fn into_secret_consumes_password() {
-        let password = Password::new("super-secret");
+        let password = Secret::new("super-secret");
 
         let secret = password.into_secret();
 
@@ -64,28 +64,28 @@ mod tests {
 
     #[test]
     fn from_str_constructs_password() {
-        let password: Password = "super-secret".into();
+        let password: Secret = "super-secret".into();
 
         assert_eq!(password.secret(), "super-secret");
     }
 
     #[test]
     fn debug_masks_secret() {
-        let password = Password::new("super-secret");
+        let password = Secret::new("super-secret");
         let debug_output = format!("{password:?}");
 
-        assert_eq!(debug_output, "Password { secret: \"***\" }");
+        assert_eq!(debug_output, "Secret { secret: \"***\" }");
         assert!(!debug_output.contains("super-secret"));
     }
 
     #[test]
     fn serde_round_trip_preserves_secret() -> Result<(), serde_json::Error> {
-        let password = Password::new("super-secret");
+        let password = Secret::new("super-secret");
 
         let json = serde_json::to_string(&password)?;
         assert_eq!(json, "\"super-secret\"");
 
-        let deserialized: Password = serde_json::from_str(&json)?;
+        let deserialized: Secret = serde_json::from_str(&json)?;
         assert_eq!(deserialized.secret(), "super-secret");
 
         Ok(())

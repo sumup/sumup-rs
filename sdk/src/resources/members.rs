@@ -66,7 +66,7 @@ pub struct UpdateMerchantMemberBodyUser {
     pub nickname: Option<String>,
     /// Password of the member to add. Only used if `is_managed_user` is true.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub password: Option<crate::secret::Password>,
+    pub password: Option<crate::secret::Secret>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListMerchantMembersParams {
@@ -109,7 +109,7 @@ pub struct CreateMerchantMemberBody {
     pub email: String,
     /// Password of the member to add. Only used if `is_managed_user` is true. In the case of service accounts, the password is not used and can not be defined by the caller.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub password: Option<crate::secret::Password>,
+    pub password: Option<crate::secret::Secret>,
     /// Nickname of the member to add. Only used if `is_managed_user` is true. Used for display purposes only.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,

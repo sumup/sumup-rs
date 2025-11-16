@@ -666,7 +666,7 @@ pub fn infer_rust_type(
                     quote! { crate::datetime::Date }
                 }
                 openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Password) => {
-                    quote! { crate::secret::Password }
+                    quote! { crate::secret::Secret }
                 }
                 _ => quote! { String },
             }

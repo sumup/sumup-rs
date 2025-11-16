@@ -159,5 +159,5 @@ pub mod resources;
 pub use crate::resources::*;
 pub use client::Client;
 pub use error::{SdkError, SdkResult, UnknownApiBody};
-pub use secret::Password;
+pub use secret::Secret;
 pub use version::VERSION;
