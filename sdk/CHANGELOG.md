@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4](https://github.com/sumup/sumup-rs/compare/v0.5.3...v0.5.4) - 2025-11-16
+
+### Added
+
+- *(sdk)* use proper types for query params ([#35](https://github.com/sumup/sumup-rs/pull/35))
+- *(examples)* oauth2 ([#32](https://github.com/sumup/sumup-rs/pull/32))
+
+### Other
+
+- *(sdk)* rename secret::Password to secret::Secret ([#36](https://github.com/sumup/sumup-rs/pull/36))
+
 ## [0.5.3](https://github.com/sumup/sumup-rs/compare/v0.5.2...v0.5.3) - 2025-11-11
 
 ### Other
