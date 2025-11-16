@@ -339,16 +339,16 @@ pub struct ListTransactionsParams {
     pub types: Option<Vec<String>>,
     /// Filters the results by the latest modification time of resources and returns only transactions that are modified *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub changes_since: Option<String>,
+    pub changes_since: Option<crate::datetime::DateTime>,
     /// Filters the results by the creation time of resources and returns only transactions that are created *before* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub newest_time: Option<String>,
+    pub newest_time: Option<crate::datetime::DateTime>,
     /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *smaller* than the specified value. This parameters supersedes the `newest_time` parameter (if both are provided in the request).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub newest_ref: Option<String>,
     /// Filters the results by the creation time of resources and returns only transactions that are created *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub oldest_time: Option<String>,
+    pub oldest_time: Option<crate::datetime::DateTime>,
     /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *greater* than the specified value. This parameters supersedes the `oldest_time` parameter (if both are provided in the request).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oldest_ref: Option<String>,
@@ -404,16 +404,16 @@ pub struct ListTransactionsV21Params {
     pub types: Option<Vec<String>>,
     /// Filters the results by the latest modification time of resources and returns only transactions that are modified *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub changes_since: Option<String>,
+    pub changes_since: Option<crate::datetime::DateTime>,
     /// Filters the results by the creation time of resources and returns only transactions that are created *before* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub newest_time: Option<String>,
+    pub newest_time: Option<crate::datetime::DateTime>,
     /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *smaller* than the specified value. This parameters supersedes the `newest_time` parameter (if both are provided in the request).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub newest_ref: Option<String>,
     /// Filters the results by the creation time of resources and returns only transactions that are created *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub oldest_time: Option<String>,
+    pub oldest_time: Option<crate::datetime::DateTime>,
     /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *greater* than the specified value. This parameters supersedes the `oldest_time` parameter (if both are provided in the request).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oldest_ref: Option<String>,

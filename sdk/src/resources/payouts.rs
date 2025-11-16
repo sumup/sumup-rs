@@ -5,9 +5,9 @@ pub type FinancialPayouts = Vec<serde_json::Value>;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListPayoutsParams {
     /// Start date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
-    pub start_date: String,
+    pub start_date: crate::datetime::Date,
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
-    pub end_date: String,
+    pub end_date: crate::datetime::Date,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -18,9 +18,9 @@ pub struct ListPayoutsParams {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListPayoutsV1Params {
     /// Start date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
-    pub start_date: String,
+    pub start_date: crate::datetime::Date,
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
-    pub end_date: String,
+    pub end_date: crate::datetime::Date,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

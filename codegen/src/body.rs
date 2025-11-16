@@ -191,7 +191,20 @@ fn infer_param_type(
             quote! { #type_ident }
         }
         openapiv3::ReferenceOr::Item(schema) => match &schema.schema_kind {
-            openapiv3::SchemaKind::Type(openapiv3::Type::String(_)) => quote! { String },
+            openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
+                match &string_type.format {
+                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::DateTime) => {
+                        quote! { crate::datetime::DateTime }
+                    }
+                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Date) => {
+                        quote! { crate::datetime::Date }
+                    }
+                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Password) => {
+                        quote! { crate::secret::Password }
+                    }
+                    _ => quote! { String },
+                }
+            }
             openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => quote! { f64 },
             openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => quote! { i64 },
             openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_)) => quote! { bool },
@@ -206,9 +219,21 @@ fn infer_param_type(
                         }
                         openapiv3::ReferenceOr::Item(inner_schema) => {
                             match &inner_schema.schema_kind {
-                                openapiv3::SchemaKind::Type(openapiv3::Type::String(_)) => {
-                                    quote! { String }
-                                }
+                                openapiv3::SchemaKind::Type(openapiv3::Type::String(
+                                    string_type,
+                                )) => match &string_type.format {
+                                    openapiv3::VariantOrUnknownOrEmpty::Item(
+                                        openapiv3::StringFormat::DateTime,
+                                    ) => {
+                                        quote! { crate::datetime::DateTime }
+                                    }
+                                    openapiv3::VariantOrUnknownOrEmpty::Item(
+                                        openapiv3::StringFormat::Date,
+                                    ) => {
+                                        quote! { crate::datetime::Date }
+                                    }
+                                    _ => quote! { String },
+                                },
                                 openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => {
                                     quote! { i64 }
                                 }
