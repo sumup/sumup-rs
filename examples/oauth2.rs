@@ -16,20 +16,19 @@
 
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
     response::Redirect,
     routing::get,
-    Json, Router, Server,
+    Json, Router,
 };
-use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
+use oauth2::reqwest;
+use oauth2::{basic::BasicClient, EndpointNotSet, EndpointSet};
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
     PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
 use serde::Deserialize;
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
-use tokio::sync::Mutex;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use sumup::{
@@ -39,12 +38,15 @@ use sumup::{
 
 #[derive(Clone)]
 struct AppState {
-    oauth_client: Arc<BasicClient>,
-    pkce_store: Arc<Mutex<HashMap<String, String>>>,
+    oauth_client:
+        Arc<BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>>,
 }
 
+const STATE_COOKIE_NAME: &str = "oauth_state";
+const PKCE_COOKIE_NAME: &str = "oauth_pkce";
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() {
     let client_id = std::env::var("CLIENT_ID").expect("CLIENT_ID environment variable must be set");
     let client_secret =
         std::env::var("CLIENT_SECRET").expect("CLIENT_SECRET environment variable must be set");
@@ -57,44 +59,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("invalid token endpoint URL");
 
     let oauth_client = Arc::new(
-        BasicClient::new(
-            ClientId::new(client_id),
-            Some(ClientSecret::new(client_secret)),
-            auth_url,
-            Some(token_url),
-        )
-        .set_redirect_uri(RedirectUrl::new(redirect_uri)?),
+        BasicClient::new(ClientId::new(client_id))
+            .set_client_secret(ClientSecret::new(client_secret))
+            .set_auth_uri(auth_url)
+            .set_token_uri(token_url)
+            .set_redirect_uri(RedirectUrl::new(redirect_uri).unwrap()),
     );
 
-    let app_state = AppState {
-        oauth_client,
-        pkce_store: Arc::new(Mutex::new(HashMap::new())),
-    };
+    let app_state = AppState { oauth_client };
 
     let app = Router::new()
         .route("/login", get(handle_login))
         .route("/callback", get(handle_callback))
         .with_state(app_state.clone());
 
-    let addr: SocketAddr = "0.0.0.0:8080".parse()?;
     println!("Server is running at http://localhost:8080");
 
-    Server::bind(&addr).serve(app.into_make_service()).await?;
-
-    Ok(())
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    axum::serve(listener, app).await.unwrap()
 }
 
-async fn handle_login(State(state): State<AppState>) -> Redirect {
+async fn handle_login(State(state): State<AppState>, jar: CookieJar) -> (CookieJar, Redirect) {
     let state_token = Uuid::new_v4().to_string();
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
-    {
-        // In-memory store used only for the purpose of this example.
-        // Don't use in production. Normally you would rely on a proper
-        // server-side sessions or encrypted cookie.
-        let mut pkce_store = state.pkce_store.lock().await;
-        pkce_store.insert(state_token.clone(), pkce_verifier.secret().to_owned());
-    }
+    let state_cookie = Cookie::build((STATE_COOKIE_NAME, state_token.clone()))
+        .path("/")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        // Set to true on production when running on https
+        .secure(false);
+
+    let pkce_cookie = Cookie::build((PKCE_COOKIE_NAME, pkce_verifier.secret().to_owned()))
+        .path("/")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        // Set to true on production when running on https
+        .secure(false);
+
+    let jar = jar.add(state_cookie).add(pkce_cookie);
 
     let (authorization_url, _csrf_token) = state
         .oauth_client
@@ -107,7 +110,7 @@ async fn handle_login(State(state): State<AppState>) -> Redirect {
         .set_pkce_challenge(pkce_challenge)
         .url();
 
-    Redirect::temporary(authorization_url.as_str())
+    (jar, Redirect::temporary(authorization_url.as_str()))
 }
 
 #[derive(Deserialize)]
@@ -119,47 +122,51 @@ struct CallbackParams {
 
 async fn handle_callback(
     State(state): State<AppState>,
+    jar: CookieJar,
     Query(params): Query<CallbackParams>,
-) -> Result<Json<Merchant>, (StatusCode, String)> {
-    let pkce_verifier = {
-        let mut pkce_store = state.pkce_store.lock().await;
-        pkce_store.remove(&params.state)
+) -> (CookieJar, Json<Merchant>) {
+    let state_cookie = jar
+        .get(STATE_COOKIE_NAME)
+        .map(|cookie| cookie.value().to_owned());
+    let pkce_cookie = jar
+        .get(PKCE_COOKIE_NAME)
+        .map(|cookie| cookie.value().to_owned());
+
+    let jar = jar.remove(Cookie::build(STATE_COOKIE_NAME));
+    let jar = jar.remove(Cookie::build(PKCE_COOKIE_NAME));
+
+    let state_cookie = state_cookie.expect("missing oauth state cookie");
+
+    if params.state != state_cookie {
+        panic!("invalid state cookie")
     }
-    .ok_or_else(|| (StatusCode::BAD_REQUEST, "invalid oauth state".to_string()))?;
+
+    let pkce_verifier = PkceCodeVerifier::new(pkce_cookie.expect("missing oauth pkce cookie"));
 
     let token_response = state
         .oauth_client
         .exchange_code(AuthorizationCode::new(params.code.clone()))
-        .set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier))
-        .request_async(async_http_client)
+        .set_pkce_verifier(pkce_verifier)
+        .request_async(&reqwest::Client::default())
         .await
-        .map_err(|err| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Unable to retrieve token: {err}"),
-            )
-        })?;
+        .expect("retrieve token vie code exchange");
 
-    let merchant_code = params
-        .merchant_code
-        .clone()
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "missing merchant_code".to_string()))?;
+    // Users might have access to multiple merchant accounts, the `merchant_code` parameter
+    // returned in the callback is the merchant code of their default merchant account.
+    // In production, you would want to let users pick which merchant they want to use
+    // using the memberships API.
+    let merchant_code = params.merchant_code.expect("missing merchant code param");
+
+    println!("merchant code: {merchant_code}");
 
     let access_token = token_response.access_token().secret().to_owned();
     let client = Client::default().with_authorization(access_token);
-
-    println!("merchant Code: {merchant_code}");
 
     let merchant = client
         .merchants()
         .get(merchant_code, GetMerchantParams::default())
         .await
-        .map_err(|err| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("get merchant information: {err:?}"),
-            )
-        })?;
+        .expect("get mercahnt");
 
-    Ok(Json(merchant))
+    (jar, Json(merchant))
 }

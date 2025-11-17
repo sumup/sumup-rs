@@ -58,7 +58,7 @@ fn client_with_timeout_updates_timeout() {
 #[serial]
 fn client_reads_authorization_from_env() {
     let token = "env-token";
-    let _guard = EnvVarGuard::set("SUMUP_API_KEY", &token);
+    let _guard = EnvVarGuard::set("SUMUP_API_KEY", token);
 
     let client = Client::new();
 

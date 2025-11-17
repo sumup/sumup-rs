@@ -35,11 +35,12 @@ tokio = { version = "1", features = ["full"] }
 serial_test = "3.2"
 wiremock = "0.6"
 uuid = { version = "1.11", features = ["serde", "v4"] }
-oauth2 = { version = "4", default-features = false, features = [
+oauth2 = { version = "5.0.0", default-features = false, features = [
   "reqwest",
   "rustls-tls",
 ] }
-axum = "0.6"
+axum = "0.8.7"
+axum-extra = { version = "0.12.2", features = ["cookie"] }
 
 [[example]]
 name = "checkout_card_reader"
