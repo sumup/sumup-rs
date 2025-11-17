@@ -39,6 +39,7 @@ oauth2 = { version = "4", default-features = false, features = [
   "reqwest",
   "rustls-tls",
 ] }
+axum = "0.6"
 
 [[example]]
 name = "checkout_card_reader"
