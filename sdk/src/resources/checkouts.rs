@@ -426,50 +426,6 @@ pub struct DetailsErrorFailedConstraintsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reference: Option<String>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct DeactivateCheckoutResponseTransactionsItem {
-    /// Unique ID of the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// Transaction code returned by the acquirer/processing entity after processing the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transaction_code: Option<String>,
-    /// Total amount of the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub currency: Option<Currency>,
-    /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<crate::datetime::DateTime>,
-    /// Current status of the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
-    /// Payment type used for the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payment_type: Option<String>,
-    /// Current number of the installment for deferred payments.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub installments_count: Option<i64>,
-    /// Unique code of the registered merchant to whom the payment is made.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub merchant_code: Option<String>,
-    /// Amount of the applicable VAT (out of the total transaction amount).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_amount: Option<f32>,
-    /// Amount of the tip (out of the total transaction amount).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tip_amount: Option<f32>,
-    /// Entry mode of the payment details.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub entry_mode: Option<String>,
-    /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth_code: Option<String>,
-    /// Internal unique ID of the transaction on the SumUp platform.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub internal_id: Option<i64>,
-}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct GetPaymentMethodsResponseAvailablePaymentMethodsItem {
     /// The ID of the payment method.
@@ -483,48 +439,6 @@ pub struct ListCheckoutsParams {
 }
 /// OK
 pub type ListCheckoutsResponse = Vec<CheckoutSuccess>;
-/// OK
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct DeactivateCheckoutResponse {
-    /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub checkout_reference: Option<String>,
-    /// Unique ID of the checkout resource.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// Amount of the payment.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub currency: Option<Currency>,
-    /// Unique identifying code of the merchant profile.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub merchant_code: Option<String>,
-    /// Short description of the checkout visible in the SumUp dashboard. The description can contribute to reporting, allowing easier identification of a checkout.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// Purpose of the checkout creation initially
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub purpose: Option<String>,
-    /// Current status of the checkout.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
-    /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub date: Option<crate::datetime::DateTime>,
-    /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub valid_until: Option<crate::datetime::DateTime>,
-    /// Merchant name
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub merchant_name: Option<String>,
-    /// The merchant's country
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub merchant_country: Option<String>,
-    /// List of transactions related to the payment.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transactions: Option<Vec<DeactivateCheckoutResponseTransactionsItem>>,
-}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum ProcessCheckoutResponse {
@@ -705,7 +619,7 @@ impl<'a> CheckoutsClient<'a> {
     pub async fn deactivate(
         &self,
         id: impl Into<String>,
-    ) -> crate::error::SdkResult<DeactivateCheckoutResponse, DeactivateCheckoutErrorBody> {
+    ) -> crate::error::SdkResult<Checkout, DeactivateCheckoutErrorBody> {
         let path = format!("/v0.1/checkouts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -721,7 +635,7 @@ impl<'a> CheckoutsClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
-                let data: DeactivateCheckoutResponse = response.json().await?;
+                let data: Checkout = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
