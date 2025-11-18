@@ -44,7 +44,7 @@ axum-extra = { version = "0.12.2", features = ["cookie"] }
 
 [[example]]
 name = "checkout_card_reader"
-path = "../examples/checkout_card_reader.rs"
+path = "../examples/card_reader_checkout.rs"
 
 [[example]]
 name = "oauth2"
