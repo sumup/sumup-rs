@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-clap = { version = "4.5.51", features = [
+clap = { version = "4.5.52", features = [
   "derive",
   "string",
   "env",
