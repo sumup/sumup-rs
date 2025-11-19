@@ -61,6 +61,13 @@ pub struct ListMembershipsParams {
     /// Filter memberships by resource kind.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<ResourceType>,
+    /// Filter the returned memberships by the membership status.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<MembershipStatus>,
+    /// Filter memberships by resource kind.
+    #[serde(rename = "resource.type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_type: Option<ResourceType>,
     /// Filter memberships by the sandbox status of the resource the membership is in.
     #[serde(rename = "resource.attributes.sandbox")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -116,6 +123,12 @@ impl<'a> MembershipsClient<'a> {
         }
         if let Some(ref value) = params.kind {
             request = request.query(&[("kind", value)]);
+        }
+        if let Some(ref value) = params.status {
+            request = request.query(&[("status", value)]);
+        }
+        if let Some(ref value) = params.resource_type {
+            request = request.query(&[("resource.type", value)]);
         }
         if let Some(ref value) = params.resource_attributes_sandbox {
             request = request.query(&[("resource.attributes.sandbox", value)]);
