@@ -8,7 +8,6 @@
 [![Documentation][docs-badge]](https://developer.sumup.com)
 [![License](https://img.shields.io/github/license/sumup/sumup-rs)](./LICENSE)
 
-
 </div>
 
 _**IMPORTANT:** This SDK is under heavy development and subject to breaking changes._
