@@ -863,11 +863,25 @@ fn generate_error_impl(
     properties: &Properties,
     required: &[String],
 ) -> TokenStream {
+    let struct_name_str = struct_name.to_string();
+
     // Helper function to check if a field is required
     let is_required = |field_name: &str| -> bool { required.contains(&field_name.to_string()) };
 
     // Try to find common error message fields
-    let display_impl = if properties.contains_key("message") {
+    let display_impl = if struct_name_str == "Problem" {
+        // RFC 9457 problem responses expose `title` and `detail` fields.
+        quote! {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match (&self.title, &self.detail) {
+                    (Some(title), Some(detail)) => write!(f, "{}: {}", title, detail),
+                    (Some(title), None) => write!(f, "{}", title),
+                    (None, Some(detail)) => write!(f, "{}", detail),
+                    (None, None) => write!(f, "{:?}", self),
+                }
+            }
+        }
+    } else if properties.contains_key("message") {
         if is_required("message") {
             quote! {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

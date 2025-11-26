@@ -1,17 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
-/// Error object for compat API calls.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CompatError {
-    pub error_code: String,
-    pub message: String,
-}
-impl std::fmt::Display for CompatError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-impl std::error::Error for CompatError {}
+use super::common::*;
 /// Operator account for a merchant.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Operator {
@@ -97,11 +86,11 @@ pub struct UpdateSubAccountBody {
 use crate::client::Client;
 #[derive(Debug)]
 pub enum CreateSubAccountErrorBody {
-    Forbidden(CompatError),
+    Forbidden(Problem),
 }
 #[derive(Debug)]
 pub enum UpdateSubAccountErrorBody {
-    BadRequest(CompatError),
+    BadRequest(Problem),
 }
 ///Client for the Subaccounts API endpoints.
 #[derive(Debug)]
@@ -181,7 +170,7 @@ impl<'a> SubaccountsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let body: CompatError = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     CreateSubAccountErrorBody::Forbidden(body),
                 ))
@@ -285,7 +274,7 @@ impl<'a> SubaccountsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: CompatError = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     UpdateSubAccountErrorBody::BadRequest(body),
                 ))

@@ -277,6 +277,11 @@ pub struct Merchant {
     /// The date and time when the resource was last updated. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
     pub updated_at: crate::datetime::DateTime,
 }
+/// A set of key-value pairs that you can attach to an object. This can be useful for storing additional information about the object in a structured format.
+///
+/// **Warning**: Updating Meta will overwrite the existing data. Make sure to always include the complete JSON object.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct Meta {}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ownership {
     /// The percent of ownership shares held by the person expressed in percent mille (1/100000). Only persons with the relationship `owner` can have ownership.

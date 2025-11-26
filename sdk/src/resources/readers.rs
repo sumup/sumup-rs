@@ -100,7 +100,7 @@ pub struct Reader {
     pub status: ReaderStatus,
     pub device: ReaderDevice,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub meta: Option<Meta>,
+    pub metadata: Option<Metadata>,
     /// The timestamp of when the reader was created.
     pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the reader was last updated.
@@ -207,23 +207,34 @@ pub struct CreateReaderBody {
     pub pairing_code: ReaderPairingCode,
     pub name: ReaderName,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub meta: Option<Meta>,
+    pub metadata: Option<Metadata>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct UpdateReaderBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<ReaderName>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub meta: Option<Meta>,
+    pub metadata: Option<Metadata>,
 }
 use crate::client::Client;
 #[derive(Debug)]
+pub enum CreateReaderErrorBody {
+    BadRequest(Problem),
+    NotFound(Problem),
+    Conflict(Problem),
+}
+#[derive(Debug)]
+pub enum DeleteReaderErrorBody {
+    NotFound(Problem),
+}
+#[derive(Debug)]
 pub enum GetReaderErrorBody {
-    NotFound,
+    NotFound(Problem),
 }
 #[derive(Debug)]
 pub enum UpdateReaderErrorBody {
-    Forbidden,
+    Forbidden(Problem),
+    NotFound(Problem),
 }
 #[derive(Debug)]
 pub enum CreateReaderCheckoutErrorBody {
@@ -295,7 +306,7 @@ impl<'a> ReadersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         body: CreateReaderBody,
-    ) -> crate::error::SdkResult<Reader, crate::error::UnknownApiBody> {
+    ) -> crate::error::SdkResult<Reader, CreateReaderErrorBody> {
         let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -315,6 +326,24 @@ impl<'a> ReadersClient<'a> {
                 let data: Reader = response.json().await?;
                 Ok(data)
             }
+            reqwest::StatusCode::BAD_REQUEST => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderErrorBody::BadRequest(body),
+                ))
+            }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderErrorBody::NotFound(body),
+                ))
+            }
+            reqwest::StatusCode::CONFLICT => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateReaderErrorBody::Conflict(body),
+                ))
+            }
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
@@ -325,11 +354,11 @@ impl<'a> ReadersClient<'a> {
     /// Delete a reader
     ///
     /// Delete a reader.
-    pub async fn delete_reader(
+    pub async fn delete(
         &self,
         merchant_code: impl Into<String>,
         id: impl Into<String>,
-    ) -> crate::error::SdkResult<(), crate::error::UnknownApiBody> {
+    ) -> crate::error::SdkResult<(), DeleteReaderErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
@@ -349,6 +378,12 @@ impl<'a> ReadersClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => Ok(()),
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    DeleteReaderErrorBody::NotFound(body),
+                ))
+            }
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
@@ -387,7 +422,10 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                Err(crate::error::SdkError::api(GetReaderErrorBody::NotFound))
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(GetReaderErrorBody::NotFound(
+                    body,
+                )))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -428,9 +466,18 @@ impl<'a> ReadersClient<'a> {
                 let data: Reader = response.json().await?;
                 Ok(data)
             }
-            reqwest::StatusCode::FORBIDDEN => Err(crate::error::SdkError::api(
-                UpdateReaderErrorBody::Forbidden,
-            )),
+            reqwest::StatusCode::FORBIDDEN => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateReaderErrorBody::Forbidden(body),
+                ))
+            }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateReaderErrorBody::NotFound(body),
+                ))
+            }
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
