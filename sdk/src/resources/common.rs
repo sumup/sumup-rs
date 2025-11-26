@@ -217,10 +217,10 @@ pub struct Problem {
 }
 impl std::fmt::Display for Problem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match (&self.title, &self.details) {
-            (Some(title), Some(details)) => write!(f, "{}: {}", title, details),
+        match (&self.title, &self.detail) {
+            (Some(title), Some(detail)) => write!(f, "{}: {}", title, detail),
             (Some(title), None) => write!(f, "{}", title),
-            (None, Some(details)) => write!(f, "{}", details),
+            (None, Some(detail)) => write!(f, "{}", detail),
             (None, None) => write!(f, "{:?}", self),
         }
     }
