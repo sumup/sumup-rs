@@ -112,27 +112,6 @@ pub struct CheckoutCreateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_url: Option<String>,
 }
-/// Details of the payment instrument for processing the checkout.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CheckoutProcessMixin {
-    /// Describes the payment method used to attempt processing
-    pub payment_type: String,
-    /// Number of installments for deferred payments. Available only to merchant users in Brazil.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub installments: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mandate: Option<MandatePayload>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub card: Option<Card>,
-    /// __Required when using a tokenized card to process a checkout.__ Unique token identifying the saved payment card for a customer.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub token: Option<String>,
-    /// __Required when `token` is provided.__ Unique ID of the customer.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub customer_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub personal_details: Option<PersonalDetails>,
-}
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccess {
     /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
@@ -247,6 +226,27 @@ pub struct MandatePayload {
     /// IP address of the end user. Supports IPv4 and IPv6
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_ip: Option<String>,
+}
+/// Details of the payment instrument for processing the checkout.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ProcessCheckout {
+    /// Describes the payment method used to attempt processing
+    pub payment_type: String,
+    /// Number of installments for deferred payments. Available only to merchant users in Brazil.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub installments: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mandate: Option<MandatePayload>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub card: Option<Card>,
+    /// __Required when using a tokenized card to process a checkout.__ Unique token identifying the saved payment card for a customer.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+    /// __Required when `token` is provided.__ Unique ID of the customer.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub customer_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub personal_details: Option<PersonalDetails>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutTransactionsItem {
@@ -715,7 +715,7 @@ impl<'a> CheckoutsClient<'a> {
     pub async fn process(
         &self,
         id: impl Into<String>,
-        body: Option<CheckoutProcessMixin>,
+        body: Option<ProcessCheckout>,
     ) -> crate::error::SdkResult<ProcessCheckoutResponse, ProcessCheckoutErrorBody> {
         let path = format!("/v0.1/checkouts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
