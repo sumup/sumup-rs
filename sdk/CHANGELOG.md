@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5](https://github.com/sumup/sumup-rs/compare/v0.5.4...v0.5.5) - 2025-11-26
+
+### Added
+
+- *(examples)* make oauth2 example runnable ([#40](https://github.com/sumup/sumup-rs/pull/40))
+- *(examples)* update oauth2 example ([#37](https://github.com/sumup/sumup-rs/pull/37))
+
+### Other
+
+- synced file(s) with sumup/apis ([#50](https://github.com/sumup/sumup-rs/pull/50))
+- *(tooling)* update dependabot config
+- synced file(s) with sumup/apis ([#43](https://github.com/sumup/sumup-rs/pull/43))
+- *(examples)* rename card reader checkout example ([#44](https://github.com/sumup/sumup-rs/pull/44))
+- synced file(s) with sumup/apis ([#39](https://github.com/sumup/sumup-rs/pull/39))
+
 ## [0.5.4](https://github.com/sumup/sumup-rs/compare/v0.5.3...v0.5.4) - 2025-11-16
 
 ### Added
