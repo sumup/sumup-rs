@@ -1,4 +1,4 @@
-name: Release
+name: Release please
 
 on:
   push:
@@ -7,67 +7,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 jobs:
-  release-plz-release:
-    name: Release
-    runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'sumup' }}
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@1780873c7b576612439a134613cc4cc74ce5538c # v1.15.2
-        with:
-          components: rustfmt, clippy
-          persist-credentials: false
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Run Clippy
-        run: cargo clippy --package sumup -- --deny warnings
-
-      - name: Build
-        run: cargo build --package sumup --locked
-
-      - name: Test
-        run: cargo test --package sumup --locked
-        env:
-          RUST_BACKTRACE: 1
-
-      - name: Package for publication
-        run: cargo package --package sumup --list
-
-      - name: Create GitHub token
-        id: create-token
-        uses: actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94 # v2.2.0
-        with:
-          app-id: ${{ secrets.SUMUP_BOT_APP_ID }}
-          private-key: ${{ secrets.SUMUP_BOT_PRIVATE_KEY }}
-
-      - name: Run release-plz
-        uses: release-plz/action@1efcf74dfcd6e500990dad806e286899ae384064 # v0.5.119
-        with:
-          command: release
-        env:
-          GITHUB_TOKEN: ${{ steps.create-token.outputs.token }}
-
   release-plz-pr:
     name: Prepare release PR
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'sumup' }}
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
     concurrency:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
