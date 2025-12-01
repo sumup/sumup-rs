@@ -60,7 +60,7 @@
 //! let checkout = client.checkouts().create(Some(CheckoutCreateRequest {
 //!     checkout_reference: "unique-ref".to_string(),
 //!     amount: 10.0,
-//!     currency: Currency::Eur,
+//!     currency: Currency::EUR,
 //!     merchant_code: "MCODE".to_string(),
 //!     description: None,
 //!     return_url: None,

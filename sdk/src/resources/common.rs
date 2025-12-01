@@ -29,36 +29,21 @@ pub struct Attributes {}
 /// Three-letter [ISO4217](https://en.wikipedia.org/wiki/ISO_4217) code of the currency for the amount. Currently supported currency values are enumerated above.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Currency {
-    #[serde(rename = "BGN")]
-    Bgn,
-    #[serde(rename = "BRL")]
-    Brl,
-    #[serde(rename = "CHF")]
-    Chf,
-    #[serde(rename = "CLP")]
-    Clp,
-    #[serde(rename = "CZK")]
-    Czk,
-    #[serde(rename = "DKK")]
-    Dkk,
-    #[serde(rename = "EUR")]
-    Eur,
-    #[serde(rename = "GBP")]
-    Gbp,
-    #[serde(rename = "HRK")]
-    Hrk,
-    #[serde(rename = "HUF")]
-    Huf,
-    #[serde(rename = "NOK")]
-    Nok,
-    #[serde(rename = "PLN")]
-    Pln,
-    #[serde(rename = "RON")]
-    Ron,
-    #[serde(rename = "SEK")]
-    Sek,
-    #[serde(rename = "USD")]
-    Usd,
+    BGN,
+    BRL,
+    CHF,
+    CLP,
+    CZK,
+    DKK,
+    EUR,
+    GBP,
+    HRK,
+    HUF,
+    NOK,
+    PLN,
+    RON,
+    SEK,
+    USD,
 }
 /// Error message structure.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

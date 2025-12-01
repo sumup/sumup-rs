@@ -846,6 +846,28 @@ pub fn infer_rust_type(
 fn sanitize_enum_variant(variant: &str) -> String {
     use heck::ToPascalCase;
 
+    // Handle well-known abbreviations that should remain uppercase
+    match variant {
+        // Currency codes (ISO 4217)
+        "EUR" | "USD" | "GBP" | "CHF" | "JPY" | "CAD" | "AUD" | "NZD" | "SEK" | "NOK" | "DKK"
+        | "PLN" | "CZK" | "HUF" | "RON" | "BGN" | "HRK" | "BRL" | "CLP" => {
+            return variant.to_string()
+        }
+
+        // HTTP status codes and methods
+        "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS" => {
+            return variant.to_string()
+        }
+
+        // Common tech abbreviations
+        "API" | "SDK" | "HTTP" | "HTTPS" | "URL" | "URI" | "JSON" | "XML" | "HTML" | "CSS"
+        | "SQL" | "TCP" | "UDP" | "DNS" | "SSL" | "TLS" | "JWT" | "UUID" | "ID" => {
+            return variant.to_string()
+        }
+
+        _ => {}
+    }
+
     let sanitized = variant.replace(['-', '.', ':', '/'], "_");
 
     let pascal = sanitized.to_pascal_case();
