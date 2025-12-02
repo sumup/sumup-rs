@@ -668,6 +668,12 @@ pub fn infer_rust_type(
                 openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Password) => {
                     quote! { crate::secret::Secret }
                 }
+                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Byte) => {
+                    quote! { Vec<u8> }
+                }
+                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Binary) => {
+                    quote! { Vec<u8> }
+                }
                 _ => quote! { String },
             }
         }
