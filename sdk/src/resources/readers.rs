@@ -29,6 +29,9 @@ pub struct CreateReaderCheckoutRequest {
     /// Number of installments for the transaction.
     /// It may vary according to the merchant country.
     /// For example, in Brazil, the maximum number of installments is 12.
+    ///
+    /// Omit if the merchant country does support installments.
+    /// Otherwise, the checkout will be rejected.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments: Option<i64>,
     /// Webhook URL to which the payment result will be sent.
