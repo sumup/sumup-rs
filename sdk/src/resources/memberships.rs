@@ -76,6 +76,16 @@ pub struct ListMembershipsParams {
     #[serde(rename = "resource.name")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resource_name: Option<String>,
+    /// Filter memberships by the parent of the resource the membership is in.
+    /// When filtering by parent both `resource.parent.id` and `resource.parent.type` must be present.
+    #[serde(rename = "resource.parent.id")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_parent_id: Option<String>,
+    /// Filter memberships by the parent of the resource the membership is in.
+    /// When filtering by parent both `resource.parent.id` and `resource.parent.type` must be present.
+    #[serde(rename = "resource.parent.type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_parent_type: Option<ResourceType>,
 }
 /// Returns a list of Membership objects.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -135,6 +145,12 @@ impl<'a> MembershipsClient<'a> {
         }
         if let Some(ref value) = params.resource_name {
             request = request.query(&[("resource.name", value)]);
+        }
+        if let Some(ref value) = params.resource_parent_id {
+            request = request.query(&[("resource.parent.id", value)]);
+        }
+        if let Some(ref value) = params.resource_parent_type {
+            request = request.query(&[("resource.parent.type", value)]);
         }
         let response = request.send().await?;
         let status = response.status();
