@@ -86,6 +86,9 @@ pub struct ListMembershipsParams {
     #[serde(rename = "resource.parent.type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resource_parent_type: Option<ResourceType>,
+    /// Filter the returned memberships by role.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub roles: Option<Vec<String>>,
 }
 /// Returns a list of Membership objects.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -151,6 +154,9 @@ impl<'a> MembershipsClient<'a> {
         }
         if let Some(ref value) = params.resource_parent_type {
             request = request.query(&[("resource.parent.type", value)]);
+        }
+        if let Some(ref value) = params.roles {
+            request = request.query(&[("roles", value)]);
         }
         let response = request.send().await?;
         let status = response.status();

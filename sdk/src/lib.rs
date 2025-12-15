@@ -57,7 +57,7 @@
 //! # use sumup::{Client, CheckoutCreateRequest, Currency};
 //! # async fn example(client: Client) {
 //! // Create a checkout
-//! let checkout = client.checkouts().create(Some(CheckoutCreateRequest {
+//! let checkout = client.checkouts().create(CheckoutCreateRequest {
 //!     checkout_reference: "unique-ref".to_string(),
 //!     amount: 10.0,
 //!     currency: Currency::EUR,
@@ -72,7 +72,7 @@
 //!     valid_until: None,
 //!     transactions: None,
 //!     redirect_url: None,
-//! }))
+//! })
 //! .await
 //! .expect("create checkout");
 //! println!("created checkout {}", checkout.id.unwrap_or_default());
