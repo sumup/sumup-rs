@@ -559,7 +559,7 @@ impl<'a> CheckoutsClient<'a> {
     /// Follow by processing a checkout to charge the provided payment instrument.
     pub async fn create(
         &self,
-        body: Option<CheckoutCreateRequest>,
+        body: CheckoutCreateRequest,
     ) -> crate::error::SdkResult<Checkout, CreateCheckoutErrorBody> {
         let path = "/v0.1/checkouts";
         let url = format!("{}{}", self.client.base_url(), path);
@@ -568,12 +568,10 @@ impl<'a> CheckoutsClient<'a> {
             .http_client()
             .post(&url)
             .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
+            .timeout(self.client.timeout())
+            .json(&body);
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
-        }
-        if let Some(body) = body {
-            request = request.json(&body);
         }
         let response = request.send().await?;
         let status = response.status();
@@ -715,7 +713,7 @@ impl<'a> CheckoutsClient<'a> {
     pub async fn process(
         &self,
         id: impl Into<String>,
-        body: Option<ProcessCheckout>,
+        body: ProcessCheckout,
     ) -> crate::error::SdkResult<ProcessCheckoutResponse, ProcessCheckoutErrorBody> {
         let path = format!("/v0.1/checkouts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
@@ -724,12 +722,10 @@ impl<'a> CheckoutsClient<'a> {
             .http_client()
             .put(&url)
             .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
+            .timeout(self.client.timeout())
+            .json(&body);
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
-        }
-        if let Some(body) = body {
-            request = request.json(&body);
         }
         let response = request.send().await?;
         let status = response.status();

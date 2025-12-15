@@ -97,7 +97,7 @@ impl<'a> CustomersClient<'a> {
     /// Creates a new saved customer resource which you can later manipulate and save payment instruments to.
     pub async fn create(
         &self,
-        body: Option<Customer>,
+        body: Customer,
     ) -> crate::error::SdkResult<Customer, CreateCustomerErrorBody> {
         let path = "/v0.1/customers";
         let url = format!("{}{}", self.client.base_url(), path);
@@ -106,12 +106,10 @@ impl<'a> CustomersClient<'a> {
             .http_client()
             .post(&url)
             .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
+            .timeout(self.client.timeout())
+            .json(&body);
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
-        }
-        if let Some(body) = body {
-            request = request.json(&body);
         }
         let response = request.send().await?;
         let status = response.status();
@@ -203,7 +201,7 @@ impl<'a> CustomersClient<'a> {
     pub async fn update(
         &self,
         customer_id: impl Into<String>,
-        body: Option<UpdateCustomerBody>,
+        body: UpdateCustomerBody,
     ) -> crate::error::SdkResult<Customer, UpdateCustomerErrorBody> {
         let path = format!("/v0.1/customers/{}", customer_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
@@ -212,12 +210,10 @@ impl<'a> CustomersClient<'a> {
             .http_client()
             .put(&url)
             .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
+            .timeout(self.client.timeout())
+            .json(&body);
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
-        }
-        if let Some(body) = body {
-            request = request.json(&body);
         }
         let response = request.send().await?;
         let status = response.status();
