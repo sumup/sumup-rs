@@ -202,28 +202,164 @@ pub struct CompanyIdentifier {
 pub type CompanyIdentifiers = Vec<CompanyIdentifier>;
 pub type CountryCode = String;
 /// The category of the error.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorCategoryClient {
-    #[serde(rename = "client_error")]
     ClientError,
+    ///Fallback variant for values unknown to this SDK.
+    Unknown(String),
+}
+impl ErrorCategoryClient {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::ClientError => "client_error",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+impl serde::Serialize for ErrorCategoryClient {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+impl<'de> serde::Deserialize<'de> for ErrorCategoryClient {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let known = match value.as_str() {
+            "client_error" => Some(Self::ClientError),
+            _ => None,
+        };
+        if let Some(variant) = known {
+            Ok(variant)
+        } else {
+            Ok(Self::Unknown(value))
+        }
+    }
 }
 /// The category of the error.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorCategoryServer {
-    #[serde(rename = "server_error")]
     ServerError,
+    ///Fallback variant for values unknown to this SDK.
+    Unknown(String),
+}
+impl ErrorCategoryServer {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::ServerError => "server_error",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+impl serde::Serialize for ErrorCategoryServer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+impl<'de> serde::Deserialize<'de> for ErrorCategoryServer {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let known = match value.as_str() {
+            "server_error" => Some(Self::ServerError),
+            _ => None,
+        };
+        if let Some(variant) = known {
+            Ok(variant)
+        } else {
+            Ok(Self::Unknown(value))
+        }
+    }
 }
 /// An error code specifying the exact error that occurred.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorCodeInternalServerError {
-    #[serde(rename = "internal_error")]
     InternalError,
+    ///Fallback variant for values unknown to this SDK.
+    Unknown(String),
+}
+impl ErrorCodeInternalServerError {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::InternalError => "internal_error",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+impl serde::Serialize for ErrorCodeInternalServerError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+impl<'de> serde::Deserialize<'de> for ErrorCodeInternalServerError {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let known = match value.as_str() {
+            "internal_error" => Some(Self::InternalError),
+            _ => None,
+        };
+        if let Some(variant) = known {
+            Ok(variant)
+        } else {
+            Ok(Self::Unknown(value))
+        }
+    }
 }
 /// An error code specifying the exact error that occurred.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorCodeNotFound {
-    #[serde(rename = "not_found")]
     NotFound,
+    ///Fallback variant for values unknown to this SDK.
+    Unknown(String),
+}
+impl ErrorCodeNotFound {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::NotFound => "not_found",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+impl serde::Serialize for ErrorCodeNotFound {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+impl<'de> serde::Deserialize<'de> for ErrorCodeNotFound {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let known = match value.as_str() {
+            "not_found" => Some(Self::NotFound),
+            _ => None,
+        };
+        if let Some(variant) = known {
+            Ok(variant)
+        } else {
+            Ok(Self::Unknown(value))
+        }
+    }
 }
 pub type LegalType = String;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
