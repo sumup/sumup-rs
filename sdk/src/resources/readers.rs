@@ -128,16 +128,53 @@ pub type ReaderPairingCode = String;
 /// - `processing` - The reader is created and waits for the physical device to confirm the pairing.
 /// - `paired` - The reader is paired with a merchant account and can be used with SumUp APIs.
 /// - `expired` - The pairing is expired and no longer usable with the account. The resource needs to get recreated.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReaderStatus {
-    #[serde(rename = "unknown")]
-    Unknown,
-    #[serde(rename = "processing")]
+    UnknownValue,
     Processing,
-    #[serde(rename = "paired")]
     Paired,
-    #[serde(rename = "expired")]
     Expired,
+    ///Fallback variant for values unknown to this SDK.
+    Unknown(String),
+}
+impl ReaderStatus {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::UnknownValue => "unknown",
+            Self::Processing => "processing",
+            Self::Paired => "paired",
+            Self::Expired => "expired",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+impl serde::Serialize for ReaderStatus {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+impl<'de> serde::Deserialize<'de> for ReaderStatus {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let known = match value.as_str() {
+            "unknown" => Some(Self::UnknownValue),
+            "processing" => Some(Self::Processing),
+            "paired" => Some(Self::Paired),
+            "expired" => Some(Self::Expired),
+            _ => None,
+        };
+        if let Some(variant) = known {
+            Ok(variant)
+        } else {
+            Ok(Self::Unknown(value))
+        }
+    }
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutErrorErrors {

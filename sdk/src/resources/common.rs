@@ -27,7 +27,7 @@ pub type AmountEvent = f32;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Attributes {}
 /// Three-letter [ISO4217](https://en.wikipedia.org/wiki/ISO_4217) code of the currency for the amount. Currently supported currency values are enumerated above.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Currency {
     BGN,
     BRL,
@@ -44,6 +44,69 @@ pub enum Currency {
     RON,
     SEK,
     USD,
+    ///Fallback variant for values unknown to this SDK.
+    Unknown(String),
+}
+impl Currency {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::BGN => "BGN",
+            Self::BRL => "BRL",
+            Self::CHF => "CHF",
+            Self::CLP => "CLP",
+            Self::CZK => "CZK",
+            Self::DKK => "DKK",
+            Self::EUR => "EUR",
+            Self::GBP => "GBP",
+            Self::HRK => "HRK",
+            Self::HUF => "HUF",
+            Self::NOK => "NOK",
+            Self::PLN => "PLN",
+            Self::RON => "RON",
+            Self::SEK => "SEK",
+            Self::USD => "USD",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+impl serde::Serialize for Currency {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+impl<'de> serde::Deserialize<'de> for Currency {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let known = match value.as_str() {
+            "BGN" => Some(Self::BGN),
+            "BRL" => Some(Self::BRL),
+            "CHF" => Some(Self::CHF),
+            "CLP" => Some(Self::CLP),
+            "CZK" => Some(Self::CZK),
+            "DKK" => Some(Self::DKK),
+            "EUR" => Some(Self::EUR),
+            "GBP" => Some(Self::GBP),
+            "HRK" => Some(Self::HRK),
+            "HUF" => Some(Self::HUF),
+            "NOK" => Some(Self::NOK),
+            "PLN" => Some(Self::PLN),
+            "RON" => Some(Self::RON),
+            "SEK" => Some(Self::SEK),
+            "USD" => Some(Self::USD),
+            _ => None,
+        };
+        if let Some(variant) = known {
+            Ok(variant)
+        } else {
+            Ok(Self::Unknown(value))
+        }
+    }
 }
 /// Error message structure.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -90,32 +153,108 @@ impl std::fmt::Display for ErrorForbidden {
 impl std::error::Error for ErrorForbidden {}
 pub type EventId = i64;
 /// Status of the transaction event.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EventStatus {
-    #[serde(rename = "PENDING")]
     Pending,
-    #[serde(rename = "SCHEDULED")]
     Scheduled,
-    #[serde(rename = "FAILED")]
     Failed,
-    #[serde(rename = "REFUNDED")]
     Refunded,
-    #[serde(rename = "SUCCESSFUL")]
     Successful,
-    #[serde(rename = "PAID_OUT")]
     PaidOut,
+    ///Fallback variant for values unknown to this SDK.
+    Unknown(String),
+}
+impl EventStatus {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Pending => "PENDING",
+            Self::Scheduled => "SCHEDULED",
+            Self::Failed => "FAILED",
+            Self::Refunded => "REFUNDED",
+            Self::Successful => "SUCCESSFUL",
+            Self::PaidOut => "PAID_OUT",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+impl serde::Serialize for EventStatus {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+impl<'de> serde::Deserialize<'de> for EventStatus {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let known = match value.as_str() {
+            "PENDING" => Some(Self::Pending),
+            "SCHEDULED" => Some(Self::Scheduled),
+            "FAILED" => Some(Self::Failed),
+            "REFUNDED" => Some(Self::Refunded),
+            "SUCCESSFUL" => Some(Self::Successful),
+            "PAID_OUT" => Some(Self::PaidOut),
+            _ => None,
+        };
+        if let Some(variant) = known {
+            Ok(variant)
+        } else {
+            Ok(Self::Unknown(value))
+        }
+    }
 }
 /// Type of the transaction event.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EventType {
-    #[serde(rename = "PAYOUT")]
     Payout,
-    #[serde(rename = "CHARGE_BACK")]
     ChargeBack,
-    #[serde(rename = "REFUND")]
     Refund,
-    #[serde(rename = "PAYOUT_DEDUCTION")]
     PayoutDeduction,
+    ///Fallback variant for values unknown to this SDK.
+    Unknown(String),
+}
+impl EventType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Payout => "PAYOUT",
+            Self::ChargeBack => "CHARGE_BACK",
+            Self::Refund => "REFUND",
+            Self::PayoutDeduction => "PAYOUT_DEDUCTION",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+impl serde::Serialize for EventType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+impl<'de> serde::Deserialize<'de> for EventType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let known = match value.as_str() {
+            "PAYOUT" => Some(Self::Payout),
+            "CHARGE_BACK" => Some(Self::ChargeBack),
+            "REFUND" => Some(Self::Refund),
+            "PAYOUT_DEDUCTION" => Some(Self::PayoutDeduction),
+            _ => None,
+        };
+        if let Some(variant) = known {
+            Ok(variant)
+        } else {
+            Ok(Self::Unknown(value))
+        }
+    }
 }
 /// Pending invitation for membership.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -139,18 +278,56 @@ pub struct MandateResponse {
     pub merchant_code: Option<String>,
 }
 /// The status of the membership.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MembershipStatus {
-    #[serde(rename = "accepted")]
     Accepted,
-    #[serde(rename = "pending")]
     Pending,
-    #[serde(rename = "expired")]
     Expired,
-    #[serde(rename = "disabled")]
     Disabled,
-    #[serde(rename = "unknown")]
-    Unknown,
+    UnknownValue,
+    ///Fallback variant for values unknown to this SDK.
+    Unknown(String),
+}
+impl MembershipStatus {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Accepted => "accepted",
+            Self::Pending => "pending",
+            Self::Expired => "expired",
+            Self::Disabled => "disabled",
+            Self::UnknownValue => "unknown",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+impl serde::Serialize for MembershipStatus {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+impl<'de> serde::Deserialize<'de> for MembershipStatus {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let known = match value.as_str() {
+            "accepted" => Some(Self::Accepted),
+            "pending" => Some(Self::Pending),
+            "expired" => Some(Self::Expired),
+            "disabled" => Some(Self::Disabled),
+            "unknown" => Some(Self::UnknownValue),
+            _ => None,
+        };
+        if let Some(variant) = known {
+            Ok(variant)
+        } else {
+            Ok(Self::Unknown(value))
+        }
+    }
 }
 /// Set of user-defined key-value pairs attached to the object. Partial updates are not supported. When updating, always submit whole metadata. Maximum of 64 parameters are allowed in the object.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

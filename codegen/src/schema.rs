@@ -171,25 +171,23 @@ pub fn generate_structs_for_schemas(
             }
             openapiv3::SchemaKind::Type(openapiv3::Type::String(s)) => {
                 if !s.enumeration.is_empty() {
-                    let variants_tokens: Vec<TokenStream> = s
-                        .enumeration
-                        .iter()
-                        .filter_map(|v| v.as_ref())
-                        .map(|variant| {
-                            let variant_name = sanitize_enum_variant(variant);
-                            let variant_ident = Ident::new(&variant_name, Span::call_site());
-                            if variant != &variant_name {
-                                quote! {
-                                    #[serde(rename = #variant)]
-                                    #variant_ident
-                                }
-                            } else {
-                                quote! { #variant_ident }
-                            }
-                        })
-                        .collect();
+                    let mut used_variant_names = HashSet::new();
+                    let mut variant_entries: Vec<(String, Ident)> = Vec::new();
 
-                    if !variants_tokens.is_empty() {
+                    for value in s.enumeration.iter().flatten() {
+                        let mut variant_name = sanitize_enum_variant(value);
+                        if variant_name == "Unknown" {
+                            variant_name.push_str("Value");
+                        }
+                        while used_variant_names.contains(&variant_name) {
+                            variant_name.push('_');
+                        }
+                        used_variant_names.insert(variant_name.clone());
+                        let variant_ident = Ident::new(&variant_name, Span::call_site());
+                        variant_entries.push((value.clone(), variant_ident));
+                    }
+
+                    if !variant_entries.is_empty() {
                         let description = schema
                             .schema_data
                             .description
@@ -198,12 +196,72 @@ pub fn generate_structs_for_schemas(
 
                         let deprecation = generate_deprecation_attribute(&schema.schema_data);
 
+                        let variant_defs: Vec<_> = variant_entries
+                            .iter()
+                            .map(|(_, ident)| quote! { #ident })
+                            .collect();
+
+                        let as_str_matchers: Vec<_> = variant_entries
+                            .iter()
+                            .map(|(value, ident)| {
+                                let value = value.as_str();
+                                quote! { Self::#ident => #value }
+                            })
+                            .collect();
+
+                        let deserialize_matchers: Vec<_> = variant_entries
+                            .iter()
+                            .map(|(value, ident)| {
+                                let value = value.as_str();
+                                quote! { #value => Some(Self::#ident) }
+                            })
+                            .collect();
+
                         items.push(quote! {
                             #description
                             #deprecation
-                            #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+                            #[derive(Debug, Clone, PartialEq, Eq)]
                             pub enum #struct_name {
-                                #(#variants_tokens,)*
+                                #(#variant_defs,)*
+                                #[doc = "Fallback variant for values unknown to this SDK."]
+                                Unknown(String),
+                            }
+
+                            impl #struct_name {
+                                pub fn as_str(&self) -> &str {
+                                    match self {
+                                        #(#as_str_matchers,)*
+                                        Self::Unknown(value) => value.as_str(),
+                                    }
+                                }
+                            }
+
+                            impl serde::Serialize for #struct_name {
+                                fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+                                where
+                                    S: serde::Serializer,
+                                {
+                                    serializer.serialize_str(self.as_str())
+                                }
+                            }
+
+                            impl<'de> serde::Deserialize<'de> for #struct_name {
+                                fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+                                where
+                                    D: serde::Deserializer<'de>,
+                                {
+                                    let value = <String as serde::Deserialize>::deserialize(deserializer)?;
+                                    let known = match value.as_str() {
+                                        #(#deserialize_matchers,)*
+                                        _ => None,
+                                    };
+
+                                    if let Some(variant) = known {
+                                        Ok(variant)
+                                    } else {
+                                        Ok(Self::Unknown(value))
+                                    }
+                                }
                             }
                         });
                     } else {
