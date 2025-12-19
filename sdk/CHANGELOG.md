@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.6](https://github.com/sumup/sumup-rs/compare/v0.5.4...v0.5.6) - 2025-11-26
+## [0.5.4](https://github.com/sumup/sumup-rs/compare/v0.5.4...v0.5.4) - 2025-11-26
 
 ### Added
 
