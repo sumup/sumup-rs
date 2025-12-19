@@ -195,9 +195,9 @@ pub enum ReaderStatus {
     Expired,
 }
 /// Status of a device
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StatusResponse {
-    pub data: serde_json::Value,
+    pub data: StatusResponseData,
 }
 /// 401 Unauthorized
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -299,6 +299,29 @@ pub struct InternalServerErrorErrors {
 pub struct NotFoundErrors {
     /// Fuller message giving context to error
     pub detail: String,
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct StatusResponseData {
+    /// Battery level percentage
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub battery_level: Option<serde_json::Value>,
+    /// Battery temperature in Celsius
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub battery_temperature: Option<i64>,
+    /// Type of connection used by the device
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connection_type: Option<String>,
+    /// Firmware version of the device
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub firmware_version: Option<String>,
+    /// Timestamp of the last activity from the device
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_activity: Option<crate::datetime::DateTime>,
+    /// Latest state of the device
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    /// Status of a device
+    pub status: String,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct UnauthorizedErrors {
