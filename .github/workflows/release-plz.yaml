@@ -49,6 +49,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: release-plz-pr
     if: ${{ github.repository_owner == 'sumup' }}
+    permissions:
+      contents: write
+      id-token: write # Required for trusted publishing
     concurrency:
       group: release-plz-release-${{ github.ref }}
       cancel-in-progress: false
@@ -71,10 +74,14 @@ jobs:
           app-id: ${{ secrets.SUMUP_BOT_APP_ID }}
           private-key: ${{ secrets.SUMUP_BOT_PRIVATE_KEY }}
 
+      - name: Authenticate with crates.io
+        uses: rust-lang/crates-io-auth-action@b7e9a28eded4986ec6b1fa40eeee8f8f165559ec # v1.0.3
+        id: auth
+
       - name: Run release-plz
         uses: release-plz/action@487eb7b5c085a664d5c5ca05f4159bd9b591182a # v0.5.120
         with:
           command: release
         env:
           GITHUB_TOKEN: ${{ steps.create-token.outputs.token }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
