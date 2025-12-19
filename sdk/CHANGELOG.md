@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5](https://github.com/sumup/sumup-rs/compare/v0.5.4...v0.5.5) - 2025-12-19
+
+### Added
+
+- release 0.5.6 ([#65](https://github.com/sumup/sumup-rs/pull/65))
+- *(sdk)* improve typing of enums
+- *(examples)* make oauth2 example runnable ([#40](https://github.com/sumup/sumup-rs/pull/40))
+- *(examples)* update oauth2 example ([#37](https://github.com/sumup/sumup-rs/pull/37))
+
+### Fixed
+
+- version
+- reader status call response
+- better handle string capitalization ([#53](https://github.com/sumup/sumup-rs/pull/53))
+
+### Other
+
+- synced file(s) with sumup/apis ([#63](https://github.com/sumup/sumup-rs/pull/63))
+- synced file(s) with sumup/apis ([#55](https://github.com/sumup/sumup-rs/pull/55))
+- *(deps)* bump uuid from 1.18.1 to 1.19.0 ([#59](https://github.com/sumup/sumup-rs/pull/59))
+- synced file(s) with sumup/apis ([#54](https://github.com/sumup/sumup-rs/pull/54))
+- release v0.5.5 ([#38](https://github.com/sumup/sumup-rs/pull/38))
+- synced file(s) with sumup/apis ([#50](https://github.com/sumup/sumup-rs/pull/50))
+- *(tooling)* update dependabot config
+- synced file(s) with sumup/apis ([#43](https://github.com/sumup/sumup-rs/pull/43))
+- *(examples)* rename card reader checkout example ([#44](https://github.com/sumup/sumup-rs/pull/44))
+- synced file(s) with sumup/apis ([#39](https://github.com/sumup/sumup-rs/pull/39))
+
 ## [0.5.4](https://github.com/sumup/sumup-rs/compare/v0.5.4...v0.5.4) - 2025-11-26
 
 ### Added
