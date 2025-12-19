@@ -36,10 +36,9 @@ pub struct PaymentInstrumentResponseCard {
     /// Last 4 digits of the payment card number.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_4_digits: Option<String>,
-    /// Issuing card network of the payment card.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<String>,
+    pub type_: Option<CardType>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct UpdateCustomerBody {

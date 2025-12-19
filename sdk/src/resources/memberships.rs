@@ -77,15 +77,15 @@ pub struct ListMembershipsParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resource_name: Option<String>,
     /// Filter memberships by the parent of the resource the membership is in.
-    /// When filtering by parent both `resource.parent.id` and `resource.parent.type` must be present.
+    /// When filtering by parent both `resource.parent.id` and `resource.parent.type` must be present. Pass explicit null to filter for resources without a parent.
     #[serde(rename = "resource.parent.id")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resource_parent_id: Option<String>,
     /// Filter memberships by the parent of the resource the membership is in.
-    /// When filtering by parent both `resource.parent.id` and `resource.parent.type` must be present.
+    /// When filtering by parent both `resource.parent.id` and `resource.parent.type` must be present. Pass explicit null to filter for resources without a parent.
     #[serde(rename = "resource.parent.type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub resource_parent_type: Option<ResourceType>,
+    pub resource_parent_type: Option<String>,
     /// Filter the returned memberships by role.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub roles: Option<Vec<String>>,

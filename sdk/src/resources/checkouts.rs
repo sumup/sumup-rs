@@ -19,9 +19,8 @@ pub struct Card {
     pub zip_code: Option<String>,
     /// Last 4 digits of the payment card number.
     pub last_4_digits: String,
-    /// Issuing card network of the payment card.
     #[serde(rename = "type")]
-    pub type_: String,
+    pub type_: CardType,
 }
 /// Details of the payment checkout.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -267,9 +266,8 @@ pub struct CheckoutTransactionsItem {
     /// Current status of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
-    /// Payment type used for the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub payment_type: Option<String>,
+    pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
@@ -282,9 +280,8 @@ pub struct CheckoutTransactionsItem {
     /// Amount of the tip (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_amount: Option<f32>,
-    /// Entry mode of the payment details.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub entry_mode: Option<String>,
+    pub entry_mode: Option<EntryMode>,
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
@@ -343,9 +340,8 @@ pub struct CheckoutCreateRequestTransactionsItem {
     /// Current status of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
-    /// Payment type used for the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub payment_type: Option<String>,
+    pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
@@ -358,9 +354,8 @@ pub struct CheckoutCreateRequestTransactionsItem {
     /// Amount of the tip (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_amount: Option<f32>,
-    /// Entry mode of the payment details.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub entry_mode: Option<String>,
+    pub entry_mode: Option<EntryMode>,
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
@@ -387,9 +382,8 @@ pub struct CheckoutSuccessTransactionsItem {
     /// Current status of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
-    /// Payment type used for the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub payment_type: Option<String>,
+    pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
@@ -402,9 +396,8 @@ pub struct CheckoutSuccessTransactionsItem {
     /// Amount of the tip (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_amount: Option<f32>,
-    /// Entry mode of the payment details.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub entry_mode: Option<String>,
+    pub entry_mode: Option<EntryMode>,
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
