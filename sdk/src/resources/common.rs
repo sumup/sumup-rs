@@ -26,6 +26,38 @@ pub type AmountEvent = f32;
 /// Object attributes that are modifiable only by SumUp applications.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Attributes {}
+/// Issuing card network of the payment card used for the transaction.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum CardType {
+    #[serde(rename = "AMEX")]
+    Amex,
+    #[serde(rename = "CUP")]
+    Cup,
+    #[serde(rename = "DINERS")]
+    Diners,
+    #[serde(rename = "DISCOVER")]
+    Discover,
+    #[serde(rename = "ELO")]
+    Elo,
+    #[serde(rename = "ELV")]
+    Elv,
+    #[serde(rename = "HIPERCARD")]
+    Hipercard,
+    #[serde(rename = "JCB")]
+    Jcb,
+    #[serde(rename = "MAESTRO")]
+    Maestro,
+    #[serde(rename = "MASTERCARD")]
+    Mastercard,
+    #[serde(rename = "VISA")]
+    Visa,
+    #[serde(rename = "VISA_ELECTRON")]
+    VisaElectron,
+    #[serde(rename = "VISA_VPAY")]
+    VisaVpay,
+    #[serde(rename = "UNKNOWN")]
+    Unknown,
+}
 /// Three-letter [ISO4217](https://en.wikipedia.org/wiki/ISO_4217) code of the currency for the amount. Currently supported currency values are enumerated above.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Currency {
@@ -44,6 +76,61 @@ pub enum Currency {
     RON,
     SEK,
     USD,
+}
+/// Entry mode of the payment details.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum EntryMode {
+    #[serde(rename = "BOLETO")]
+    Boleto,
+    #[serde(rename = "SOFORT")]
+    Sofort,
+    #[serde(rename = "IDEAL")]
+    Ideal,
+    #[serde(rename = "BANCONTACT")]
+    Bancontact,
+    #[serde(rename = "EPS")]
+    Eps,
+    #[serde(rename = "MYBANK")]
+    Mybank,
+    #[serde(rename = "SATISPAY")]
+    Satispay,
+    #[serde(rename = "BLIK")]
+    Blik,
+    P24,
+    #[serde(rename = "GIROPAY")]
+    Giropay,
+    #[serde(rename = "PIX")]
+    Pix,
+    #[serde(rename = "QR_CODE_PIX")]
+    QrCodePix,
+    #[serde(rename = "APPLE_PAY")]
+    ApplePay,
+    #[serde(rename = "GOOGLE_PAY")]
+    GooglePay,
+    #[serde(rename = "PAYPAL")]
+    Paypal,
+    #[serde(rename = "NONE")]
+    None,
+    #[serde(rename = "CHIP")]
+    Chip,
+    #[serde(rename = "MANUAL_ENTRY")]
+    ManualEntry,
+    #[serde(rename = "CUSTOMER_ENTRY")]
+    CustomerEntry,
+    #[serde(rename = "MAGSTRIPE_FALLBACK")]
+    MagstripeFallback,
+    #[serde(rename = "MAGSTRIPE")]
+    Magstripe,
+    #[serde(rename = "DIRECT_DEBIT")]
+    DirectDebit,
+    #[serde(rename = "CONTACTLESS")]
+    Contactless,
+    #[serde(rename = "MOTO")]
+    Moto,
+    #[serde(rename = "CONTACTLESS_MAGSTRIPE")]
+    ContactlessMagstripe,
+    #[serde(rename = "N/A")]
+    NA,
 }
 /// Error message structure.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -155,6 +242,32 @@ pub enum MembershipStatus {
 /// Set of user-defined key-value pairs attached to the object. Partial updates are not supported. When updating, always submit whole metadata. Maximum of 64 parameters are allowed in the object.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Metadata {}
+/// Payment type used for the transaction.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum PaymentType {
+    #[serde(rename = "CASH")]
+    Cash,
+    #[serde(rename = "POS")]
+    Pos,
+    #[serde(rename = "ECOM")]
+    Ecom,
+    #[serde(rename = "RECURRING")]
+    Recurring,
+    #[serde(rename = "BITCOIN")]
+    Bitcoin,
+    #[serde(rename = "BALANCE")]
+    Balance,
+    #[serde(rename = "MOTO")]
+    Moto,
+    #[serde(rename = "BOLETO")]
+    Boleto,
+    #[serde(rename = "DIRECT_DEBIT")]
+    DirectDebit,
+    #[serde(rename = "APM")]
+    Apm,
+    #[serde(rename = "UNKNOWN")]
+    Unknown,
+}
 /// Personal details for the customer.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct PersonalDetails {
@@ -232,9 +345,8 @@ pub struct TransactionBase {
     /// Current status of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
-    /// Payment type used for the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub payment_type: Option<String>,
+    pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
@@ -250,9 +362,8 @@ pub struct TransactionCheckoutInfo {
     /// Amount of the tip (out of the total transaction amount).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_amount: Option<f32>,
-    /// Entry mode of the payment details.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub entry_mode: Option<String>,
+    pub entry_mode: Option<EntryMode>,
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,

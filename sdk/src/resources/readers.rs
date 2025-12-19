@@ -1,6 +1,28 @@
 // The contents of this file are generated; do not modify them.
 
 use super::common::*;
+/// 502 Bad Gateway
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BadGateway {
+    pub errors: BadGatewayErrors,
+}
+impl std::fmt::Display for BadGateway {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl std::error::Error for BadGateway {}
+/// 400 Bad Request
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BadRequest {
+    pub errors: BadRequestErrors,
+}
+impl std::fmt::Display for BadRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl std::error::Error for BadRequest {}
 /// Error description
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutError {
@@ -95,6 +117,39 @@ impl std::fmt::Display for CreateReaderTerminateUnprocessableEntity {
     }
 }
 impl std::error::Error for CreateReaderTerminateUnprocessableEntity {}
+/// 504 Gateway Timeout
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GatewayTimeout {
+    pub errors: GatewayTimeoutErrors,
+}
+impl std::fmt::Display for GatewayTimeout {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl std::error::Error for GatewayTimeout {}
+/// 500 Internal Server Error
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct InternalServerError {
+    pub errors: InternalServerErrorErrors,
+}
+impl std::fmt::Display for InternalServerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl std::error::Error for InternalServerError {}
+/// 404 Not Found
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct NotFound {
+    pub errors: NotFoundErrors,
+}
+impl std::fmt::Display for NotFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl std::error::Error for NotFound {}
 /// A physical card reader device that can accept in-person payments.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Reader {
@@ -138,6 +193,36 @@ pub enum ReaderStatus {
     Paired,
     #[serde(rename = "expired")]
     Expired,
+}
+/// Status of a device
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct StatusResponse {
+    pub data: serde_json::Value,
+}
+/// 401 Unauthorized
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Unauthorized {
+    pub errors: UnauthorizedErrors,
+}
+impl std::fmt::Display for Unauthorized {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl std::error::Error for Unauthorized {}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BadGatewayErrors {
+    /// Fuller message giving context to error
+    pub detail: String,
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct BadRequestErrors {
+    /// Fuller message giving context to error
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+    /// Key indicating type of error
+    #[serde(rename = "type")]
+    pub type_: String,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutErrorErrors {
@@ -200,6 +285,30 @@ pub struct CreateReaderTerminateErrorErrors {
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderTerminateUnprocessableEntityErrors {}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GatewayTimeoutErrors {
+    /// Fuller message giving context to error
+    pub detail: String,
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct InternalServerErrorErrors {
+    /// Fuller message giving context to error
+    pub detail: String,
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct NotFoundErrors {
+    /// Fuller message giving context to error
+    pub detail: String,
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct UnauthorizedErrors {
+    /// Fuller message giving context to error
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+    /// Key indicating type of error
+    #[serde(rename = "type")]
+    pub type_: String,
+}
 /// Returns a list Reader objects.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListReadersResponse {
@@ -247,6 +356,15 @@ pub enum CreateReaderCheckoutErrorBody {
     InternalServerError(CreateReaderCheckoutError),
     BadGateway(CreateReaderCheckoutError),
     GatewayTimeout(CreateReaderCheckoutError),
+}
+#[derive(Debug)]
+pub enum GetReaderStatusErrorBody {
+    BadRequest(BadRequest),
+    Unauthorized(Unauthorized),
+    NotFound(NotFound),
+    InternalServerError(InternalServerError),
+    BadGateway(BadGateway),
+    GatewayTimeout(GatewayTimeout),
 }
 #[derive(Debug)]
 pub enum CreateReaderTerminateErrorBody {
@@ -564,6 +682,97 @@ impl<'a> ReadersClient<'a> {
                 let body: CreateReaderCheckoutError = response.json().await?;
                 Err(crate::error::SdkError::api(
                     CreateReaderCheckoutErrorBody::GatewayTimeout(body),
+                ))
+            }
+            _ => {
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
+            }
+        }
+    }
+    /// Get a Reader Status
+    ///
+    /// Provides the last known status for a Reader.
+    ///
+    /// This endpoint allows you to retrieve updates from the connected card reader, including the current screen being displayed during the payment process and the device status (battery level, connectivity, and update state).
+    ///
+    /// Supported States
+    ///
+    /// * `IDLE` – Reader ready for next transaction
+    /// * `SELECTING_TIP` – Waiting for tip input
+    /// * `WAITING_FOR_CARD` – Awaiting card insert/tap
+    /// * `WAITING_FOR_PIN` – Waiting for PIN entry
+    /// * `WAITING_FOR_SIGNATURE` – Waiting for customer signature
+    /// * `UPDATING_FIRMWARE` – Firmware update in progress
+    ///
+    /// Device Status
+    ///
+    /// * `ONLINE` – Device connected and operational
+    /// * `OFFLINE` – Device disconnected (last state persisted)
+    ///
+    /// **Note**: If the target device is a Solo, it must be in version 3.3.39.0 or higher.
+    pub async fn get_status(
+        &self,
+        merchant_code: impl Into<String>,
+        reader_id: impl Into<String>,
+    ) -> crate::error::SdkResult<StatusResponse, GetReaderStatusErrorBody> {
+        let path = format!(
+            "/v0.1/merchants/{}/readers/{}/status",
+            merchant_code.into(),
+            reader_id.into()
+        );
+        let url = format!("{}{}", self.client.base_url(), path);
+        let mut request = self
+            .client
+            .http_client()
+            .get(&url)
+            .header("User-Agent", crate::version::user_agent())
+            .timeout(self.client.timeout());
+        if let Some(token) = self.client.authorization_token() {
+            request = request.header("Authorization", format!("Bearer {}", token));
+        }
+        let response = request.send().await?;
+        let status = response.status();
+        match status {
+            reqwest::StatusCode::OK => {
+                let data: StatusResponse = response.json().await?;
+                Ok(data)
+            }
+            reqwest::StatusCode::BAD_REQUEST => {
+                let body: BadRequest = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetReaderStatusErrorBody::BadRequest(body),
+                ))
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Unauthorized = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetReaderStatusErrorBody::Unauthorized(body),
+                ))
+            }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: NotFound = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetReaderStatusErrorBody::NotFound(body),
+                ))
+            }
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
+                let body: InternalServerError = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetReaderStatusErrorBody::InternalServerError(body),
+                ))
+            }
+            reqwest::StatusCode::BAD_GATEWAY => {
+                let body: BadGateway = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetReaderStatusErrorBody::BadGateway(body),
+                ))
+            }
+            reqwest::StatusCode::GATEWAY_TIMEOUT => {
+                let body: GatewayTimeout = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetReaderStatusErrorBody::GatewayTimeout(body),
                 ))
             }
             _ => {
