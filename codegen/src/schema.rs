@@ -163,7 +163,8 @@ pub fn generate_structs_for_schemas(
                     }
                 } else {
                     let dummy_ref = openapiv3::ReferenceOr::Item(Box::new(schema.clone()));
-                    let base_type = infer_rust_type(&schema.schema_kind, true, None, &dummy_ref);
+                    let base_type =
+                        infer_rust_type(&schema.schema_kind, true, false, None, &dummy_ref);
                     items.push(quote! {
                         pub type #struct_name = #base_type;
                     });
@@ -219,7 +220,7 @@ pub fn generate_structs_for_schemas(
             }
             _ => {
                 let dummy_ref = openapiv3::ReferenceOr::Item(Box::new(schema.clone()));
-                let base_type = infer_rust_type(&schema.schema_kind, true, None, &dummy_ref);
+                let base_type = infer_rust_type(&schema.schema_kind, true, false, None, &dummy_ref);
                 items.push(quote! {
                     pub type #struct_name = #base_type;
                 });
@@ -585,8 +586,11 @@ pub fn generate_struct_fields(
                     let type_name = reference.split('/').next_back().unwrap_or("Unknown");
                     let type_ident =
                         Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
+                    let is_nullable = false; // References don't carry nullable info directly
                     let field_type = if is_required {
                         quote! { #type_ident }
+                    } else if is_nullable {
+                        quote! { Option<crate::Nullable<#type_ident>> }
                     } else {
                         quote! { Option<#type_ident> }
                     };
@@ -611,9 +615,11 @@ pub fn generate_struct_fields(
                 }
             };
 
+            let is_nullable = prop.schema_data.nullable;
             let rust_type = infer_rust_type(
                 &prop.schema_kind,
                 is_required,
+                is_nullable,
                 Some((parent_name, name)),
                 prop_ref,
             );
@@ -626,8 +632,16 @@ pub fn generate_struct_fields(
 
             let deprecation = generate_deprecation_attribute(&prop.schema_data);
 
-            let skip_if = if !is_required {
-                quote! { #[serde(skip_serializing_if = "Option::is_none")] }
+            let serde_attrs = if !is_required {
+                if is_nullable {
+                    quote! {
+                        #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "crate::nullable::deserialize")]
+                    }
+                } else {
+                    quote! {
+                        #[serde(skip_serializing_if = "Option::is_none")]
+                    }
+                }
             } else {
                 quote! {}
             };
@@ -642,7 +656,7 @@ pub fn generate_struct_fields(
                 #description
                 #deprecation
                 #rename
-                #skip_if
+                #serde_attrs
                 pub #field_name: #rust_type,
             }
         })
@@ -653,6 +667,7 @@ pub fn generate_struct_fields(
 pub fn infer_rust_type(
     schema_kind: &openapiv3::SchemaKind,
     required: bool,
+    nullable: bool,
     parent_field: Option<(&str, &str)>,
     schema_ref: &openapiv3::ReferenceOr<Box<openapiv3::Schema>>,
 ) -> TokenStream {
@@ -762,7 +777,7 @@ pub fn infer_rust_type(
                         _ => {
                             // Create a dummy reference for recursive call
                             let dummy_ref = openapiv3::ReferenceOr::Item(schema.clone());
-                            infer_rust_type(&schema.schema_kind, true, None, &dummy_ref)
+                            infer_rust_type(&schema.schema_kind, true, false, None, &dummy_ref)
                         }
                     },
                 };
@@ -843,6 +858,8 @@ pub fn infer_rust_type(
 
     if required {
         base_type
+    } else if nullable {
+        quote! { Option<crate::Nullable<#base_type>> }
     } else {
         quote! { Option<#base_type> }
     }

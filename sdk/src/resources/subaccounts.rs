@@ -6,8 +6,12 @@ use super::common::*;
 pub struct Operator {
     pub id: i32,
     pub username: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nickname: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub nickname: Option<crate::Nullable<String>>,
     pub disabled: bool,
     /// The timestamp of when the operator was created.
     pub created_at: crate::datetime::DateTime,

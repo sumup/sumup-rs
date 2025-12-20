@@ -135,13 +135,13 @@ fn generate_query_params_struct(
         let original_name = &param_data.name;
 
         // Determine field type based on schema
-        let field_type =
+        let (field_type, is_nullable) =
             if let openapiv3::ParameterSchemaOrContent::Schema(schema_ref) = &param_data.format {
                 infer_param_type(schema_ref, param_data.required)
             } else if param_data.required {
-                quote! { String }
+                (quote! { String }, false)
             } else {
-                quote! { Option<String> }
+                (quote! { Option<String> }, false)
             };
 
         let rename_attr = if original_name != &field_name.to_string() {
@@ -151,7 +151,11 @@ fn generate_query_params_struct(
         };
 
         let skip_attr = if !param_data.required {
-            quote! { #[serde(skip_serializing_if = "Option::is_none")] }
+            if is_nullable {
+                quote! { #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "crate::nullable::deserialize")] }
+            } else {
+                quote! { #[serde(skip_serializing_if = "Option::is_none")] }
+            }
         } else {
             quote! {}
         };
@@ -179,85 +183,99 @@ fn generate_query_params_struct(
     }))
 }
 
-/// Infers the Rust type for a query parameter schema and reports whether it represents an array.
+/// Infers the Rust type for a query parameter schema and reports whether it is nullable.
+/// Returns a tuple of (field_type, is_nullable).
 fn infer_param_type(
     schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
     required: bool,
-) -> TokenStream {
-    let base_type = match schema_ref {
+) -> (TokenStream, bool) {
+    let (base_type, is_nullable) = match schema_ref {
         openapiv3::ReferenceOr::Reference { reference } => {
             let type_name = reference.split('/').next_back().unwrap_or("Unknown");
             let type_ident = Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
-            quote! { #type_ident }
+            (quote! { #type_ident }, false)
         }
-        openapiv3::ReferenceOr::Item(schema) => match &schema.schema_kind {
-            openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
-                match &string_type.format {
-                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::DateTime) => {
-                        quote! { crate::datetime::DateTime }
-                    }
-                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Date) => {
-                        quote! { crate::datetime::Date }
-                    }
-                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Password) => {
-                        quote! { crate::secret::Secret }
-                    }
-                    _ => quote! { String },
-                }
-            }
-            openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => quote! { f64 },
-            openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => quote! { i64 },
-            openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_)) => quote! { bool },
-            openapiv3::SchemaKind::Type(openapiv3::Type::Array(arr)) => {
-                if let Some(items) = &arr.items {
-                    let item_type = match items {
-                        openapiv3::ReferenceOr::Reference { reference } => {
-                            let type_name = reference.split('/').next_back().unwrap_or("Unknown");
-                            let type_ident =
-                                Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
-                            quote! { #type_ident }
+        openapiv3::ReferenceOr::Item(schema) => {
+            let is_nullable = schema.schema_data.nullable;
+            let base = match &schema.schema_kind {
+                openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
+                    match &string_type.format {
+                        openapiv3::VariantOrUnknownOrEmpty::Item(
+                            openapiv3::StringFormat::DateTime,
+                        ) => {
+                            quote! { crate::datetime::DateTime }
                         }
-                        openapiv3::ReferenceOr::Item(inner_schema) => {
-                            match &inner_schema.schema_kind {
-                                openapiv3::SchemaKind::Type(openapiv3::Type::String(
-                                    string_type,
-                                )) => match &string_type.format {
-                                    openapiv3::VariantOrUnknownOrEmpty::Item(
-                                        openapiv3::StringFormat::DateTime,
-                                    ) => {
-                                        quote! { crate::datetime::DateTime }
+                        openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Date) => {
+                            quote! { crate::datetime::Date }
+                        }
+                        openapiv3::VariantOrUnknownOrEmpty::Item(
+                            openapiv3::StringFormat::Password,
+                        ) => {
+                            quote! { crate::secret::Secret }
+                        }
+                        _ => quote! { String },
+                    }
+                }
+                openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => quote! { f64 },
+                openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => quote! { i64 },
+                openapiv3::SchemaKind::Type(openapiv3::Type::Boolean(_)) => quote! { bool },
+                openapiv3::SchemaKind::Type(openapiv3::Type::Array(arr)) => {
+                    if let Some(items) = &arr.items {
+                        let item_type = match items {
+                            openapiv3::ReferenceOr::Reference { reference } => {
+                                let type_name =
+                                    reference.split('/').next_back().unwrap_or("Unknown");
+                                let type_ident =
+                                    Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
+                                quote! { #type_ident }
+                            }
+                            openapiv3::ReferenceOr::Item(inner_schema) => {
+                                match &inner_schema.schema_kind {
+                                    openapiv3::SchemaKind::Type(openapiv3::Type::String(
+                                        string_type,
+                                    )) => match &string_type.format {
+                                        openapiv3::VariantOrUnknownOrEmpty::Item(
+                                            openapiv3::StringFormat::DateTime,
+                                        ) => {
+                                            quote! { crate::datetime::DateTime }
+                                        }
+                                        openapiv3::VariantOrUnknownOrEmpty::Item(
+                                            openapiv3::StringFormat::Date,
+                                        ) => {
+                                            quote! { crate::datetime::Date }
+                                        }
+                                        _ => quote! { String },
+                                    },
+                                    openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => {
+                                        quote! { i64 }
                                     }
-                                    openapiv3::VariantOrUnknownOrEmpty::Item(
-                                        openapiv3::StringFormat::Date,
-                                    ) => {
-                                        quote! { crate::datetime::Date }
+                                    openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => {
+                                        quote! { f64 }
                                     }
                                     _ => quote! { String },
-                                },
-                                openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => {
-                                    quote! { i64 }
                                 }
-                                openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => {
-                                    quote! { f64 }
-                                }
-                                _ => quote! { String },
                             }
-                        }
-                    };
-                    quote! { Vec<#item_type> }
-                } else {
-                    quote! { Vec<String> }
+                        };
+                        quote! { Vec<#item_type> }
+                    } else {
+                        quote! { Vec<String> }
+                    }
                 }
-            }
-            _ => quote! { String },
-        },
+                _ => quote! { String },
+            };
+            (base, is_nullable)
+        }
     };
 
-    if required {
+    let field_type = if required {
         base_type
+    } else if is_nullable {
+        quote! { Option<crate::Nullable<#base_type>> }
     } else {
         quote! { Option<#base_type> }
-    }
+    };
+
+    (field_type, is_nullable)
 }
 
 /// Emits a request body struct for inline request schemas referenced by the operation.
@@ -592,8 +610,13 @@ fn generate_schema_struct(
                 })
             } else {
                 let dummy_ref = openapiv3::ReferenceOr::Item(Box::new(schema.clone()));
-                let base_type =
-                    crate::schema::infer_rust_type(&schema.schema_kind, true, None, &dummy_ref);
+                let base_type = crate::schema::infer_rust_type(
+                    &schema.schema_kind,
+                    true,
+                    false,
+                    None,
+                    &dummy_ref,
+                );
                 Ok(quote! {
                     #description
                     pub type #struct_name = #base_type;
@@ -604,7 +627,7 @@ fn generate_schema_struct(
             // For non-object types, create a type alias
             let dummy_ref = openapiv3::ReferenceOr::Item(Box::new(schema.clone()));
             let base_type =
-                crate::schema::infer_rust_type(&schema.schema_kind, true, None, &dummy_ref);
+                crate::schema::infer_rust_type(&schema.schema_kind, true, false, None, &dummy_ref);
             Ok(quote! {
                 #description
                 pub type #struct_name = #base_type;

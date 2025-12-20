@@ -39,8 +39,12 @@ impl std::error::Error for CreateReaderCheckoutError {}
 pub struct CreateReaderCheckoutRequest {
     /// Affiliate metadata for the transaction.
     /// It is a field that allow for integrators to track the source of the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub affiliate: Option<Affiliate>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub affiliate: Option<crate::Nullable<Affiliate>>,
     /// The card type of the card used for the transaction.
     /// Is is required only for some countries (e.g: Brazil).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -54,8 +58,12 @@ pub struct CreateReaderCheckoutRequest {
     ///
     /// Omit if the merchant country does support installments.
     /// Otherwise, the checkout will be rejected.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub installments: Option<i64>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub installments: Option<crate::Nullable<i64>>,
     /// Webhook URL to which the payment result will be sent.
     /// It must be a HTTPS url.
     #[serde(skip_serializing_if = "Option::is_none")]

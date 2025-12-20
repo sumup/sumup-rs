@@ -149,6 +149,7 @@
 pub mod client;
 pub mod datetime;
 pub mod error;
+pub mod nullable;
 pub mod secret;
 pub mod version;
 
@@ -159,5 +160,6 @@ pub mod resources;
 pub use crate::resources::*;
 pub use client::Client;
 pub use error::{SdkError, SdkResult, UnknownApiBody};
+pub use nullable::Nullable;
 pub use secret::Secret;
 pub use version::VERSION;
