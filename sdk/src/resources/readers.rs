@@ -312,7 +312,7 @@ pub struct NotFoundErrors {
 pub struct StatusResponseData {
     /// Battery level percentage
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub battery_level: Option<serde_json::Value>,
+    pub battery_level: Option<f32>,
     /// Battery temperature in Celsius
     #[serde(skip_serializing_if = "Option::is_none")]
     pub battery_temperature: Option<i64>,
