@@ -394,9 +394,35 @@ fn generate_operation_method(
             let field_name = Ident::new(&query_param.name.to_snake_case(), Span::call_site());
             let param_name = &query_param.name;
 
+            // Check if this parameter is nullable
+            let is_nullable = if let openapiv3::ParameterSchemaOrContent::Schema(schema_ref) =
+                &query_param.format
+            {
+                match schema_ref {
+                    openapiv3::ReferenceOr::Item(schema) => schema.schema_data.nullable,
+                    openapiv3::ReferenceOr::Reference { .. } => false,
+                }
+            } else {
+                false
+            };
+
             if query_param.required {
                 query_field_additions.push(quote! {
                     request = request.query(&[(#param_name, &params.#field_name)]);
+                });
+            } else if is_nullable {
+                // For nullable parameters, handle Nullable::Null explicitly
+                query_field_additions.push(quote! {
+                    if let Some(ref value) = params.#field_name {
+                        match value {
+                            crate::Nullable::Null => {
+                                request = request.query(&[(#param_name, "null")]);
+                            }
+                            crate::Nullable::Value(ref v) => {
+                                request = request.query(&[(#param_name, v)]);
+                            }
+                        }
+                    }
                 });
             } else {
                 query_field_additions.push(quote! {

@@ -98,11 +98,19 @@ pub struct BasePerson {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub citizenship: Option<CountryCode>,
     /// The persons nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nationality: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub nationality: Option<crate::Nullable<String>>,
     /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code representing the country where the person resides.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub country_of_residence: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub country_of_residence: Option<crate::Nullable<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<Version>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -186,8 +194,12 @@ pub struct Company {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phone_number: Option<PhoneNumber>,
     /// HTTP(S) URL of the company's website.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub website: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub website: Option<crate::Nullable<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attributes: Option<Attributes>,
 }
@@ -321,11 +333,19 @@ pub struct Person {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub citizenship: Option<CountryCode>,
     /// The persons nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nationality: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub nationality: Option<crate::Nullable<String>>,
     /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code representing the country where the person resides.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub country_of_residence: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub country_of_residence: Option<crate::Nullable<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<Version>,
     #[serde(skip_serializing_if = "Option::is_none")]

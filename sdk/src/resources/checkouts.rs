@@ -52,8 +52,12 @@ pub struct Checkout {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<crate::datetime::DateTime>,
     /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub valid_until: Option<crate::datetime::DateTime>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
     /// Unique identification of a customer. If specified, the checkout session and payment instrument are associated with the referenced customer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub customer_id: Option<String>,
@@ -102,8 +106,12 @@ pub struct CheckoutCreateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<crate::datetime::DateTime>,
     /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub valid_until: Option<crate::datetime::DateTime>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
     /// List of transactions related to the payment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transactions: Option<Vec<CheckoutCreateRequestTransactionsItem>>,
@@ -140,8 +148,12 @@ pub struct CheckoutSuccess {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<crate::datetime::DateTime>,
     /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub valid_until: Option<crate::datetime::DateTime>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
     /// Unique identification of a customer. If specified, the checkout session and payment instrument are associated with the referenced customer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub customer_id: Option<String>,
