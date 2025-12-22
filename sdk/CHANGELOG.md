@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6](https://github.com/sumup/sumup-rs/compare/v0.5.5...v0.5.6) - 2025-12-22
+
+### Added
+
+- *(sdk)* mark deprecated tags (resources) as such ([#27](https://github.com/sumup/sumup-rs/pull/27))
+- *(sdk)* reader status battery_level type
+- *(sdk)* support nullable values ([#69](https://github.com/sumup/sumup-rs/pull/69))
+
 ## [0.5.5](https://github.com/sumup/sumup-rs/compare/v0.5.4...v0.5.5) - 2025-12-19
 
 ### Added
