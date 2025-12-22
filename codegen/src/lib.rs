@@ -158,7 +158,7 @@ impl Generator {
 
     fn generate_client_module(&self) -> Result<(), String> {
         Self::log("[generate sdk] generating client.rs ...");
-        generate_client_file(&self.out_path, &self.schemas_by_tag.tag_schemas)
+        generate_client_file(&self.out_path, &self.spec, &self.schemas_by_tag.tag_schemas)
     }
 
     fn generate_mod_rs(&self) -> Result<(), String> {

@@ -26,13 +26,13 @@ fn generate() -> Result<(), String> {
     let xtask_path = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
     let root_path = xtask_path.parent().unwrap().to_path_buf();
     let mut spec_path = root_path.clone();
-    spec_path.push("openapi.yaml");
+    spec_path.push("openapi.json");
 
     println!("[generate sdk] loading OpenAPI spec ...");
     std::io::stdout().flush().unwrap();
 
     let file = File::open(&spec_path).map_err(|e| format!("Failed to open spec: {}", e))?;
-    let spec: OpenAPI = serde_yaml::from_reader(file)
+    let spec: OpenAPI = serde_json::from_reader(file)
         .map_err(|e| format!("Failed to parse OpenAPI spec: {}", e))?;
 
     let mut out_path = root_path.clone();
