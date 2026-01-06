@@ -80,57 +80,58 @@ pub enum Currency {
 /// Entry mode of the payment details.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum EntryMode {
-    #[serde(rename = "BOLETO")]
-    Boleto,
-    #[serde(rename = "SOFORT")]
-    Sofort,
-    #[serde(rename = "IDEAL")]
-    Ideal,
-    #[serde(rename = "BANCONTACT")]
-    Bancontact,
-    #[serde(rename = "EPS")]
-    Eps,
-    #[serde(rename = "MYBANK")]
-    Mybank,
-    #[serde(rename = "SATISPAY")]
-    Satispay,
-    #[serde(rename = "BLIK")]
-    Blik,
-    P24,
-    #[serde(rename = "GIROPAY")]
-    Giropay,
-    #[serde(rename = "PIX")]
-    Pix,
-    #[serde(rename = "QR_CODE_PIX")]
-    QrCodePix,
-    #[serde(rename = "APPLE_PAY")]
-    ApplePay,
-    #[serde(rename = "GOOGLE_PAY")]
-    GooglePay,
-    #[serde(rename = "PAYPAL")]
-    Paypal,
-    #[serde(rename = "NONE")]
+    #[serde(rename = "none")]
     None,
-    #[serde(rename = "CHIP")]
-    Chip,
-    #[serde(rename = "MANUAL_ENTRY")]
-    ManualEntry,
-    #[serde(rename = "CUSTOMER_ENTRY")]
-    CustomerEntry,
-    #[serde(rename = "MAGSTRIPE_FALLBACK")]
-    MagstripeFallback,
-    #[serde(rename = "MAGSTRIPE")]
+    #[serde(rename = "magstripe")]
     Magstripe,
-    #[serde(rename = "DIRECT_DEBIT")]
-    DirectDebit,
-    #[serde(rename = "CONTACTLESS")]
+    #[serde(rename = "chip")]
+    Chip,
+    #[serde(rename = "manual entry")]
+    ManualEntry,
+    #[serde(rename = "customer entry")]
+    CustomerEntry,
+    #[serde(rename = "magstripe fallback")]
+    MagstripeFallback,
+    #[serde(rename = "contactless")]
     Contactless,
-    #[serde(rename = "MOTO")]
+    #[serde(rename = "moto")]
     Moto,
-    #[serde(rename = "CONTACTLESS_MAGSTRIPE")]
+    #[serde(rename = "contactless magstripe")]
     ContactlessMagstripe,
-    #[serde(rename = "N/A")]
-    NA,
+    #[serde(rename = "boleto")]
+    Boleto,
+    #[serde(rename = "direct debit")]
+    DirectDebit,
+    #[serde(rename = "sofort")]
+    Sofort,
+    #[serde(rename = "ideal")]
+    Ideal,
+    #[serde(rename = "bancontact")]
+    Bancontact,
+    #[serde(rename = "eps")]
+    Eps,
+    #[serde(rename = "mybank")]
+    Mybank,
+    #[serde(rename = "satispay")]
+    Satispay,
+    #[serde(rename = "blik")]
+    Blik,
+    #[serde(rename = "p24")]
+    P24,
+    #[serde(rename = "giropay")]
+    Giropay,
+    #[serde(rename = "pix")]
+    Pix,
+    #[serde(rename = "qr code pix")]
+    QrCodePix,
+    #[serde(rename = "apple pay")]
+    ApplePay,
+    #[serde(rename = "google pay")]
+    GooglePay,
+    #[serde(rename = "paypal")]
+    Paypal,
+    #[serde(rename = "na")]
+    Na,
 }
 /// Error message structure.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
