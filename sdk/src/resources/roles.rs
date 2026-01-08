@@ -24,11 +24,11 @@ pub struct Role {
 }
 /// Returns a list of Role objects.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListMerchantRolesResponse {
+pub struct ListResponse {
     pub items: Vec<Role>,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CreateMerchantRoleBody {
+pub struct CreateBody {
     /// User-defined name of the role.
     pub name: String,
     /// User's permissions.
@@ -40,7 +40,7 @@ pub struct CreateMerchantRoleBody {
     pub description: Option<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct UpdateMerchantRoleBody {
+pub struct UpdateBody {
     /// User-defined name of the role.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -53,25 +53,25 @@ pub struct UpdateMerchantRoleBody {
 }
 use crate::client::Client;
 #[derive(Debug)]
-pub enum ListMerchantRolesErrorBody {
+pub enum ListErrorBody {
     NotFound(Problem),
 }
 #[derive(Debug)]
-pub enum CreateMerchantRoleErrorBody {
+pub enum CreateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
 }
 #[derive(Debug)]
-pub enum DeleteMerchantRoleErrorBody {
+pub enum DeleteErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
 }
 #[derive(Debug)]
-pub enum GetMerchantRoleErrorBody {
+pub enum GetErrorBody {
     NotFound(Problem),
 }
 #[derive(Debug)]
-pub enum UpdateMerchantRoleErrorBody {
+pub enum UpdateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
 }
@@ -94,7 +94,7 @@ impl<'a> RolesClient<'a> {
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
-    ) -> crate::error::SdkResult<ListMerchantRolesResponse, ListMerchantRolesErrorBody> {
+    ) -> crate::error::SdkResult<ListResponse, ListErrorBody> {
         let path = format!("/v0.1/merchants/{}/roles", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -110,14 +110,12 @@ impl<'a> RolesClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
-                let data: ListMerchantRolesResponse = response.json().await?;
+                let data: ListResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListMerchantRolesErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::api(ListErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -132,8 +130,8 @@ impl<'a> RolesClient<'a> {
     pub async fn create(
         &self,
         merchant_code: impl Into<String>,
-        body: CreateMerchantRoleBody,
-    ) -> crate::error::SdkResult<Role, CreateMerchantRoleErrorBody> {
+        body: CreateBody,
+    ) -> crate::error::SdkResult<Role, CreateErrorBody> {
         let path = format!("/v0.1/merchants/{}/roles", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -155,15 +153,13 @@ impl<'a> RolesClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateMerchantRoleErrorBody::BadRequest(body),
-                ))
+                Err(crate::error::SdkError::api(CreateErrorBody::BadRequest(
+                    body,
+                )))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateMerchantRoleErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::api(CreateErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -179,7 +175,7 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
-    ) -> crate::error::SdkResult<(), DeleteMerchantRoleErrorBody> {
+    ) -> crate::error::SdkResult<(), DeleteErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
             merchant_code.into(),
@@ -201,15 +197,13 @@ impl<'a> RolesClient<'a> {
             reqwest::StatusCode::OK => Ok(()),
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    DeleteMerchantRoleErrorBody::BadRequest(body),
-                ))
+                Err(crate::error::SdkError::api(DeleteErrorBody::BadRequest(
+                    body,
+                )))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    DeleteMerchantRoleErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::api(DeleteErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -225,7 +219,7 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
-    ) -> crate::error::SdkResult<Role, GetMerchantRoleErrorBody> {
+    ) -> crate::error::SdkResult<Role, GetErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
             merchant_code.into(),
@@ -250,9 +244,7 @@ impl<'a> RolesClient<'a> {
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetMerchantRoleErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -268,8 +260,8 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
-        body: UpdateMerchantRoleBody,
-    ) -> crate::error::SdkResult<Role, UpdateMerchantRoleErrorBody> {
+        body: UpdateBody,
+    ) -> crate::error::SdkResult<Role, UpdateErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
             merchant_code.into(),
@@ -295,15 +287,13 @@ impl<'a> RolesClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    UpdateMerchantRoleErrorBody::BadRequest(body),
-                ))
+                Err(crate::error::SdkError::api(UpdateErrorBody::BadRequest(
+                    body,
+                )))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    UpdateMerchantRoleErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::api(UpdateErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;

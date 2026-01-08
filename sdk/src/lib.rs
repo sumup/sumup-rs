@@ -54,10 +54,10 @@
 //! The SDK organizes endpoints by tags:
 //!
 //! ```no_run
-//! # use sumup::{Client, CheckoutCreateRequest, Currency};
+//! # use sumup::{Client, Currency, checkouts};
 //! # async fn example(client: Client) {
 //! // Create a checkout
-//! let checkout = client.checkouts().create(CheckoutCreateRequest {
+//! let checkout = client.checkouts().create(checkouts::CheckoutCreateRequest {
 //!     checkout_reference: "unique-ref".to_string(),
 //!     amount: 10.0,
 //!     currency: Currency::EUR,
@@ -78,15 +78,18 @@
 //! println!("created checkout {}", checkout.id.unwrap_or_default());
 //!
 //! // Transactions with query parameters
-//! use sumup::resources::transactions::ListTransactionsParams;
+//! use sumup::resources::transactions::ListParams;
 //! let transactions = client
 //!     .transactions()
-//!     .list_deprecated(ListTransactionsParams {
-//!     limit: Some(10),
-//!     ..Default::default()
-//! })
-//! .await
-//! .expect("list transactions");
+//!     .list(
+//!         "MERCHANT_CODE",
+//!         ListParams {
+//!             limit: Some(10),
+//!             ..Default::default()
+//!         },
+//!     )
+//!     .await
+//!     .expect("list transactions");
 //! let count = transactions.items.as_ref().map_or(0, |items| items.len());
 //! println!("fetched {} historical transactions", count);
 //! # }
@@ -118,13 +121,13 @@
 //!
 //! ```no_run
 //! # use sumup::{Client, error::SdkError};
-//! # use sumup::resources::checkouts::ListCheckoutsErrorBody;
+//! # use sumup::resources::checkouts::ListErrorBody;
 //! # async fn example() {
 //! let client = Client::default();
 //! match client.checkouts().list(Default::default()).await {
 //!     Ok(checkouts) => println!("retrieved {} checkouts", checkouts.len()),
 //!     Err(SdkError::Api(body)) => match body {
-//!         ListCheckoutsErrorBody::Unauthorized(details) => eprintln!("unauthorized: {:?}", details),
+//!         ListErrorBody::Unauthorized(details) => eprintln!("unauthorized: {:?}", details),
 //!     },
 //!     Err(SdkError::Unexpected(status, body)) => {
 //!         eprintln!("unexpected {} response: {}", status, body);

@@ -3,7 +3,7 @@
 use super::common::*;
 pub type FinancialPayouts = Vec<serde_json::Value>;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListPayoutsParams {
+pub struct ListDeprecatedParams {
     /// Start date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     pub start_date: crate::datetime::Date,
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
@@ -16,7 +16,7 @@ pub struct ListPayoutsParams {
     pub order: Option<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListPayoutsV1Params {
+pub struct ListParams {
     /// Start date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     pub start_date: crate::datetime::Date,
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
@@ -30,11 +30,11 @@ pub struct ListPayoutsV1Params {
 }
 use crate::client::Client;
 #[derive(Debug)]
-pub enum ListPayoutsErrorBody {
+pub enum ListDeprecatedErrorBody {
     Unauthorized(Error),
 }
 #[derive(Debug)]
-pub enum ListPayoutsV1ErrorBody {
+pub enum ListErrorBody {
     Unauthorized(Error),
 }
 ///Client for the Payouts API endpoints.
@@ -55,8 +55,8 @@ impl<'a> PayoutsClient<'a> {
     /// Lists ordered payouts for the merchant profile.
     pub async fn list_deprecated(
         &self,
-        params: ListPayoutsParams,
-    ) -> crate::error::SdkResult<FinancialPayouts, ListPayoutsErrorBody> {
+        params: ListDeprecatedParams,
+    ) -> crate::error::SdkResult<FinancialPayouts, ListDeprecatedErrorBody> {
         let path = "/v0.1/me/financials/payouts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -89,7 +89,7 @@ impl<'a> PayoutsClient<'a> {
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(
-                    ListPayoutsErrorBody::Unauthorized(body),
+                    ListDeprecatedErrorBody::Unauthorized(body),
                 ))
             }
             _ => {
@@ -105,8 +105,8 @@ impl<'a> PayoutsClient<'a> {
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
-        params: ListPayoutsV1Params,
-    ) -> crate::error::SdkResult<FinancialPayouts, ListPayoutsV1ErrorBody> {
+        params: ListParams,
+    ) -> crate::error::SdkResult<FinancialPayouts, ListErrorBody> {
         let path = format!("/v1.0/merchants/{}/payouts", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -138,9 +138,9 @@ impl<'a> PayoutsClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListPayoutsV1ErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
+                    body,
+                )))
             }
             _ => {
                 let body_bytes = response.bytes().await?;

@@ -51,7 +51,7 @@ pub struct MembershipResource {
 }
 pub type ResourceType = String;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListMembershipsParams {
+pub struct ListParams {
     /// Offset of the first member to return.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<i64>,
@@ -100,7 +100,7 @@ pub struct ListMembershipsParams {
 }
 /// Returns a list of Membership objects.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ListMembershipsResponse {
+pub struct ListResponse {
     pub items: Vec<Membership>,
     pub total_count: i64,
 }
@@ -123,8 +123,8 @@ impl<'a> MembershipsClient<'a> {
     /// List memberships of the current user.
     pub async fn list(
         &self,
-        params: ListMembershipsParams,
-    ) -> crate::error::SdkResult<ListMembershipsResponse, crate::error::UnknownApiBody> {
+        params: ListParams,
+    ) -> crate::error::SdkResult<ListResponse, crate::error::UnknownApiBody> {
         let path = "/v0.1/memberships";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -184,7 +184,7 @@ impl<'a> MembershipsClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
-                let data: ListMembershipsResponse = response.json().await?;
+                let data: ListResponse = response.json().await?;
                 Ok(data)
             }
             _ => {

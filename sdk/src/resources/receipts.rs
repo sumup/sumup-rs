@@ -174,7 +174,7 @@ pub struct ReceiptTransactionVatRatesItem {
     pub vat: Option<f32>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct GetReceiptParams {
+pub struct GetParams {
     /// Merchant code.
     pub mid: String,
     /// The ID of the transaction event (refund).
@@ -183,7 +183,7 @@ pub struct GetReceiptParams {
 }
 use crate::client::Client;
 #[derive(Debug)]
-pub enum GetReceiptErrorBody {
+pub enum GetErrorBody {
     BadRequest(Error),
     Unauthorized(Error),
 }
@@ -206,8 +206,8 @@ impl<'a> ReceiptsClient<'a> {
     pub async fn get(
         &self,
         id: impl Into<String>,
-        params: GetReceiptParams,
-    ) -> crate::error::SdkResult<Receipt, GetReceiptErrorBody> {
+        params: GetParams,
+    ) -> crate::error::SdkResult<Receipt, GetErrorBody> {
         let path = format!("/v1.1/receipts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -232,15 +232,13 @@ impl<'a> ReceiptsClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetReceiptErrorBody::BadRequest(body),
-                ))
+                Err(crate::error::SdkError::api(GetErrorBody::BadRequest(body)))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetReceiptErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
+                    body,
+                )))
             }
             _ => {
                 let body_bytes = response.bytes().await?;

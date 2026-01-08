@@ -32,7 +32,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use sumup::{
-    resources::merchants::{GetMerchantParams, Merchant},
+    resources::merchants::{GetParams, Merchant},
     Client,
 };
 
@@ -164,7 +164,7 @@ async fn handle_callback(
 
     let merchant = client
         .merchants()
-        .get(merchant_code, GetMerchantParams::default())
+        .get(merchant_code, GetParams::default())
         .await
         .expect("get mercahnt");
 

@@ -432,26 +432,26 @@ pub struct DetailsErrorFailedConstraintsItem {
     pub reference: Option<String>,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct GetPaymentMethodsResponseAvailablePaymentMethodsItem {
+pub struct ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem {
     /// The ID of the payment method.
     pub id: String,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListCheckoutsParams {
+pub struct ListParams {
     /// Filters the list of checkout resources by the unique ID of the checkout.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkout_reference: Option<String>,
 }
 /// OK
-pub type ListCheckoutsResponse = Vec<CheckoutSuccess>;
+pub type ListResponse = Vec<CheckoutSuccess>;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
-pub enum ProcessCheckoutResponse {
+pub enum ProcessResponse {
     Status200(CheckoutSuccess),
     Status202(CheckoutAccepted),
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct GetPaymentMethodsParams {
+pub struct ListAvailablePaymentMethodsParams {
     /// The amount for which the payment methods should be eligible, in major units. Note that currency must also be provided when filtering by amount.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f64>,
@@ -461,43 +461,43 @@ pub struct GetPaymentMethodsParams {
 }
 /// Available payment methods
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct GetPaymentMethodsResponse {
+pub struct ListAvailablePaymentMethodsResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub available_payment_methods:
-        Option<Vec<GetPaymentMethodsResponseAvailablePaymentMethodsItem>>,
+        Option<Vec<ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem>>,
 }
 use crate::client::Client;
 #[derive(Debug)]
-pub enum ListCheckoutsErrorBody {
+pub enum ListErrorBody {
     Unauthorized(Error),
 }
 #[derive(Debug)]
-pub enum CreateCheckoutErrorBody {
+pub enum CreateErrorBody {
     BadRequest(ErrorExtended),
     Unauthorized(Error),
     Forbidden(ErrorForbidden),
     Conflict(Error),
 }
 #[derive(Debug)]
-pub enum DeactivateCheckoutErrorBody {
+pub enum DeactivateErrorBody {
     Unauthorized(Error),
     NotFound(Error),
     Conflict(Error),
 }
 #[derive(Debug)]
-pub enum GetCheckoutErrorBody {
+pub enum GetErrorBody {
     Unauthorized(Error),
     NotFound(Error),
 }
 #[derive(Debug)]
-pub enum ProcessCheckoutErrorBody {
+pub enum ProcessErrorBody {
     BadRequest,
     Unauthorized(Error),
     NotFound(Error),
     Conflict(Error),
 }
 #[derive(Debug)]
-pub enum GetPaymentMethodsErrorBody {
+pub enum ListAvailablePaymentMethodsErrorBody {
     BadRequest(DetailsError),
     Unauthorized(Error),
 }
@@ -519,8 +519,8 @@ impl<'a> CheckoutsClient<'a> {
     /// Lists created checkout resources according to the applied `checkout_reference`.
     pub async fn list(
         &self,
-        params: ListCheckoutsParams,
-    ) -> crate::error::SdkResult<ListCheckoutsResponse, ListCheckoutsErrorBody> {
+        params: ListParams,
+    ) -> crate::error::SdkResult<ListResponse, ListErrorBody> {
         let path = "/v0.1/checkouts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -539,14 +539,14 @@ impl<'a> CheckoutsClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
-                let data: ListCheckoutsResponse = response.json().await?;
+                let data: ListResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListCheckoutsErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
+                    body,
+                )))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -565,7 +565,7 @@ impl<'a> CheckoutsClient<'a> {
     pub async fn create(
         &self,
         body: CheckoutCreateRequest,
-    ) -> crate::error::SdkResult<Checkout, CreateCheckoutErrorBody> {
+    ) -> crate::error::SdkResult<Checkout, CreateErrorBody> {
         let path = "/v0.1/checkouts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -587,27 +587,25 @@ impl<'a> CheckoutsClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: ErrorExtended = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::BadRequest(body),
-                ))
+                Err(crate::error::SdkError::api(CreateErrorBody::BadRequest(
+                    body,
+                )))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::api(CreateErrorBody::Unauthorized(
+                    body,
+                )))
             }
             reqwest::StatusCode::FORBIDDEN => {
                 let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::Forbidden(body),
-                ))
+                Err(crate::error::SdkError::api(CreateErrorBody::Forbidden(
+                    body,
+                )))
             }
             reqwest::StatusCode::CONFLICT => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::Conflict(body),
-                ))
+                Err(crate::error::SdkError::api(CreateErrorBody::Conflict(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -622,7 +620,7 @@ impl<'a> CheckoutsClient<'a> {
     pub async fn deactivate(
         &self,
         id: impl Into<String>,
-    ) -> crate::error::SdkResult<Checkout, DeactivateCheckoutErrorBody> {
+    ) -> crate::error::SdkResult<Checkout, DeactivateErrorBody> {
         let path = format!("/v0.1/checkouts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -644,20 +642,20 @@ impl<'a> CheckoutsClient<'a> {
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(
-                    DeactivateCheckoutErrorBody::Unauthorized(body),
+                    DeactivateErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    DeactivateCheckoutErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::api(DeactivateErrorBody::NotFound(
+                    body,
+                )))
             }
             reqwest::StatusCode::CONFLICT => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    DeactivateCheckoutErrorBody::Conflict(body),
-                ))
+                Err(crate::error::SdkError::api(DeactivateErrorBody::Conflict(
+                    body,
+                )))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -672,7 +670,7 @@ impl<'a> CheckoutsClient<'a> {
     pub async fn get(
         &self,
         id: impl Into<String>,
-    ) -> crate::error::SdkResult<CheckoutSuccess, GetCheckoutErrorBody> {
+    ) -> crate::error::SdkResult<CheckoutSuccess, GetErrorBody> {
         let path = format!("/v0.1/checkouts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -693,15 +691,13 @@ impl<'a> CheckoutsClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetCheckoutErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
+                    body,
+                )))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(GetCheckoutErrorBody::NotFound(
-                    body,
-                )))
+                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -719,7 +715,7 @@ impl<'a> CheckoutsClient<'a> {
         &self,
         id: impl Into<String>,
         body: ProcessCheckout,
-    ) -> crate::error::SdkResult<ProcessCheckoutResponse, ProcessCheckoutErrorBody> {
+    ) -> crate::error::SdkResult<ProcessResponse, ProcessErrorBody> {
         let path = format!("/v0.1/checkouts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -737,32 +733,32 @@ impl<'a> CheckoutsClient<'a> {
         match status {
             reqwest::StatusCode::OK => {
                 let data: CheckoutSuccess = response.json().await?;
-                Ok(ProcessCheckoutResponse::Status200(data))
+                Ok(ProcessResponse::Status200(data))
             }
             reqwest::StatusCode::ACCEPTED => {
                 let data: CheckoutAccepted = response.json().await?;
-                Ok(ProcessCheckoutResponse::Status202(data))
+                Ok(ProcessResponse::Status202(data))
             }
-            reqwest::StatusCode::BAD_REQUEST => Err(crate::error::SdkError::api(
-                ProcessCheckoutErrorBody::BadRequest,
-            )),
+            reqwest::StatusCode::BAD_REQUEST => {
+                Err(crate::error::SdkError::api(ProcessErrorBody::BadRequest))
+            }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ProcessCheckoutErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::api(ProcessErrorBody::Unauthorized(
+                    body,
+                )))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ProcessCheckoutErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::api(ProcessErrorBody::NotFound(
+                    body,
+                )))
             }
             reqwest::StatusCode::CONFLICT => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ProcessCheckoutErrorBody::Conflict(body),
-                ))
+                Err(crate::error::SdkError::api(ProcessErrorBody::Conflict(
+                    body,
+                )))
             }
             _ => {
                 let body = response.text().await?;
@@ -777,8 +773,11 @@ impl<'a> CheckoutsClient<'a> {
     pub async fn list_available_payment_methods(
         &self,
         merchant_code: impl Into<String>,
-        params: GetPaymentMethodsParams,
-    ) -> crate::error::SdkResult<GetPaymentMethodsResponse, GetPaymentMethodsErrorBody> {
+        params: ListAvailablePaymentMethodsParams,
+    ) -> crate::error::SdkResult<
+        ListAvailablePaymentMethodsResponse,
+        ListAvailablePaymentMethodsErrorBody,
+    > {
         let path = format!("/v0.1/merchants/{}/payment-methods", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -800,19 +799,19 @@ impl<'a> CheckoutsClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
-                let data: GetPaymentMethodsResponse = response.json().await?;
+                let data: ListAvailablePaymentMethodsResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 let body: DetailsError = response.json().await?;
                 Err(crate::error::SdkError::api(
-                    GetPaymentMethodsErrorBody::BadRequest(body),
+                    ListAvailablePaymentMethodsErrorBody::BadRequest(body),
                 ))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(
-                    GetPaymentMethodsErrorBody::Unauthorized(body),
+                    ListAvailablePaymentMethodsErrorBody::Unauthorized(body),
                 ))
             }
             _ => {

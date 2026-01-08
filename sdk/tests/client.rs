@@ -100,7 +100,7 @@ async fn client_requests_include_user_agent_and_custom_authorization() {
 
     client
         .checkouts()
-        .list(sumup::resources::checkouts::ListCheckoutsParams::default())
+        .list(sumup::resources::checkouts::ListParams::default())
         .await
         .expect("request should succeed");
 }

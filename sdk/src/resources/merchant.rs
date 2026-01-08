@@ -407,7 +407,7 @@ pub struct DoingBusinessAsLegacyAddress {
     pub post_code: Option<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct GetAccountParams {
+pub struct GetParams {
     /// A list of additional information you want to receive for the user. By default only personal and merchant profile information will be returned.
     #[serde(rename = "include[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -415,7 +415,7 @@ pub struct GetAccountParams {
 }
 use crate::client::Client;
 #[derive(Debug)]
-pub enum GetAccountErrorBody {
+pub enum GetErrorBody {
     Unauthorized(Error),
 }
 #[derive(Debug)]
@@ -449,8 +449,8 @@ impl<'a> MerchantClient<'a> {
     /// Returns user profile information.
     pub async fn get(
         &self,
-        params: GetAccountParams,
-    ) -> crate::error::SdkResult<MerchantAccount, GetAccountErrorBody> {
+        params: GetParams,
+    ) -> crate::error::SdkResult<MerchantAccount, GetErrorBody> {
         let path = "/v0.1/me";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -474,9 +474,9 @@ impl<'a> MerchantClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetAccountErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
+                    body,
+                )))
             }
             _ => {
                 let body_bytes = response.bytes().await?;

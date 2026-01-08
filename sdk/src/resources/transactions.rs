@@ -347,13 +347,13 @@ pub struct TransactionFullLocation {
     pub horizontal_accuracy: Option<HorizontalAccuracy>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct RefundTransactionBody {
+pub struct RefundBody {
     /// Amount to be refunded. Eligible amount can't exceed the amount of the transaction and varies based on country and currency. If you do not specify a value, the system performs a full refund of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f32>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct GetTransactionParams {
+pub struct GetDeprecatedParams {
     /// Retrieves the transaction resource with the specified transaction ID (the `id` parameter in the transaction resource).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -365,7 +365,7 @@ pub struct GetTransactionParams {
     pub transaction_code: Option<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListTransactionsParams {
+pub struct ListDeprecatedParams {
     /// Retrieves the transaction resource with the specified transaction code.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
@@ -405,14 +405,14 @@ pub struct ListTransactionsParams {
 }
 /// OK
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListTransactionsResponse {
+pub struct ListDeprecatedResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<TransactionHistory>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub links: Option<Vec<Link>>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct GetTransactionV21Params {
+pub struct GetParams {
     /// Retrieves the transaction resource with the specified transaction ID (the `id` parameter in the transaction resource).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -430,7 +430,7 @@ pub struct GetTransactionV21Params {
     pub client_transaction_id: Option<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListTransactionsV21Params {
+pub struct ListParams {
     /// Retrieves the transaction resource with the specified transaction code.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
@@ -474,7 +474,7 @@ pub struct ListTransactionsV21Params {
 }
 /// OK
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListTransactionsV21Response {
+pub struct ListResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<TransactionHistory>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -482,26 +482,26 @@ pub struct ListTransactionsV21Response {
 }
 use crate::client::Client;
 #[derive(Debug)]
-pub enum RefundTransactionErrorBody {
+pub enum RefundErrorBody {
     NotFound(Error),
     Conflict(Error),
 }
 #[derive(Debug)]
-pub enum GetTransactionErrorBody {
+pub enum GetDeprecatedErrorBody {
     Unauthorized(Error),
     NotFound(Error),
 }
 #[derive(Debug)]
-pub enum ListTransactionsErrorBody {
+pub enum ListDeprecatedErrorBody {
     Unauthorized(Error),
 }
 #[derive(Debug)]
-pub enum GetTransactionV21ErrorBody {
+pub enum GetErrorBody {
     Unauthorized(Error),
     NotFound(Error),
 }
 #[derive(Debug)]
-pub enum ListTransactionsV21ErrorBody {
+pub enum ListErrorBody {
     Unauthorized(Error),
 }
 ///Client for the Transactions API endpoints.
@@ -523,8 +523,8 @@ impl<'a> TransactionsClient<'a> {
     pub async fn refund(
         &self,
         txn_id: impl Into<String>,
-        body: Option<RefundTransactionBody>,
-    ) -> crate::error::SdkResult<(), RefundTransactionErrorBody> {
+        body: Option<RefundBody>,
+    ) -> crate::error::SdkResult<(), RefundErrorBody> {
         let path = format!("/v0.1/me/refund/{}", txn_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -545,15 +545,11 @@ impl<'a> TransactionsClient<'a> {
             reqwest::StatusCode::NO_CONTENT => Ok(()),
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    RefundTransactionErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::api(RefundErrorBody::NotFound(body)))
             }
             reqwest::StatusCode::CONFLICT => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    RefundTransactionErrorBody::Conflict(body),
-                ))
+                Err(crate::error::SdkError::api(RefundErrorBody::Conflict(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -573,8 +569,8 @@ impl<'a> TransactionsClient<'a> {
     /// *  `client_transaction_id`
     pub async fn get_deprecated(
         &self,
-        params: GetTransactionParams,
-    ) -> crate::error::SdkResult<TransactionFull, GetTransactionErrorBody> {
+        params: GetDeprecatedParams,
+    ) -> crate::error::SdkResult<TransactionFull, GetDeprecatedErrorBody> {
         let path = "/v0.1/me/transactions";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -605,13 +601,13 @@ impl<'a> TransactionsClient<'a> {
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(
-                    GetTransactionErrorBody::Unauthorized(body),
+                    GetDeprecatedErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(
-                    GetTransactionErrorBody::NotFound(body),
+                    GetDeprecatedErrorBody::NotFound(body),
                 ))
             }
             _ => {
@@ -626,8 +622,8 @@ impl<'a> TransactionsClient<'a> {
     /// Lists detailed history of all transactions associated with the merchant profile.
     pub async fn list_deprecated(
         &self,
-        params: ListTransactionsParams,
-    ) -> crate::error::SdkResult<ListTransactionsResponse, ListTransactionsErrorBody> {
+        params: ListDeprecatedParams,
+    ) -> crate::error::SdkResult<ListDeprecatedResponse, ListDeprecatedErrorBody> {
         let path = "/v0.1/me/transactions/history";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -679,13 +675,13 @@ impl<'a> TransactionsClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
-                let data: ListTransactionsResponse = response.json().await?;
+                let data: ListDeprecatedResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(
-                    ListTransactionsErrorBody::Unauthorized(body),
+                    ListDeprecatedErrorBody::Unauthorized(body),
                 ))
             }
             _ => {
@@ -707,8 +703,8 @@ impl<'a> TransactionsClient<'a> {
     pub async fn get(
         &self,
         merchant_code: impl Into<String>,
-        params: GetTransactionV21Params,
-    ) -> crate::error::SdkResult<TransactionFull, GetTransactionV21ErrorBody> {
+        params: GetParams,
+    ) -> crate::error::SdkResult<TransactionFull, GetErrorBody> {
         let path = format!("/v2.1/merchants/{}/transactions", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -744,15 +740,13 @@ impl<'a> TransactionsClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetTransactionV21ErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
+                    body,
+                )))
             }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetTransactionV21ErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -767,8 +761,8 @@ impl<'a> TransactionsClient<'a> {
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
-        params: ListTransactionsV21Params,
-    ) -> crate::error::SdkResult<ListTransactionsV21Response, ListTransactionsV21ErrorBody> {
+        params: ListParams,
+    ) -> crate::error::SdkResult<ListResponse, ListErrorBody> {
         let path = format!(
             "/v2.1/merchants/{}/transactions/history",
             merchant_code.into()
@@ -826,14 +820,14 @@ impl<'a> TransactionsClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
-                let data: ListTransactionsV21Response = response.json().await?;
+                let data: ListResponse = response.json().await?;
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListTransactionsV21ErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
+                    body,
+                )))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
