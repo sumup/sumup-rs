@@ -37,23 +37,30 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
                 let operation_id = op.operation_id.as_ref().ok_or_else(|| {
                     format!("Operation {} {} missing operation_id", http_method, path)
                 })?;
+                let operation_name = crate::operation_name(op);
 
-                operations_to_process.push((path.clone(), http_method, operation_id.clone(), op));
+                operations_to_process.push((
+                    path.clone(),
+                    http_method,
+                    operation_id.clone(),
+                    operation_name,
+                    op,
+                ));
             }
         }
     }
 
-    // Sort operations alphabetically by path, then method, then operation_id
+    // Sort operations alphabetically by path, then method, then operation name
     operations_to_process.sort_by(|a, b| {
         a.0.cmp(&b.0)
             .then_with(|| a.1.cmp(b.1))
-            .then_with(|| a.2.cmp(&b.2))
+            .then_with(|| a.3.cmp(&b.3))
     });
 
-    for (_path, _http_method, operation_id, op) in operations_to_process {
+    for (_path, _http_method, _operation_id, operation_name, op) in operations_to_process {
         // Generate query params struct if present
         if let Some(params_struct) =
-            generate_query_params_struct(&operation_id, op, &mut generated_names)?
+            generate_query_params_struct(&operation_name, op, &mut generated_names)?
         {
             body_structs.push(params_struct);
         }
@@ -62,7 +69,7 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
         if let Some(request_body_ref) = &op.request_body {
             if let Some(body_struct) = generate_request_body_struct(
                 spec,
-                &operation_id,
+                &operation_name,
                 request_body_ref,
                 &mut generated_names,
                 &mut nested_schemas,
@@ -74,7 +81,7 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
         // Generate response body struct(s)
         if let Some(response_structs) = generate_response_body_structs(
             spec,
-            &operation_id,
+            &operation_name,
             &op.responses,
             &mut generated_names,
             &mut nested_schemas,
@@ -94,7 +101,7 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
 
 /// Creates a query params struct for the operation when query parameters are defined.
 fn generate_query_params_struct(
-    operation_id: &str,
+    operation_name: &str,
     operation: &openapiv3::Operation,
     generated_names: &mut std::collections::HashSet<String>,
 ) -> Result<Option<TokenStream>, String> {
@@ -118,7 +125,7 @@ fn generate_query_params_struct(
         return Ok(None);
     }
 
-    let params_struct_name = format!("{}Params", operation_id.to_upper_camel_case());
+    let params_struct_name = format!("{}Params", operation_name.to_upper_camel_case());
 
     // Check if already generated
     if generated_names.contains(&params_struct_name) {
@@ -281,7 +288,7 @@ fn infer_param_type(
 /// Emits a request body struct for inline request schemas referenced by the operation.
 fn generate_request_body_struct(
     spec: &OpenAPI,
-    operation_id: &str,
+    operation_name: &str,
     request_body_ref: &openapiv3::ReferenceOr<openapiv3::RequestBody>,
     generated_names: &mut std::collections::HashSet<String>,
     nested_schemas: &mut Vec<TokenStream>,
@@ -309,7 +316,7 @@ fn generate_request_body_struct(
                 }
                 openapiv3::ReferenceOr::Item(schema) => {
                     // Inline schema - generate a struct
-                    let struct_name_str = format!("{}Body", operation_id.to_upper_camel_case());
+                    let struct_name_str = format!("{}Body", operation_name.to_upper_camel_case());
 
                     if !generated_names.insert(struct_name_str.clone()) {
                         // Already generated
@@ -343,7 +350,7 @@ fn generate_request_body_struct(
 /// Creates response body representations for the operation's successful responses.
 fn generate_response_body_structs(
     spec: &OpenAPI,
-    operation_id: &str,
+    operation_name: &str,
     responses: &openapiv3::Responses,
     generated_names: &mut std::collections::HashSet<String>,
     nested_schemas: &mut Vec<TokenStream>,
@@ -392,7 +399,7 @@ fn generate_response_body_structs(
                     openapiv3::ReferenceOr::Item(schema) => {
                         // Inline schema - generate a struct
                         let struct_name_str =
-                            format!("{}Response", operation_id.to_upper_camel_case());
+                            format!("{}Response", operation_name.to_upper_camel_case());
 
                         if !generated_names.insert(struct_name_str.clone()) {
                             return Ok(None);
@@ -418,7 +425,7 @@ fn generate_response_body_structs(
         }
     } else {
         // Multiple successful responses - create an enum
-        let enum_name_str = format!("{}Response", operation_id.to_upper_camel_case());
+        let enum_name_str = format!("{}Response", operation_name.to_upper_camel_case());
 
         if generated_names.insert(enum_name_str.clone()) {
             let enum_name = Ident::new(&enum_name_str, Span::call_site());
@@ -430,7 +437,7 @@ fn generate_response_body_structs(
                 let variant_name = Ident::new(&variant_name_str, Span::call_site());
 
                 let struct_name_str =
-                    format!("{}Response{}", operation_id.to_upper_camel_case(), status);
+                    format!("{}Response{}", operation_name.to_upper_camel_case(), status);
                 let struct_name = Ident::new(&struct_name_str, Span::call_site());
 
                 match response_ref {

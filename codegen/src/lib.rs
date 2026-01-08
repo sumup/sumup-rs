@@ -24,6 +24,26 @@ pub use operation::generate_client_methods;
 pub use schema::generate_structs_for_schemas;
 pub use tag::{collect_schemas_by_tag, SchemasByTag, TagSchemas};
 
+/// Returns the canonical operation name for code generation.
+/// Prefers `x-codegen.method_name`, falling back to `operation_id` or "unknown".
+pub fn operation_name(operation: &openapiv3::Operation) -> String {
+    if let Some(codegen) = operation.extensions.get("x-codegen") {
+        if let Some(codegen_obj) = codegen.as_object() {
+            if let Some(method_name_value) = codegen_obj.get("method_name") {
+                if let Some(name_str) = method_name_value.as_str() {
+                    return name_str.to_string();
+                }
+            }
+        }
+    }
+
+    operation
+        .operation_id
+        .as_ref()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
 /// Coordinates SDK generation for a given OpenAPI spec and output location.
 pub struct Generator {
     spec: OpenAPI,
@@ -207,9 +227,6 @@ pub fn generate_mod_file(out_path: &Path, schemas_by_tag: &SchemasByTag) -> Resu
 
         modules.push(quote! {
             pub mod #module_name;
-        });
-        re_exports.push(quote! {
-            pub use #module_name::*;
         });
     }
 

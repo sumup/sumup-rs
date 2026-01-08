@@ -134,40 +134,12 @@ fn generate_operation_method(
     operation: &openapiv3::Operation,
     path_parameters: &[openapiv3::ReferenceOr<openapiv3::Parameter>],
 ) -> Result<GeneratedOperation, String> {
-    // Determine method name
-    let method_name = if let Some(codegen) = operation.extensions.get("x-codegen") {
-        if let Some(codegen_obj) = codegen.as_object() {
-            if let Some(method_name_value) = codegen_obj.get("method_name") {
-                if let Some(name_str) = method_name_value.as_str() {
-                    name_str.to_snake_case()
-                } else {
-                    operation
-                        .operation_id
-                        .as_ref()
-                        .map(|s| s.to_snake_case())
-                        .unwrap_or_else(|| "unknown".to_string())
-                }
-            } else {
-                operation
-                    .operation_id
-                    .as_ref()
-                    .map(|s| s.to_snake_case())
-                    .unwrap_or_else(|| "unknown".to_string())
-            }
-        } else {
-            operation
-                .operation_id
-                .as_ref()
-                .map(|s| s.to_snake_case())
-                .unwrap_or_else(|| "unknown".to_string())
-        }
-    } else {
-        operation
-            .operation_id
-            .as_ref()
-            .map(|s| s.to_snake_case())
-            .unwrap_or_else(|| "unknown".to_string())
-    };
+    let _operation_id = operation
+        .operation_id
+        .as_ref()
+        .ok_or_else(|| "Operation missing operation_id".to_string())?;
+    let operation_name = crate::operation_name(operation);
+    let method_name = operation_name.to_snake_case();
 
     let method_ident = Ident::new(&method_name, Span::call_site());
 
@@ -212,99 +184,94 @@ fn generate_operation_method(
     }
 
     // Handle request body parameter
-    let (body_param, has_optional_body, has_body) = if let Some(request_body_ref) =
-        &operation.request_body
-    {
-        match request_body_ref {
-            openapiv3::ReferenceOr::Item(rb) => {
-                // Check if there's actually a schema in the body
-                let has_schema = if let Some(media_type) = rb
-                    .content
-                    .get("application/json")
-                    .or_else(|| rb.content.values().next())
-                {
-                    media_type.schema.is_some()
-                } else {
-                    false
-                };
-
-                // Only generate body parameter if we have a schema
-                if has_schema {
-                    // Determine the concrete body type name
-                    let operation_id = operation
-                        .operation_id
-                        .as_ref()
-                        .ok_or_else(|| "Operation missing operation_id".to_string())?;
-
-                    use heck::ToUpperCamelCase;
-
-                    // Check if there's a referenced schema in the body
-                    let body_type = if let Some(media_type) = rb
+    let (body_param, has_optional_body, has_body) =
+        if let Some(request_body_ref) = &operation.request_body {
+            match request_body_ref {
+                openapiv3::ReferenceOr::Item(rb) => {
+                    // Check if there's actually a schema in the body
+                    let has_schema = if let Some(media_type) = rb
                         .content
                         .get("application/json")
                         .or_else(|| rb.content.values().next())
                     {
-                        if let Some(schema_ref) = &media_type.schema {
-                            match schema_ref {
-                                openapiv3::ReferenceOr::Reference { reference } => {
-                                    // Use the referenced schema name
-                                    let schema_name = reference
-                                        .strip_prefix("#/components/schemas/")
-                                        .ok_or_else(|| {
-                                            format!("Invalid schema reference: {}", reference)
-                                        })?;
-                                    Ident::new(schema_name, Span::call_site())
+                        media_type.schema.is_some()
+                    } else {
+                        false
+                    };
+
+                    // Only generate body parameter if we have a schema
+                    if has_schema {
+                        // Determine the concrete body type name
+                        use heck::ToUpperCamelCase;
+
+                        // Check if there's a referenced schema in the body
+                        let body_type = if let Some(media_type) = rb
+                            .content
+                            .get("application/json")
+                            .or_else(|| rb.content.values().next())
+                        {
+                            if let Some(schema_ref) = &media_type.schema {
+                                match schema_ref {
+                                    openapiv3::ReferenceOr::Reference { reference } => {
+                                        // Use the referenced schema name
+                                        let schema_name = reference
+                                            .strip_prefix("#/components/schemas/")
+                                            .ok_or_else(|| {
+                                                format!("Invalid schema reference: {}", reference)
+                                            })?;
+                                        Ident::new(schema_name, Span::call_site())
+                                    }
+                                    openapiv3::ReferenceOr::Item(_) => {
+                                        // Inline schema - use generated Body type
+                                        let body_type_name =
+                                            format!("{}Body", operation_name.to_upper_camel_case());
+                                        Ident::new(&body_type_name, Span::call_site())
+                                    }
                                 }
-                                openapiv3::ReferenceOr::Item(_) => {
-                                    // Inline schema - use generated Body type
-                                    let body_type_name =
-                                        format!("{}Body", operation_id.to_upper_camel_case());
-                                    Ident::new(&body_type_name, Span::call_site())
-                                }
+                            } else {
+                                // No schema - shouldn't happen but fall back to Body name
+                                let body_type_name =
+                                    format!("{}Body", operation_name.to_upper_camel_case());
+                                Ident::new(&body_type_name, Span::call_site())
                             }
                         } else {
-                            // No schema - shouldn't happen but fall back to Body name
+                            // No JSON content - fall back to Body name
                             let body_type_name =
-                                format!("{}Body", operation_id.to_upper_camel_case());
+                                format!("{}Body", operation_name.to_upper_camel_case());
                             Ident::new(&body_type_name, Span::call_site())
-                        }
-                    } else {
-                        // No JSON content - fall back to Body name
-                        let body_type_name = format!("{}Body", operation_id.to_upper_camel_case());
-                        Ident::new(&body_type_name, Span::call_site())
-                    };
+                        };
 
-                    let body_param = if rb.required {
-                        quote! { body: #body_type }
-                    } else {
-                        quote! { body: Option<#body_type> }
-                    };
+                        let body_param = if rb.required {
+                            quote! { body: #body_type }
+                        } else {
+                            quote! { body: Option<#body_type> }
+                        };
 
-                    (Some(body_param), !rb.required, true)
-                } else {
-                    // No schema - don't add body parameter
-                    (None, false, false)
+                        (Some(body_param), !rb.required, true)
+                    } else {
+                        // No schema - don't add body parameter
+                        (None, false, false)
+                    }
+                }
+                openapiv3::ReferenceOr::Reference { reference } => {
+                    // Extract the schema name from the reference
+                    let schema_name = reference
+                        .strip_prefix("#/components/requestBodies/")
+                        .or_else(|| reference.strip_prefix("#/components/schemas/"))
+                        .ok_or_else(|| format!("Invalid reference: {}", reference))?;
+
+                    let body_type = Ident::new(schema_name, Span::call_site());
+
+                    // For referenced bodies, we can't easily determine if they're required
+                    // Default to required
+                    let body_param = quote! { body: #body_type };
+
+                    (Some(body_param), false, true)
                 }
             }
-            openapiv3::ReferenceOr::Reference { reference } => {
-                // Extract the schema name from the reference
-                let schema_name = reference
-                    .strip_prefix("#/components/requestBodies/")
-                    .or_else(|| reference.strip_prefix("#/components/schemas/"))
-                    .ok_or_else(|| format!("Invalid reference: {}", reference))?;
-
-                let body_type = Ident::new(schema_name, Span::call_site());
-
-                // For referenced bodies, we can't easily determine if they're required
-                // Default to required
-                let body_param = quote! { body: #body_type };
-
-                (Some(body_param), false, true)
-            }
-        }
-    } else {
-        (None, false, false)
-    };
+        } else {
+            (None, false, false)
+        };
 
     // Collect query parameters
     let mut query_params = Vec::new();
@@ -328,11 +295,7 @@ fn generate_operation_method(
     // Add query params parameter if there are query parameters
     let has_query_params = !query_params.is_empty();
     if has_query_params {
-        let operation_id = operation
-            .operation_id
-            .as_ref()
-            .ok_or_else(|| "Operation missing operation_id".to_string())?;
-        let params_type_name = format!("{}Params", operation_id.to_upper_camel_case());
+        let params_type_name = format!("{}Params", operation_name.to_upper_camel_case());
         let params_type = Ident::new(&params_type_name, Span::call_site());
         path_params.push(quote! { params: #params_type });
     }
@@ -367,7 +330,7 @@ fn generate_operation_method(
         response_handling,
         error_type,
         error_definition,
-    } = generate_response_handling(operation, spec)?;
+    } = generate_response_handling(&operation_name, operation, spec)?;
 
     // Add doc comment if available - combine summary and description
     let doc_comment = match (&operation.summary, &operation.description) {
@@ -507,15 +470,11 @@ fn generate_operation_method(
 
 /// Builds response handling logic and determines the method's return type.
 fn generate_response_handling(
+    operation_name: &str,
     operation: &openapiv3::Operation,
     spec: &openapiv3::OpenAPI,
 ) -> Result<OperationResponse, String> {
     use heck::ToUpperCamelCase;
-
-    let operation_id = operation
-        .operation_id
-        .as_ref()
-        .ok_or_else(|| "Operation missing operation_id".to_string())?;
 
     let mut success_responses = Vec::new();
     let mut error_responses = Vec::new();
@@ -539,21 +498,21 @@ fn generate_response_handling(
         quote! { () }
     } else if success_responses.len() == 1 {
         let (_, response_ref) = success_responses[0];
-        get_response_type_for_single(operation_id, response_ref)?
+        get_response_type_for_single(operation_name, response_ref)?
     } else {
-        let response_type_name = format!("{}Response", operation_id.to_upper_camel_case());
+        let response_type_name = format!("{}Response", operation_name.to_upper_camel_case());
         let response_type = Ident::new(&response_type_name, Span::call_site());
         quote! { #response_type }
     };
 
-    let error_generation = generate_error_handling(operation_id, &error_responses, spec)?;
+    let error_generation = generate_error_handling(operation_name, &error_responses, spec)?;
 
     let response_handling = if success_responses.is_empty() {
         generate_no_success_response_handling(&error_generation)?
     } else if success_responses.len() == 1 {
-        generate_single_response_handling(operation_id, &success_responses[0], &error_generation)?
+        generate_single_response_handling(operation_name, &success_responses[0], &error_generation)?
     } else {
-        generate_multi_response_handling(operation_id, &success_responses, &error_generation)?
+        generate_multi_response_handling(operation_name, &success_responses, &error_generation)?
     };
 
     Ok(OperationResponse {
@@ -566,7 +525,7 @@ fn generate_response_handling(
 
 /// Determines the concrete return type for a single successful response variant.
 fn get_response_type_for_single(
-    operation_id: &str,
+    operation_name: &str,
     response_ref: &openapiv3::ReferenceOr<openapiv3::Response>,
 ) -> Result<TokenStream, String> {
     use heck::ToUpperCamelCase;
@@ -602,7 +561,7 @@ fn get_response_type_for_single(
                         openapiv3::ReferenceOr::Item(_) => {
                             // Inline schema - use generated Response type
                             let response_type_name =
-                                format!("{}Response", operation_id.to_upper_camel_case());
+                                format!("{}Response", operation_name.to_upper_camel_case());
                             let response_type = Ident::new(&response_type_name, Span::call_site());
                             Ok(quote! { #response_type })
                         }
@@ -727,7 +686,7 @@ fn status_code_to_variant_name(status: u16) -> String {
 
 /// Builds error handling match arms and endpoint-specific error metadata.
 fn generate_error_handling(
-    operation_id: &str,
+    operation_name: &str,
     error_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
     spec: &openapiv3::OpenAPI,
 ) -> Result<ErrorGeneration, String> {
@@ -764,7 +723,7 @@ fn generate_error_handling(
         });
     }
 
-    let enum_name = format!("{}ErrorBody", operation_id.to_upper_camel_case());
+    let enum_name = format!("{}ErrorBody", operation_name.to_upper_camel_case());
     let enum_ident = Ident::new(&enum_name, Span::call_site());
 
     let mut variant_defs = Vec::new();
@@ -892,7 +851,7 @@ fn generate_no_success_response_handling(
 
 /// Produces response handling logic for operations with one successful status code.
 fn generate_single_response_handling(
-    operation_id: &str,
+    operation_name: &str,
     (status, response_ref): &(u16, &openapiv3::ReferenceOr<openapiv3::Response>),
     error_generation: &ErrorGeneration,
 ) -> Result<TokenStream, String> {
@@ -911,7 +870,7 @@ fn generate_single_response_handling(
     let error_arms = &error_generation.match_arms;
 
     if has_content {
-        let response_type = get_response_type_for_single(operation_id, response_ref)?;
+        let response_type = get_response_type_for_single(operation_name, response_ref)?;
         Ok(quote! {
             let status = response.status();
             match status {
@@ -945,13 +904,13 @@ fn generate_single_response_handling(
 
 /// Emits response handling that deserializes into an enum for multi-status operations.
 fn generate_multi_response_handling(
-    operation_id: &str,
+    operation_name: &str,
     success_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
     error_generation: &ErrorGeneration,
 ) -> Result<TokenStream, String> {
     use heck::ToUpperCamelCase;
 
-    let response_type_name = format!("{}Response", operation_id.to_upper_camel_case());
+    let response_type_name = format!("{}Response", operation_name.to_upper_camel_case());
     let response_type = Ident::new(&response_type_name, Span::call_site());
 
     let mut match_arms = Vec::new();
@@ -993,7 +952,7 @@ fn generate_multi_response_handling(
                                 // Inline schema - use generated Response{status} type
                                 let inner_type_name = format!(
                                     "{}Response{}",
-                                    operation_id.to_upper_camel_case(),
+                                    operation_name.to_upper_camel_case(),
                                     status_code
                                 );
                                 let type_ident = Ident::new(&inner_type_name, Span::call_site());

@@ -38,8 +38,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .create_checkout(
             &merchant_code,
             &reader.id,
-            sumup::CreateReaderCheckoutRequest {
-                total_amount: sumup::Money {
+            sumup::readers::CreateReaderCheckoutRequest {
+                total_amount: sumup::readers::Money {
                     currency: "EUR".into(),
                     minor_unit: 2,
                     value: 1000,

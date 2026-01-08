@@ -369,7 +369,7 @@ pub struct Timestamps {
 }
 pub type Version = String;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct GetMerchantParams {
+pub struct GetParams {
     /// The version of the resource. At the moment, the only supported value is `latest`. When provided and the requested resource's `change_status` is pending, the resource will be returned with all pending changes applied. When no changes are pending the resource is returned as is. The `change_status` in the response body will reflect the current state of the resource.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
@@ -388,7 +388,7 @@ pub struct GetPersonParams {
 }
 use crate::client::Client;
 #[derive(Debug)]
-pub enum GetMerchantErrorBody {
+pub enum GetErrorBody {
     NotFound,
 }
 #[derive(Debug)]
@@ -420,8 +420,8 @@ impl<'a> MerchantsClient<'a> {
     pub async fn get(
         &self,
         merchant_code: impl Into<String>,
-        params: GetMerchantParams,
-    ) -> crate::error::SdkResult<Merchant, GetMerchantErrorBody> {
+        params: GetParams,
+    ) -> crate::error::SdkResult<Merchant, GetErrorBody> {
         let path = format!("/v1/merchants/{}", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -444,7 +444,7 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                Err(crate::error::SdkError::api(GetMerchantErrorBody::NotFound))
+                Err(crate::error::SdkError::api(GetErrorBody::NotFound))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
