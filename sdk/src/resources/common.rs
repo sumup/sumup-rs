@@ -29,32 +29,52 @@ pub struct Attributes {}
 /// Issuing card network of the payment card used for the transaction.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum CardType {
+    #[serde(rename = "ALELO")]
+    Alelo,
     #[serde(rename = "AMEX")]
     Amex,
+    #[serde(rename = "CONECS")]
+    Conecs,
     #[serde(rename = "CUP")]
     Cup,
     #[serde(rename = "DINERS")]
     Diners,
     #[serde(rename = "DISCOVER")]
     Discover,
+    #[serde(rename = "EFTPOS")]
+    Eftpos,
     #[serde(rename = "ELO")]
     Elo,
     #[serde(rename = "ELV")]
     Elv,
+    #[serde(rename = "GIROCARD")]
+    Girocard,
     #[serde(rename = "HIPERCARD")]
     Hipercard,
+    #[serde(rename = "INTERAC")]
+    Interac,
     #[serde(rename = "JCB")]
     Jcb,
     #[serde(rename = "MAESTRO")]
     Maestro,
     #[serde(rename = "MASTERCARD")]
     Mastercard,
+    #[serde(rename = "PLUXEE")]
+    Pluxee,
+    #[serde(rename = "SWILE")]
+    Swile,
+    #[serde(rename = "TICKET")]
+    Ticket,
     #[serde(rename = "VISA")]
     Visa,
     #[serde(rename = "VISA_ELECTRON")]
     VisaElectron,
     #[serde(rename = "VISA_VPAY")]
     VisaVpay,
+    #[serde(rename = "VPAY")]
+    Vpay,
+    #[serde(rename = "VR")]
+    Vr,
     #[serde(rename = "UNKNOWN")]
     Unknown,
 }
