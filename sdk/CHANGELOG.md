@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6](https://github.com/sumup/sumup-rs/compare/v0.5.5...v0.5.6) - 2026-01-20
+
+### Added
+
+- report runtime info ([#87](https://github.com/sumup/sumup-rs/pull/87))
+- *(sdk)* improve struct names ([#79](https://github.com/sumup/sumup-rs/pull/79))
+- *(sdk)* mark deprecated tags (resources) as such ([#27](https://github.com/sumup/sumup-rs/pull/27))
+- *(sdk)* reader status battery_level type
+- *(sdk)* support nullable values ([#69](https://github.com/sumup/sumup-rs/pull/69))
+
+### Other
+
+- synced file(s) with sumup/apis ([#86](https://github.com/sumup/sumup-rs/pull/86))
+- synced file(s) with sumup/apis ([#77](https://github.com/sumup/sumup-rs/pull/77))
+- *(deps)* bump axum-extra from 0.12.2 to 0.12.5 ([#78](https://github.com/sumup/sumup-rs/pull/78))
+- *(deps)* bump axum from 0.8.7 to 0.8.8 ([#72](https://github.com/sumup/sumup-rs/pull/72))
+
 ## [0.5.5](https://github.com/sumup/sumup-rs/compare/v0.5.4...v0.5.5) - 2025-12-19
 
 ### Added
