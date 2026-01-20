@@ -68,6 +68,9 @@ impl<'a> PayoutsClient<'a> {
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
         request = request.query(&[("start_date", &params.start_date)]);
         request = request.query(&[("end_date", &params.end_date)]);
         if let Some(ref value) = params.format {
@@ -117,6 +120,9 @@ impl<'a> PayoutsClient<'a> {
             .timeout(self.client.timeout());
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
         }
         request = request.query(&[("start_date", &params.start_date)]);
         request = request.query(&[("end_date", &params.end_date)]);

@@ -219,6 +219,9 @@ impl<'a> ReceiptsClient<'a> {
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
         request = request.query(&[("mid", &params.mid)]);
         if let Some(ref value) = params.tx_event_id {
             request = request.query(&[("tx_event_id", value)]);

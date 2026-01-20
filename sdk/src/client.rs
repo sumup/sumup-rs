@@ -9,6 +9,7 @@ pub struct Client {
     base_url: String,
     authorization_token: Option<String>,
     timeout: std::time::Duration,
+    runtime_info: Vec<(&'static str, String)>,
 }
 impl Client {
     /// Creates a new SumUp API client with the default base URL.
@@ -21,6 +22,7 @@ impl Client {
             base_url: "https://api.sumup.com".to_string(),
             authorization_token,
             timeout: std::time::Duration::from_secs(10),
+            runtime_info: crate::version::runtime_info(),
         }
     }
     /// Overrides the underlying HTTP client used for requests.
@@ -62,6 +64,10 @@ impl Client {
     /// Returns the request timeout.
     pub fn timeout(&self) -> std::time::Duration {
         self.timeout
+    }
+    /// Returns the runtime headers sent with each request.
+    pub(crate) fn runtime_headers(&self) -> &[(&'static str, String)] {
+        &self.runtime_info
     }
     pub fn checkouts(&self) -> crate::resources::checkouts::CheckoutsClient<'_> {
         crate::resources::checkouts::CheckoutsClient::new(self)

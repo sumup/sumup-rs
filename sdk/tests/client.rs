@@ -105,6 +105,36 @@ async fn client_requests_include_user_agent_and_custom_authorization() {
         .expect("request should succeed");
 }
 
+#[tokio::test]
+#[serial]
+async fn client_requests_include_runtime_headers() {
+    let server = MockServer::start().await;
+    let _guard = EnvVarGuard::set("SUMUP_API_KEY", "env-token");
+    let expected_user_agent = version::user_agent();
+
+    let mut mock = Mock::given(method("GET"))
+        .and(path("/v0.1/checkouts"))
+        .and(header("User-Agent", expected_user_agent.as_str()));
+
+    for (header_name, header_value) in version::runtime_info() {
+        mock = mock.and(header(header_name, header_value.as_str()));
+    }
+
+    let _mock = mock
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!([])))
+        .expect(1)
+        .mount_as_scoped(&server)
+        .await;
+
+    let client = Client::new().with_base_url(server.uri());
+
+    client
+        .checkouts()
+        .list(sumup::resources::checkouts::ListParams::default())
+        .await
+        .expect("request should succeed");
+}
+
 #[test]
 #[serial]
 fn client_returns_none_when_authorization_missing() {

@@ -106,6 +106,9 @@ impl<'a> RolesClient<'a> {
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
         let response = request.send().await?;
         let status = response.status();
         match status {
@@ -143,6 +146,9 @@ impl<'a> RolesClient<'a> {
             .json(&body);
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
         }
         let response = request.send().await?;
         let status = response.status();
@@ -191,6 +197,9 @@ impl<'a> RolesClient<'a> {
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
         let response = request.send().await?;
         let status = response.status();
         match status {
@@ -235,6 +244,9 @@ impl<'a> RolesClient<'a> {
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
         let response = request.send().await?;
         let status = response.status();
         match status {
@@ -277,6 +289,9 @@ impl<'a> RolesClient<'a> {
             .json(&body);
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
         }
         let response = request.send().await?;
         let status = response.status();
