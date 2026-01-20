@@ -536,6 +536,9 @@ impl<'a> TransactionsClient<'a> {
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
         if let Some(body) = body {
             request = request.json(&body);
         }
@@ -581,6 +584,9 @@ impl<'a> TransactionsClient<'a> {
             .timeout(self.client.timeout());
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
         }
         if let Some(ref value) = params.id {
             request = request.query(&[("id", value)]);
@@ -634,6 +640,9 @@ impl<'a> TransactionsClient<'a> {
             .timeout(self.client.timeout());
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
         }
         if let Some(ref value) = params.transaction_code {
             request = request.query(&[("transaction_code", value)]);
@@ -716,6 +725,9 @@ impl<'a> TransactionsClient<'a> {
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
         if let Some(ref value) = params.id {
             request = request.query(&[("id", value)]);
         }
@@ -776,6 +788,9 @@ impl<'a> TransactionsClient<'a> {
             .timeout(self.client.timeout());
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
         }
         if let Some(ref value) = params.transaction_code {
             request = request.query(&[("transaction_code", value)]);

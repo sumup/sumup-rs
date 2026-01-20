@@ -74,6 +74,7 @@ impl Generator {
         ));
 
         self.ensure_directories()?;
+        self.generate_api_version_file()?;
         self.generate_common_module()?;
         self.generate_tag_modules()?;
         self.generate_client_module()?;
@@ -179,6 +180,29 @@ impl Generator {
     fn generate_client_module(&self) -> Result<(), String> {
         Self::log("[generate sdk] generating client.rs ...");
         generate_client_file(&self.out_path, &self.spec, &self.schemas_by_tag.tag_schemas)
+    }
+
+    fn generate_api_version_file(&self) -> Result<(), String> {
+        let api_version = self.spec.info.version.trim().to_string();
+
+        if api_version.is_empty() {
+            return Err("OpenAPI spec version is empty".to_string());
+        }
+
+        let mut version_path = self.out_path.clone();
+        version_path.push("api_version.rs");
+
+        let api_version_literal = syn::LitStr::new(&api_version, Span::call_site());
+        let tokens = quote! {
+            /// The version of the SumUp API spec.
+            pub const API_VERSION: &str = #api_version_literal;
+        };
+
+        let contents = format_generated_code(tokens);
+        std::fs::write(&version_path, &contents)
+            .map_err(|e| format!("Failed to write api_version.rs: {}", e))?;
+
+        Ok(())
     }
 
     fn generate_mod_rs(&self) -> Result<(), String> {

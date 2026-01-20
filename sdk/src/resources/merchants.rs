@@ -433,6 +433,9 @@ impl<'a> MerchantsClient<'a> {
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
         }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
         if let Some(ref value) = params.version {
             request = request.query(&[("version", value)]);
         }
@@ -471,6 +474,9 @@ impl<'a> MerchantsClient<'a> {
             .timeout(self.client.timeout());
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
         }
         if let Some(ref value) = params.version {
             request = request.query(&[("version", value)]);
@@ -518,6 +524,9 @@ impl<'a> MerchantsClient<'a> {
             .timeout(self.client.timeout());
         if let Some(token) = self.client.authorization_token() {
             request = request.header("Authorization", format!("Bearer {}", token));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
         }
         if let Some(ref value) = params.version {
             request = request.query(&[("version", value)]);

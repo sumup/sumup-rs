@@ -66,6 +66,7 @@ pub fn generate_client_file(
             base_url: String,
             authorization_token: Option<String>,
             timeout: std::time::Duration,
+            runtime_info: Vec<(&'static str, String)>,
         }
 
         impl Client {
@@ -79,6 +80,7 @@ pub fn generate_client_file(
                     base_url: "https://api.sumup.com".to_string(),
                     authorization_token,
                     timeout: std::time::Duration::from_secs(10),
+                    runtime_info: crate::version::runtime_info(),
                 }
             }
 
@@ -128,6 +130,11 @@ pub fn generate_client_file(
             /// Returns the request timeout.
             pub fn timeout(&self) -> std::time::Duration {
                 self.timeout
+            }
+
+            /// Returns the runtime headers sent with each request.
+            pub(crate) fn runtime_headers(&self) -> &[(&'static str, String)] {
+                &self.runtime_info
             }
 
             #(#tag_methods)*

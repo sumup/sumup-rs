@@ -149,6 +149,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod api_version;
 pub mod client;
 pub mod datetime;
 pub mod error;
