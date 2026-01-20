@@ -38,3 +38,41 @@ fn runtime_arch() -> String {
     }
     .to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn runtime_info_includes_expected_headers() {
+        let headers = runtime_info();
+
+        let names: Vec<&str> = headers.iter().map(|(name, _)| *name).collect();
+        assert!(names.contains(&"X-Sumup-Api-Version"));
+        assert!(names.contains(&"X-SumUp-Lang"));
+        assert!(names.contains(&"X-SumUp-Package-Version"));
+        assert!(names.contains(&"X-SumUp-Os"));
+        assert!(names.contains(&"X-SumUp-Arch"));
+        assert!(names.contains(&"X-SumUp-Runtime"));
+        assert!(names.contains(&"X-SumUp-Runtime-Version"));
+    }
+
+    #[test]
+    fn runtime_info_uses_normalized_arch_value() {
+        let expected = match std::env::consts::ARCH {
+            "x86_64" => "x86_64",
+            "x86" | "i686" => "x86",
+            "aarch64" => "arm64",
+            "arm" => "arm",
+            other => other,
+        };
+
+        let arch = runtime_info()
+            .into_iter()
+            .find(|(name, _)| *name == "X-SumUp-Arch")
+            .map(|(_, value)| value)
+            .expect("runtime info should include X-SumUp-Arch");
+
+        assert_eq!(arch, expected);
+    }
+}
