@@ -25,6 +25,7 @@ jiff = { version = "0.2", default-features = false, features = [
 ], optional = true }
 reqwest = { version = "0.13", default-features = false, features = [
   "json",
+  "query",
   "default-tls",
 ] }
 serde = { version = "1.0", features = ["derive"] }
