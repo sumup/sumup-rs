@@ -141,6 +141,7 @@
 //!
 //! - **chrono** (default): Use chrono for datetime types
 //! - **jiff**: Use jiff for datetime types (mutually exclusive with chrono)
+//! - **tracing**: Emit request spans using the `tracing` crate
 //!
 //! ## Resources
 //!
@@ -156,6 +157,7 @@ pub mod datetime;
 pub mod error;
 pub mod nullable;
 pub mod secret;
+mod trace;
 pub mod version;
 
 #[allow(deprecated)]

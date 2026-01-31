@@ -59,6 +59,10 @@ let client = Client::default()
     .with_authorization(Authorization::api_key("your_api_key"));
 ```
 
+## Features
+
+- `tracing`: Emit request spans using the `tracing` crate.
+
 ## Examples
 
 You can find all examples under [examples/](/examples/). To run an example, use:

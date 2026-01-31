@@ -210,6 +210,8 @@ impl<'a> ReceiptsClient<'a> {
     ) -> crate::error::SdkResult<Receipt, GetErrorBody> {
         let path = format!("/v1.1/receipts/{}", id.into());
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -226,7 +228,11 @@ impl<'a> ReceiptsClient<'a> {
         if let Some(ref value) = params.tx_event_id {
             request = request.query(&[("tx_event_id", value)]);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {

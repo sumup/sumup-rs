@@ -527,6 +527,8 @@ impl<'a> TransactionsClient<'a> {
     ) -> crate::error::SdkResult<(), RefundErrorBody> {
         let path = format!("/v0.1/me/refund/{}", txn_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("POST", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -542,7 +544,11 @@ impl<'a> TransactionsClient<'a> {
         if let Some(body) = body {
             request = request.json(&body);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::NO_CONTENT => Ok(()),
@@ -576,6 +582,8 @@ impl<'a> TransactionsClient<'a> {
     ) -> crate::error::SdkResult<TransactionFull, GetDeprecatedErrorBody> {
         let path = "/v0.1/me/transactions";
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -597,7 +605,11 @@ impl<'a> TransactionsClient<'a> {
         if let Some(ref value) = params.transaction_code {
             request = request.query(&[("transaction_code", value)]);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -632,6 +644,8 @@ impl<'a> TransactionsClient<'a> {
     ) -> crate::error::SdkResult<ListDeprecatedResponse, ListDeprecatedErrorBody> {
         let path = "/v0.1/me/transactions/history";
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -680,7 +694,11 @@ impl<'a> TransactionsClient<'a> {
         if let Some(ref value) = params.oldest_ref {
             request = request.query(&[("oldest_ref", value)]);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -716,6 +734,8 @@ impl<'a> TransactionsClient<'a> {
     ) -> crate::error::SdkResult<TransactionFull, GetErrorBody> {
         let path = format!("/v2.1/merchants/{}/transactions", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -743,7 +763,11 @@ impl<'a> TransactionsClient<'a> {
         if let Some(ref value) = params.client_transaction_id {
             request = request.query(&[("client_transaction_id", value)]);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -780,6 +804,8 @@ impl<'a> TransactionsClient<'a> {
             merchant_code.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -831,7 +857,11 @@ impl<'a> TransactionsClient<'a> {
         if let Some(ref value) = params.oldest_ref {
             request = request.query(&[("oldest_ref", value)]);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {

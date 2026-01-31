@@ -428,6 +428,8 @@ impl<'a> ReadersClient<'a> {
     ) -> crate::error::SdkResult<ListResponse, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -440,7 +442,11 @@ impl<'a> ReadersClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -464,6 +470,8 @@ impl<'a> ReadersClient<'a> {
     ) -> crate::error::SdkResult<Reader, CreateErrorBody> {
         let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("POST", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -477,7 +485,11 @@ impl<'a> ReadersClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::CREATED => {
@@ -519,6 +531,8 @@ impl<'a> ReadersClient<'a> {
             id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("DELETE", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -531,7 +545,11 @@ impl<'a> ReadersClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => Ok(()),
@@ -560,6 +578,8 @@ impl<'a> ReadersClient<'a> {
             id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -572,7 +592,11 @@ impl<'a> ReadersClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -605,6 +629,8 @@ impl<'a> ReadersClient<'a> {
             id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("PATCH", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -618,7 +644,11 @@ impl<'a> ReadersClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -667,6 +697,8 @@ impl<'a> ReadersClient<'a> {
             reader_id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("POST", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -680,7 +712,11 @@ impl<'a> ReadersClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::CREATED => {
@@ -762,6 +798,8 @@ impl<'a> ReadersClient<'a> {
             reader_id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -774,7 +812,11 @@ impl<'a> ReadersClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -851,6 +893,8 @@ impl<'a> ReadersClient<'a> {
             reader_id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("POST", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -863,7 +907,11 @@ impl<'a> ReadersClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::ACCEPTED => Ok(()),

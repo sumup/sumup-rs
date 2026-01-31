@@ -453,6 +453,8 @@ impl<'a> MerchantClient<'a> {
     ) -> crate::error::SdkResult<MerchantAccount, GetErrorBody> {
         let path = "/v0.1/me";
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -468,7 +470,11 @@ impl<'a> MerchantClient<'a> {
         if let Some(ref value) = params.include {
             request = request.query(&[("include[]", value)]);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -496,6 +502,8 @@ impl<'a> MerchantClient<'a> {
     ) -> crate::error::SdkResult<MerchantProfileLegacy, GetMerchantProfileErrorBody> {
         let path = "/v0.1/me/merchant-profile";
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -508,7 +516,11 @@ impl<'a> MerchantClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -542,6 +554,8 @@ impl<'a> MerchantClient<'a> {
     ) -> crate::error::SdkResult<DoingBusinessAsLegacy, GetDoingBusinessAsErrorBody> {
         let path = "/v0.1/me/merchant-profile/doing-business-as";
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -554,7 +568,11 @@ impl<'a> MerchantClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -582,6 +600,8 @@ impl<'a> MerchantClient<'a> {
     ) -> crate::error::SdkResult<PersonalProfileLegacy, GetPersonalProfileErrorBody> {
         let path = "/v0.1/me/personal-profile";
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -594,7 +614,11 @@ impl<'a> MerchantClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {

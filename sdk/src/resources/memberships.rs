@@ -127,6 +127,8 @@ impl<'a> MembershipsClient<'a> {
     ) -> crate::error::SdkResult<ListResponse, crate::error::UnknownApiBody> {
         let path = "/v0.1/memberships";
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -183,7 +185,11 @@ impl<'a> MembershipsClient<'a> {
         if let Some(ref value) = params.roles {
             request = request.query(&[("roles", value)]);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {

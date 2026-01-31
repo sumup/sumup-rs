@@ -1,7 +1,7 @@
 use heck::ToSnakeCase;
 use heck::ToUpperCamelCase;
 use openapiv3::OpenAPI;
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
 
 struct OperationResponse {
@@ -323,6 +323,7 @@ fn generate_operation_method(
 
     // Generate HTTP method call
     let http_method_ident = Ident::new(http_method, Span::call_site());
+    let http_method_literal = Literal::string(&http_method.to_uppercase());
 
     // Determine response type and error handling
     let OperationResponse {
@@ -418,7 +419,11 @@ fn generate_operation_method(
                 if let Some(body) = body {
                     request = request.json(&body);
                 }
-                let response = request.send().await?;
+                let response = request.send().await.inspect_err(|err| {
+                    _sumup_span.record_error(&err);
+                    err
+                })?;
+                _sumup_span.record_status(response.status());
             }
         } else {
             // Required body
@@ -435,7 +440,11 @@ fn generate_operation_method(
                     request = request.header(*header_name, header_value);
                 }
                 #query_additions
-                let response = request.send().await?;
+                let response = request.send().await.inspect_err(|err| {
+                    _sumup_span.record_error(&err);
+                    err
+                })?;
+                _sumup_span.record_status(response.status());
             }
         }
     } else {
@@ -452,7 +461,11 @@ fn generate_operation_method(
                 request = request.header(*header_name, header_value);
             }
             #query_additions
-            let response = request.send().await?;
+            let response = request.send().await.inspect_err(|err| {
+                _sumup_span.record_error(&err);
+                err
+            })?;
+            _sumup_span.record_status(response.status());
         }
     };
 
@@ -461,6 +474,8 @@ fn generate_operation_method(
         pub async fn #method_ident(&self, #(#path_params),*) -> crate::error::SdkResult<#return_type, #error_type> {
             #path_construction
             let url = format!("{}{}", self.client.base_url(), path);
+            let _sumup_span = crate::trace::RequestSpan::new(#http_method_literal, &path, &url);
+            let _sumup_guard = _sumup_span.enter();
             #request_send
             #response_handling
         }

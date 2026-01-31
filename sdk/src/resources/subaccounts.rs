@@ -118,6 +118,8 @@ impl<'a> SubaccountsClient<'a> {
     ) -> crate::error::SdkResult<ListSubAccountsResponse, crate::error::UnknownApiBody> {
         let path = "/v0.1/me/accounts";
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -136,7 +138,11 @@ impl<'a> SubaccountsClient<'a> {
         if let Some(ref value) = params.include_primary {
             request = request.query(&[("include_primary", value)]);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -159,6 +165,8 @@ impl<'a> SubaccountsClient<'a> {
     ) -> crate::error::SdkResult<Operator, CreateSubAccountErrorBody> {
         let path = "/v0.1/me/accounts";
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("POST", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -172,7 +180,11 @@ impl<'a> SubaccountsClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -201,6 +213,8 @@ impl<'a> SubaccountsClient<'a> {
     ) -> crate::error::SdkResult<Operator, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("DELETE", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -213,7 +227,11 @@ impl<'a> SubaccountsClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -236,6 +254,8 @@ impl<'a> SubaccountsClient<'a> {
     ) -> crate::error::SdkResult<Operator, crate::error::UnknownApiBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("GET", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -248,7 +268,11 @@ impl<'a> SubaccountsClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
@@ -272,6 +296,8 @@ impl<'a> SubaccountsClient<'a> {
     ) -> crate::error::SdkResult<Operator, UpdateSubAccountErrorBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
+        let _sumup_span = crate::trace::RequestSpan::new("PUT", &path, &url);
+        let _sumup_guard = _sumup_span.enter();
         let mut request = self
             .client
             .http_client()
@@ -285,7 +311,11 @@ impl<'a> SubaccountsClient<'a> {
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
         }
-        let response = request.send().await?;
+        let response = request.send().await.inspect_err(|err| {
+            _sumup_span.record_error(&err);
+            err
+        })?;
+        _sumup_span.record_status(response.status());
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => {
