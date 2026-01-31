@@ -14,11 +14,14 @@ mod imp {
         pub fn new(method: &'static str, path: &str, url: &str) -> Self {
             let span = tracing::info_span!(
                 "sumup.request",
-                http_method = method,
-                http_path = path,
-                http_url = url,
-                status_code = field::Empty,
-                error = field::Empty,
+                "otel.kind" = "client",
+                "otel.name" = "sumup.request",
+                "http.request.method" = method,
+                "url.full" = url,
+                "url.path" = path,
+                "http.response.status_code" = field::Empty,
+                "error.message" = field::Empty,
+                "otel.status_code" = field::Empty,
             );
             Self { span }
         }
@@ -30,11 +33,13 @@ mod imp {
         }
 
         pub fn record_status(&self, status: reqwest::StatusCode) {
-            self.span.record("status_code", status.as_u16());
+            self.span
+                .record("http.response.status_code", status.as_u16());
         }
 
         pub fn record_error(&self, error: &reqwest::Error) {
-            self.span.record("error", field::display(error));
+            self.span.record("error.message", field::display(error));
+            self.span.record("otel.status_code", "ERROR");
         }
     }
 }
