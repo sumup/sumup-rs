@@ -33,7 +33,7 @@ use uuid::Uuid;
 
 use sumup::{
     resources::merchants::{GetParams, Merchant},
-    Client,
+    Authorization, Client,
 };
 
 #[derive(Clone)]
@@ -160,7 +160,7 @@ async fn handle_callback(
     println!("merchant code: {merchant_code}");
 
     let access_token = token_response.access_token().secret().to_owned();
-    let client = Client::default().with_authorization(access_token);
+    let client = Client::default().with_authorization(Authorization::access_token(access_token));
 
     let merchant = client
         .merchants()

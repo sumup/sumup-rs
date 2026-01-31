@@ -1,5 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
+use crate::auth::Authorization;
 /// The main SumUp API client.
 ///
 /// Use this client to access different API endpoints organized by tags.
@@ -7,7 +8,7 @@
 pub struct Client {
     http_client: reqwest::Client,
     base_url: String,
-    authorization_token: Option<String>,
+    authorization: Option<Authorization>,
     timeout: std::time::Duration,
     runtime_info: Vec<(&'static str, String)>,
 }
@@ -16,11 +17,13 @@ impl Client {
     /// Tries to read the authorization token from the SUMUP_API_KEY environment variable.
     /// Default timeout is 10 seconds.
     pub fn new() -> Self {
-        let authorization_token = std::env::var("SUMUP_API_KEY").ok();
+        let authorization = std::env::var("SUMUP_API_KEY")
+            .ok()
+            .map(Authorization::APIKey);
         Self {
             http_client: reqwest::Client::new(),
             base_url: "https://api.sumup.com".to_string(),
-            authorization_token,
+            authorization,
             timeout: std::time::Duration::from_secs(10),
             runtime_info: crate::version::runtime_info(),
         }
@@ -39,8 +42,8 @@ impl Client {
     }
     /// Sets the authorization token for API requests.
     /// Returns a new client with the updated token.
-    pub fn with_authorization(mut self, token: impl Into<String>) -> Self {
-        self.authorization_token = Some(token.into());
+    pub fn with_authorization(mut self, auth: Authorization) -> Self {
+        self.authorization = Some(auth);
         self
     }
     /// Sets the request timeout for API requests.
@@ -58,8 +61,8 @@ impl Client {
         &self.base_url
     }
     /// Returns the authorization token if set.
-    pub fn authorization_token(&self) -> Option<&str> {
-        self.authorization_token.as_deref()
+    pub fn authorization(&self) -> Option<&str> {
+        self.authorization.as_ref().map(|auth| auth.get_header())
     }
     /// Returns the request timeout.
     pub fn timeout(&self) -> std::time::Duration {

@@ -65,8 +65,8 @@ impl<'a> PayoutsClient<'a> {
             .get(&url)
             .header("User-Agent", crate::version::user_agent())
             .timeout(self.client.timeout());
-        if let Some(token) = self.client.authorization_token() {
-            request = request.header("Authorization", format!("Bearer {}", token));
+        if let Some(authorization) = self.client.authorization() {
+            request = request.header("Authorization", format!("Bearer {}", authorization));
         }
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);
@@ -118,8 +118,8 @@ impl<'a> PayoutsClient<'a> {
             .get(&url)
             .header("User-Agent", crate::version::user_agent())
             .timeout(self.client.timeout());
-        if let Some(token) = self.client.authorization_token() {
-            request = request.header("Authorization", format!("Bearer {}", token));
+        if let Some(authorization) = self.client.authorization() {
+            request = request.header("Authorization", format!("Bearer {}", authorization));
         }
         for (header_name, header_value) in self.client.runtime_headers() {
             request = request.header(*header_name, header_value);

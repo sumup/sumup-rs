@@ -46,6 +46,19 @@ async fn main() {
 }
 ```
 
+## Authentication
+
+```rust
+use sumup::{Authorization, Client};
+
+// Read SUMUP_API_KEY from the environment
+let client = Client::default();
+
+// Or set an explicit API key
+let client = Client::default()
+    .with_authorization(Authorization::api_key("your_api_key"));
+```
+
 ## Examples
 
 You can find all examples under [examples/](/examples/). To run an example, use:
