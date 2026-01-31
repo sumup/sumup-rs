@@ -29,23 +29,23 @@
 //! Set your API key via environment variable or explicitly:
 //!
 //! ```no_run
-//! # use sumup::Client;
+//! # use sumup::{Authorization, Client};
 //! // From environment variable SUMUP_API_KEY
 //! let client = Client::default();
 //!
 //! // Explicit token
 //! let client = Client::default()
-//!     .with_authorization("your_api_key");
+//!     .with_authorization(Authorization::api_key("your_api_key"));
 //! ```
 //!
 //! ### Custom Configuration
 //!
 //! ```no_run
-//! # use sumup::Client;
+//! # use sumup::{Authorization, Client};
 //! use std::time::Duration;
 //!
 //! let client = Client::default()
-//!     .with_authorization("your_api_key")
+//!     .with_authorization(Authorization::api_key("your_api_key"))
 //!     .with_timeout(Duration::from_secs(30));
 //! ```
 //!
@@ -150,6 +150,7 @@
 #![forbid(unsafe_code)]
 
 pub mod api_version;
+pub mod auth;
 pub mod client;
 pub mod datetime;
 pub mod error;
@@ -162,6 +163,7 @@ pub mod version;
 pub mod resources;
 
 pub use crate::resources::*;
+pub use auth::Authorization;
 pub use client::Client;
 pub use error::{SdkError, SdkResult, UnknownApiBody};
 pub use nullable::Nullable;

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use serde_json::json;
 use serial_test::serial;
-use sumup::{version, Client};
+use sumup::{version, Authorization, Client};
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -62,7 +62,7 @@ fn client_reads_authorization_from_env() {
 
     let client = Client::new();
 
-    assert_eq!(client.authorization_token(), Some(token));
+    assert_eq!(client.authorization(), Some(token));
 }
 
 #[test]
@@ -71,9 +71,9 @@ fn client_with_authorization_overrides_env_value() {
     let _guard = EnvVarGuard::set("SUMUP_API_KEY", "env-token");
     let override_token = "override-token";
 
-    let client = Client::new().with_authorization(override_token);
+    let client = Client::new().with_authorization(Authorization::api_key(override_token));
 
-    assert_eq!(client.authorization_token(), Some(override_token));
+    assert_eq!(client.authorization(), Some(override_token));
 }
 
 #[tokio::test]
@@ -96,7 +96,7 @@ async fn client_requests_include_user_agent_and_custom_authorization() {
 
     let client = Client::new()
         .with_base_url(server.uri())
-        .with_authorization(override_token);
+        .with_authorization(Authorization::api_key(override_token));
 
     client
         .checkouts()
@@ -140,5 +140,5 @@ async fn client_requests_include_runtime_headers() {
 fn client_returns_none_when_authorization_missing() {
     let _guard = EnvVarGuard::unset("SUMUP_API_KEY");
     let client = Client::new();
-    assert!(client.authorization_token().is_none());
+    assert!(client.authorization().is_none());
 }
