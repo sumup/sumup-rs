@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7](https://github.com/sumup/sumup-rs/compare/v0.5.6...v0.5.7) - 2026-02-07
+
+### Added
+
+- *(sdk)* improve comments, fields with reserved keywords ([#103](https://github.com/sumup/sumup-rs/pull/103))
+
+### Other
+
+- synced file(s) with sumup/apis ([#102](https://github.com/sumup/sumup-rs/pull/102))
+- *(deps)* bump uuid from 1.19.0 to 1.20.0 ([#98](https://github.com/sumup/sumup-rs/pull/98))
+
 ## [0.5.6](https://github.com/sumup/sumup-rs/compare/v0.5.5...v0.5.6) - 2026-01-31
 
 ### Added
