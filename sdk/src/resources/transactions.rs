@@ -5,11 +5,16 @@ use super::common::*;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CardResponse {
     /// Last 4 digits of the payment card number.
+    ///
+    /// Constraints:
+    /// - read-only
+    /// - min length: 4
+    /// - max length: 4
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_4_digits: Option<String>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<CardType>,
+    pub r#type: Option<CardType>,
 }
 /// Entry mode value accepted by the `entry_modes[]` filter.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -74,7 +79,7 @@ pub struct Event {
     pub transaction_id: Option<TransactionId>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<EventType>,
+    pub r#type: Option<EventType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<EventStatus>,
     /// Amount of the event.
@@ -105,12 +110,15 @@ pub struct Link {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rel: Option<String>,
     /// URL for accessing the related resource.
+    ///
+    /// Constraints:
+    /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub href: Option<String>,
     /// Specifies the media type of the related resource.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<String>,
+    pub r#type: Option<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct LinkRefund {
@@ -118,12 +126,15 @@ pub struct LinkRefund {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rel: Option<String>,
     /// URL for accessing the related resource.
+    ///
+    /// Constraints:
+    /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub href: Option<String>,
     /// Specifies the media type of the related resource.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<String>,
+    pub r#type: Option<String>,
     /// Minimum allowed amount for the refund.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub min_amount: Option<f32>,
@@ -210,6 +221,9 @@ pub struct TransactionFull {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
+    ///
+    /// Constraints:
+    /// - value >= 1
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.
@@ -242,6 +256,9 @@ pub struct TransactionFull {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payout_plan: Option<String>,
     /// Email address of the registered user (merchant) to whom the payment is made.
+    ///
+    /// Constraints:
+    /// - format: `email`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -277,9 +294,15 @@ pub struct TransactionFull {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub simple_status: Option<String>,
     /// List of hyperlinks for accessing related resources.
+    ///
+    /// Constraints:
+    /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub links: Option<Vec<serde_json::Value>>,
     /// List of events related to the transaction.
+    ///
+    /// Constraints:
+    /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub events: Option<Vec<Event>>,
     /// Details of the payment location as received from the payment terminal.
@@ -311,6 +334,9 @@ pub struct TransactionHistory {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
+    ///
+    /// Constraints:
+    /// - value >= 1
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Short description of the payment. The value is taken from the `description` property of the related checkout resource.
@@ -331,12 +357,15 @@ pub struct TransactionHistory {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_transaction_id: Option<String>,
     /// Email address of the registered user (merchant) to whom the payment is made.
+    ///
+    /// Constraints:
+    /// - format: `email`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<String>,
     /// Type of the transaction for the registered user specified in the `user` property.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<String>,
+    pub r#type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub card_type: Option<CardType>,
 }

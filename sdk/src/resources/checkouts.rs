@@ -5,27 +5,59 @@ use super::common::*;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Card {
     /// Name of the cardholder as it appears on the payment card.
+    ///
+    /// Constraints:
+    /// - write-only
     pub name: String,
     /// Number of the payment card (without spaces).
+    ///
+    /// Constraints:
+    /// - write-only
     pub number: String,
     /// Year from the expiration time of the payment card. Accepted formats are `YY` and `YYYY`.
+    ///
+    /// Constraints:
+    /// - write-only
+    /// - min length: 2
+    /// - max length: 4
     pub expiry_year: String,
     /// Month from the expiration time of the payment card. Accepted format is `MM`.
+    ///
+    /// Constraints:
+    /// - write-only
     pub expiry_month: String,
     /// Three or four-digit card verification value (security code) of the payment card.
+    ///
+    /// Constraints:
+    /// - write-only
+    /// - min length: 3
+    /// - max length: 4
     pub cvv: String,
     /// Required five-digit ZIP code. Applicable only to merchant users in the USA.
+    ///
+    /// Constraints:
+    /// - write-only
+    /// - min length: 5
+    /// - max length: 5
     #[serde(skip_serializing_if = "Option::is_none")]
     pub zip_code: Option<String>,
     /// Last 4 digits of the payment card number.
+    ///
+    /// Constraints:
+    /// - read-only
+    /// - min length: 4
+    /// - max length: 4
     pub last_4_digits: String,
     #[serde(rename = "type")]
-    pub type_: CardType,
+    pub r#type: CardType,
 }
 /// Details of the payment checkout.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Checkout {
     /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
+    ///
+    /// Constraints:
+    /// - max length: 90
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkout_reference: Option<String>,
     /// Amount of the payment.
@@ -40,9 +72,15 @@ pub struct Checkout {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// URL to which the SumUp platform sends the processing status of the payment checkout.
+    ///
+    /// Constraints:
+    /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
     /// Unique ID of the checkout resource.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// Current status of the checkout.
@@ -64,6 +102,9 @@ pub struct Checkout {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mandate: Option<MandateResponse>,
     /// List of transactions related to the payment.
+    ///
+    /// Constraints:
+    /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transactions: Option<Vec<CheckoutTransactionsItem>>,
 }
@@ -78,6 +119,9 @@ pub struct CheckoutAccepted {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutCreateRequest {
     /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
+    ///
+    /// Constraints:
+    /// - max length: 90
     pub checkout_reference: String,
     /// Amount of the payment.
     pub amount: f32,
@@ -88,6 +132,9 @@ pub struct CheckoutCreateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// URL to which the SumUp platform sends the processing status of the payment checkout.
+    ///
+    /// Constraints:
+    /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
     /// Unique identification of a customer. If specified, the checkout session and payment instrument are associated with the referenced customer.
@@ -97,12 +144,21 @@ pub struct CheckoutCreateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub purpose: Option<String>,
     /// Unique ID of the checkout resource.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// Current status of the checkout.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
     /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<crate::datetime::DateTime>,
     /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
@@ -113,6 +169,10 @@ pub struct CheckoutCreateRequest {
     )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
     /// List of transactions related to the payment.
+    ///
+    /// Constraints:
+    /// - read-only
+    /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transactions: Option<Vec<CheckoutCreateRequestTransactionsItem>>,
     /// __Required__ for [APMs](https://developer.sumup.com/online-payments/apm/introduction) and __recommended__ for card payments. Refers to a url where the end user is redirected once the payment processing completes. If not specified, the [Payment Widget](https://developer.sumup.com/online-payments/tools/card-widget) renders [3DS challenge](https://developer.sumup.com/online-payments/features/3ds) within an iframe instead of performing a full-page redirect.
@@ -122,6 +182,9 @@ pub struct CheckoutCreateRequest {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccess {
     /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
+    ///
+    /// Constraints:
+    /// - max length: 90
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkout_reference: Option<String>,
     /// Amount of the payment.
@@ -136,9 +199,15 @@ pub struct CheckoutSuccess {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// URL to which the SumUp platform sends the processing status of the payment checkout.
+    ///
+    /// Constraints:
+    /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
     /// Unique ID of the checkout resource.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// Current status of the checkout.
@@ -160,12 +229,21 @@ pub struct CheckoutSuccess {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mandate: Option<MandateResponse>,
     /// List of transactions related to the payment.
+    ///
+    /// Constraints:
+    /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transactions: Option<Vec<CheckoutSuccessTransactionsItem>>,
     /// Transaction code of the successful transaction with which the payment for the checkout is completed.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
     /// Transaction ID of the successful transaction with which the payment for the checkout is completed.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<String>,
     /// Name of the merchant
@@ -231,7 +309,7 @@ impl std::error::Error for ErrorExtended {}
 pub struct MandatePayload {
     /// Indicates the mandate type
     #[serde(rename = "type")]
-    pub type_: String,
+    pub r#type: String,
     /// Operating system and web client used by the end-user
     pub user_agent: String,
     /// IP address of the end user. Supports IPv4 and IPv6
@@ -244,6 +322,10 @@ pub struct ProcessCheckout {
     /// Describes the payment method used to attempt processing
     pub payment_type: String,
     /// Number of installments for deferred payments. Available only to merchant users in Brazil.
+    ///
+    /// Constraints:
+    /// - value >= 1
+    /// - value <= 12
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -281,6 +363,9 @@ pub struct CheckoutTransactionsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
+    ///
+    /// Constraints:
+    /// - value >= 1
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.
@@ -355,6 +440,9 @@ pub struct CheckoutCreateRequestTransactionsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
+    ///
+    /// Constraints:
+    /// - value >= 1
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.
@@ -397,6 +485,9 @@ pub struct CheckoutSuccessTransactionsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
+    ///
+    /// Constraints:
+    /// - value >= 1
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.

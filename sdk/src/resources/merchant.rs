@@ -10,7 +10,7 @@ pub struct AccountLegacy {
     /// The role of the user.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<String>,
+    pub r#type: Option<String>,
 }
 /// Details of the registered address.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

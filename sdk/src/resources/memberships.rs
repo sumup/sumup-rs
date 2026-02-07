@@ -9,7 +9,7 @@ pub struct Membership {
     /// ID of the resource the membership is in.
     pub resource_id: String,
     #[serde(rename = "type")]
-    pub type_: ResourceType,
+    pub r#type: ResourceType,
     /// User's roles.
     pub roles: Vec<String>,
     /// User's permissions.
@@ -36,10 +36,14 @@ pub struct MembershipResource {
     /// ID of the resource the membership is in.
     pub id: String,
     #[serde(rename = "type")]
-    pub type_: ResourceType,
+    pub r#type: ResourceType,
     /// Display name of the resource.
     pub name: String,
     /// Logo fo the resource.
+    ///
+    /// Constraints:
+    /// - format: `uri`
+    /// - max length: 256
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logo: Option<String>,
     /// The timestamp of when the membership resource was created.
@@ -53,9 +57,16 @@ pub type ResourceType = String;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
     /// Offset of the first member to return.
+    ///
+    /// Constraints:
+    /// - value >= 0
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<i64>,
     /// Maximum number of members to return.
+    ///
+    /// Constraints:
+    /// - value >= 1
+    /// - value <= 25
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Filter memberships by resource kind.

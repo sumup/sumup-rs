@@ -47,6 +47,9 @@ pub struct MembershipUser {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
     /// URL of the End-User's profile picture. This URL refers to an image file (for example, a PNG, JPEG, or GIF image file), rather than to a Web page containing an image.
+    ///
+    /// Constraints:
+    /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,15 +68,25 @@ pub struct UpdateBodyUser {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
     /// Password of the member to add. Only used if `is_managed_user` is true.
+    ///
+    /// Constraints:
+    /// - min length: 8
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<crate::secret::Secret>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
     /// Offset of the first member to return.
+    ///
+    /// Constraints:
+    /// - value >= 0
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<i64>,
     /// Maximum number of members to return.
+    ///
+    /// Constraints:
+    /// - value >= 1
+    /// - value <= 25
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Indicates to skip count query.
@@ -83,6 +96,9 @@ pub struct ListParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
     /// Search for a member by user id.
+    ///
+    /// Constraints:
+    /// - format: `uuid`
     #[serde(rename = "user.id")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
@@ -106,8 +122,14 @@ pub struct CreateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_managed_user: Option<bool>,
     /// Email address of the member to add.
+    ///
+    /// Constraints:
+    /// - format: `email`
     pub email: String,
     /// Password of the member to add. Only used if `is_managed_user` is true. In the case of service accounts, the password is not used and can not be defined by the caller.
+    ///
+    /// Constraints:
+    /// - min length: 8
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<crate::secret::Secret>,
     /// Nickname of the member to add. Only used if `is_managed_user` is true. Used for display purposes only.
