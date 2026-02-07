@@ -22,7 +22,6 @@ pub struct AddressLegacy {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
 }
-pub type AmountEvent = f32;
 /// Object attributes that are modifiable only by SumUp applications.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Attributes {}
@@ -345,7 +344,6 @@ impl std::fmt::Display for Problem {
     }
 }
 impl std::error::Error for Problem {}
-pub type TimestampEvent = String;
 /// Details of the transaction.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionBase {

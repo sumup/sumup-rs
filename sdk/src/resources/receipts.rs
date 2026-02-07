@@ -33,10 +33,12 @@ pub struct ReceiptEvent {
     pub type_: Option<EventType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<EventStatus>,
+    /// Amount of the event.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<AmountEvent>,
+    pub amount: Option<String>,
+    /// Date and time of the transaction event.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<TimestampEvent>,
+    pub timestamp: Option<crate::datetime::DateTime>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub receipt_no: Option<String>,
 }
@@ -142,21 +144,33 @@ pub struct ReceiptMerchantDataMerchantProfile {
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptTransactionProductsItem {
-    /// Product name.
+    /// Product name
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// Product description.
+    /// Product price
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// Product price.
+    pub price: Option<String>,
+    /// VAT rate
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub price: Option<f32>,
-    /// Product quantity.
+    pub vat_rate: Option<String>,
+    /// VAT amount for a single product
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub single_vat_amount: Option<String>,
+    /// Product price including VAT
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub price_with_vat: Option<String>,
+    /// VAT amount
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vat_amount: Option<String>,
+    /// Product quantity
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
-    /// Quantity x product price.
+    /// Quantity x product price
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_price: Option<f32>,
+    pub total_price: Option<String>,
+    /// Total price including VAT
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_with_vat: Option<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptTransactionVatRatesItem {
