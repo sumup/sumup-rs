@@ -12,15 +12,21 @@ pub struct Customer {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct PaymentInstrumentResponse {
     /// Unique token identifying the saved payment card for a customer.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
     /// Indicates whether the payment instrument is active and can be used for payments. To deactivate it, send a `DELETE` request to the resource endpoint.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub active: Option<bool>,
     /// Type of the payment instrument.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<String>,
+    pub r#type: Option<String>,
     /// Details of the payment card.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub card: Option<PaymentInstrumentResponseCard>,
@@ -34,11 +40,16 @@ pub struct PaymentInstrumentResponse {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct PaymentInstrumentResponseCard {
     /// Last 4 digits of the payment card number.
+    ///
+    /// Constraints:
+    /// - read-only
+    /// - min length: 4
+    /// - max length: 4
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_4_digits: Option<String>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<CardType>,
+    pub r#type: Option<CardType>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBody {

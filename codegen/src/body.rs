@@ -138,7 +138,7 @@ fn generate_query_params_struct(
     // Generate fields
     let mut fields = Vec::new();
     for param_data in query_params {
-        let field_name = Ident::new(&param_data.name.to_snake_case(), Span::call_site());
+        let field_name = crate::schema::make_rust_field_ident(&param_data.name.to_snake_case());
         let original_name = &param_data.name;
 
         // Determine field type based on schema
@@ -167,11 +167,22 @@ fn generate_query_params_struct(
             quote! {}
         };
 
-        let description = if let Some(desc) = &param_data.description {
-            let doc = crate::schema::generate_doc_comment(desc);
-            quote! { #doc }
-        } else {
-            quote! {}
+        let description = match &param_data.format {
+            openapiv3::ParameterSchemaOrContent::Schema(openapiv3::ReferenceOr::Item(schema)) => {
+                let doc = crate::schema::generate_schema_doc_comment(
+                    param_data.description.as_deref(),
+                    schema,
+                );
+                quote! { #doc }
+            }
+            _ => {
+                if let Some(desc) = &param_data.description {
+                    let doc = crate::schema::generate_doc_comment(desc);
+                    quote! { #doc }
+                } else {
+                    quote! {}
+                }
+            }
         };
 
         fields.push(quote! {

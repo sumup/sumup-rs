@@ -10,29 +10,293 @@ type FlattenedObject = Option<(Properties, Vec<String>)>;
 /// Generates documentation attributes from a description string.
 /// Splits multi-line descriptions into separate doc attributes for better formatting.
 pub fn generate_doc_comment(description: &str) -> TokenStream {
-    let lines: Vec<&str> = description.lines().collect();
+    let lines: Vec<String> = description
+        .lines()
+        .map(|line| line.trim().to_string())
+        .collect();
+    generate_doc_comment_from_lines(lines)
+}
 
+/// Generates documentation attributes from description + schema constraints.
+pub fn generate_schema_doc_comment(
+    description: Option<&str>,
+    schema: &openapiv3::Schema,
+) -> TokenStream {
+    let mut lines: Vec<String> = Vec::new();
+
+    if let Some(description) = description {
+        lines.extend(description.lines().map(|line| line.trim().to_string()));
+    }
+
+    let constraints = collect_schema_constraints(schema);
+    if !constraints.is_empty() {
+        if !lines.is_empty() {
+            lines.push(String::new());
+        }
+        lines.push("Constraints:".to_string());
+        lines.extend(constraints.into_iter().map(|line| format!("- {}", line)));
+    }
+
+    generate_doc_comment_from_lines(lines)
+}
+
+fn generate_doc_comment_from_lines(lines: Vec<String>) -> TokenStream {
     if lines.is_empty() {
         return quote! {};
     }
 
-    // Generate a separate #[doc = " line"] for each line (note the leading space)
     let doc_attrs: Vec<_> = lines
-        .iter()
+        .into_iter()
         .map(|line| {
-            let trimmed = line.trim();
-            let doc_line = if trimmed.is_empty() {
-                // For empty lines, just use an empty doc comment
+            let doc_line = if line.is_empty() {
                 String::new()
             } else {
-                // Add a space before the content
-                format!(" {}", trimmed)
+                format!(" {}", line)
             };
             quote! { #[doc = #doc_line] }
         })
         .collect();
 
     quote! { #(#doc_attrs)* }
+}
+
+fn collect_schema_constraints(schema: &openapiv3::Schema) -> Vec<String> {
+    use openapiv3::VariantOrUnknownOrEmpty;
+
+    let mut constraints = Vec::new();
+
+    if schema.schema_data.read_only {
+        constraints.push("read-only".to_string());
+    }
+    if schema.schema_data.write_only {
+        constraints.push("write-only".to_string());
+    }
+    match &schema.schema_kind {
+        openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
+            match &string_type.format {
+                VariantOrUnknownOrEmpty::Item(format) => {
+                    if !is_rust_mapped_string_format(format) {
+                        constraints.push(format!(
+                            "format: `{}`",
+                            normalize_format_name(&format!("{:?}", format))
+                        ));
+                    }
+                }
+                VariantOrUnknownOrEmpty::Unknown(format) => {
+                    constraints.push(format!("format: `{}`", format));
+                }
+                VariantOrUnknownOrEmpty::Empty => {}
+            }
+
+            if let Some(pattern) = &string_type.pattern {
+                constraints.push(format!("pattern: `{}`", pattern));
+            }
+            if let Some(min_length) = string_type.min_length {
+                constraints.push(format!("min length: {}", min_length));
+            }
+            if let Some(max_length) = string_type.max_length {
+                constraints.push(format!("max length: {}", max_length));
+            }
+        }
+        openapiv3::SchemaKind::Type(openapiv3::Type::Number(number_type)) => {
+            match &number_type.format {
+                VariantOrUnknownOrEmpty::Item(format) => {
+                    if !is_rust_mapped_number_format(format) {
+                        constraints.push(format!(
+                            "format: `{}`",
+                            normalize_format_name(&format!("{:?}", format))
+                        ));
+                    }
+                }
+                VariantOrUnknownOrEmpty::Unknown(format) => {
+                    constraints.push(format!("format: `{}`", format));
+                }
+                VariantOrUnknownOrEmpty::Empty => {}
+            }
+
+            if let Some(multiple_of) = number_type.multiple_of {
+                constraints.push(format!("multiple of: {}", multiple_of));
+            }
+            if let Some(minimum) = number_type.minimum {
+                if number_type.exclusive_minimum {
+                    constraints.push(format!("value > {}", minimum));
+                } else {
+                    constraints.push(format!("value >= {}", minimum));
+                }
+            }
+            if let Some(maximum) = number_type.maximum {
+                if number_type.exclusive_maximum {
+                    constraints.push(format!("value < {}", maximum));
+                } else {
+                    constraints.push(format!("value <= {}", maximum));
+                }
+            }
+        }
+        openapiv3::SchemaKind::Type(openapiv3::Type::Integer(integer_type)) => {
+            match &integer_type.format {
+                VariantOrUnknownOrEmpty::Item(format) => {
+                    if !is_rust_mapped_integer_format(format) {
+                        constraints.push(format!(
+                            "format: `{}`",
+                            normalize_format_name(&format!("{:?}", format))
+                        ));
+                    }
+                }
+                VariantOrUnknownOrEmpty::Unknown(format) => {
+                    constraints.push(format!("format: `{}`", format));
+                }
+                VariantOrUnknownOrEmpty::Empty => {}
+            }
+
+            if let Some(multiple_of) = integer_type.multiple_of {
+                constraints.push(format!("multiple of: {}", multiple_of));
+            }
+            if let Some(minimum) = integer_type.minimum {
+                if integer_type.exclusive_minimum {
+                    constraints.push(format!("value > {}", minimum));
+                } else {
+                    constraints.push(format!("value >= {}", minimum));
+                }
+            }
+            if let Some(maximum) = integer_type.maximum {
+                if integer_type.exclusive_maximum {
+                    constraints.push(format!("value < {}", maximum));
+                } else {
+                    constraints.push(format!("value <= {}", maximum));
+                }
+            }
+        }
+        openapiv3::SchemaKind::Type(openapiv3::Type::Array(array_type)) => {
+            if let Some(min_items) = array_type.min_items {
+                constraints.push(format!("min items: {}", min_items));
+            }
+            if let Some(max_items) = array_type.max_items {
+                constraints.push(format!("max items: {}", max_items));
+            }
+            if array_type.unique_items {
+                constraints.push("items must be unique".to_string());
+            }
+        }
+        openapiv3::SchemaKind::Type(openapiv3::Type::Object(object_type)) => {
+            if let Some(min_properties) = object_type.min_properties {
+                constraints.push(format!("min properties: {}", min_properties));
+            }
+            if let Some(max_properties) = object_type.max_properties {
+                constraints.push(format!("max properties: {}", max_properties));
+            }
+        }
+        _ => {}
+    }
+
+    constraints
+}
+
+fn normalize_format_name(raw: &str) -> String {
+    let mut normalized = String::with_capacity(raw.len());
+    let mut prev_is_lower_or_digit = false;
+
+    for ch in raw.chars() {
+        if ch.is_ascii_uppercase() {
+            if prev_is_lower_or_digit {
+                normalized.push('-');
+            }
+            normalized.push(ch.to_ascii_lowercase());
+            prev_is_lower_or_digit = false;
+        } else {
+            normalized.push(ch);
+            prev_is_lower_or_digit = ch.is_ascii_lowercase() || ch.is_ascii_digit();
+        }
+    }
+
+    normalized
+}
+
+/// Converts a generated field name into a valid Rust identifier, using raw identifiers for
+/// reserved keywords when possible.
+pub fn make_rust_field_ident(name: &str) -> Ident {
+    let normalized = name.to_lowercase().replace('-', "_");
+    if is_rust_keyword(&normalized) {
+        return Ident::new_raw(&normalized, Span::call_site());
+    }
+
+    Ident::new(&normalized, Span::call_site())
+}
+
+fn is_rust_keyword(name: &str) -> bool {
+    matches!(
+        name,
+        "as" | "break"
+            | "const"
+            | "continue"
+            | "else"
+            | "enum"
+            | "extern"
+            | "false"
+            | "fn"
+            | "for"
+            | "if"
+            | "impl"
+            | "in"
+            | "let"
+            | "loop"
+            | "match"
+            | "mod"
+            | "move"
+            | "mut"
+            | "pub"
+            | "ref"
+            | "return"
+            | "static"
+            | "struct"
+            | "trait"
+            | "true"
+            | "type"
+            | "unsafe"
+            | "use"
+            | "where"
+            | "while"
+            | "async"
+            | "await"
+            | "dyn"
+            | "abstract"
+            | "become"
+            | "box"
+            | "do"
+            | "final"
+            | "macro"
+            | "override"
+            | "priv"
+            | "try"
+            | "typeof"
+            | "unsized"
+            | "virtual"
+            | "yield"
+    )
+}
+
+fn is_rust_mapped_string_format(format: &openapiv3::StringFormat) -> bool {
+    matches!(
+        format,
+        openapiv3::StringFormat::DateTime
+            | openapiv3::StringFormat::Date
+            | openapiv3::StringFormat::Password
+            | openapiv3::StringFormat::Byte
+            | openapiv3::StringFormat::Binary
+    )
+}
+
+fn is_rust_mapped_number_format(format: &openapiv3::NumberFormat) -> bool {
+    matches!(
+        format,
+        openapiv3::NumberFormat::Float | openapiv3::NumberFormat::Double
+    )
+}
+
+fn is_rust_mapped_integer_format(format: &openapiv3::IntegerFormat) -> bool {
+    matches!(
+        format,
+        openapiv3::IntegerFormat::Int32 | openapiv3::IntegerFormat::Int64
+    )
 }
 
 /// Generates struct definitions for the selected component schemas.
@@ -88,7 +352,7 @@ pub fn generate_structs_for_schemas(
                     .schema_data
                     .description
                     .as_ref()
-                    .map(|d| generate_doc_comment(d));
+                    .map(|d| generate_schema_doc_comment(Some(d), schema));
 
                 let deprecation = generate_deprecation_attribute(&schema.schema_data);
 
@@ -132,7 +396,7 @@ pub fn generate_structs_for_schemas(
                         .schema_data
                         .description
                         .as_ref()
-                        .map(|d| generate_doc_comment(d));
+                        .map(|d| generate_schema_doc_comment(Some(d), schema));
 
                     let deprecation = generate_deprecation_attribute(&schema.schema_data);
 
@@ -195,7 +459,7 @@ pub fn generate_structs_for_schemas(
                             .schema_data
                             .description
                             .as_ref()
-                            .map(|d| generate_doc_comment(d));
+                            .map(|d| generate_schema_doc_comment(Some(d), schema));
 
                         let deprecation = generate_deprecation_attribute(&schema.schema_data);
 
@@ -327,7 +591,7 @@ impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
             .schema_data
             .description
             .as_ref()
-            .map(|d| generate_doc_comment(d));
+            .map(|d| generate_schema_doc_comment(Some(d), schema));
 
         let derives = if can_derive_default {
             quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
@@ -567,17 +831,7 @@ pub fn generate_struct_fields(
     properties
         .iter()
         .map(|(name, prop_ref)| {
-            let sanitized_name = match name.as_str() {
-                "type" => "type_",
-                "ref" => "ref_",
-                "match" => "match_",
-                "move" => "move_",
-                other => other,
-            };
-            let field_name = Ident::new(
-                &sanitized_name.to_lowercase().replace('-', "_"),
-                Span::call_site(),
-            );
+            let field_name = make_rust_field_ident(name);
             let is_required = required.contains(name);
 
             let prop = match prop_ref {
@@ -628,7 +882,7 @@ pub fn generate_struct_fields(
                 .schema_data
                 .description
                 .as_ref()
-                .map(|d| generate_doc_comment(d));
+                .map(|d| generate_schema_doc_comment(Some(d), prop));
 
             let deprecation = generate_deprecation_attribute(&prop.schema_data);
 

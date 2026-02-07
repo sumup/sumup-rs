@@ -20,7 +20,7 @@ pub struct ReceiptCard {
     /// Card Scheme.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<String>,
+    pub r#type: Option<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptEvent {
@@ -30,7 +30,7 @@ pub struct ReceiptEvent {
     pub transaction_id: Option<TransactionId>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub type_: Option<EventType>,
+    pub r#type: Option<EventType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<EventStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]

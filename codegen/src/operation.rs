@@ -157,7 +157,7 @@ fn generate_operation_method(
         if let openapiv3::Parameter::Path { parameter_data, .. } = param {
             if parameter_data.required {
                 let param_name = parameter_data.name.to_snake_case();
-                let param_ident = Ident::new(&param_name, Span::call_site());
+                let param_ident = crate::schema::make_rust_field_ident(&param_name);
 
                 path_params.push(quote! { #param_ident: impl Into<String> });
                 path_param_names.push((parameter_data.name.clone(), param_ident));
@@ -175,7 +175,7 @@ fn generate_operation_method(
         if let openapiv3::Parameter::Path { parameter_data, .. } = param {
             if parameter_data.required {
                 let param_name = parameter_data.name.to_snake_case();
-                let param_ident = Ident::new(&param_name, Span::call_site());
+                let param_ident = crate::schema::make_rust_field_ident(&param_name);
 
                 path_params.push(quote! { #param_ident: impl Into<String> });
                 path_param_names.push((parameter_data.name.clone(), param_ident));
@@ -354,7 +354,8 @@ fn generate_operation_method(
     let query_additions = if has_query_params {
         let mut query_field_additions = Vec::new();
         for query_param in &query_params {
-            let field_name = Ident::new(&query_param.name.to_snake_case(), Span::call_site());
+            let field_name =
+                crate::schema::make_rust_field_ident(&query_param.name.to_snake_case());
             let param_name = &query_param.name;
 
             // Check if this parameter is nullable

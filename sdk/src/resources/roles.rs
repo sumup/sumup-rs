@@ -12,6 +12,9 @@ pub struct Role {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// List of permission granted by this role.
+    ///
+    /// Constraints:
+    /// - max items: 100
     pub permissions: Vec<String>,
     /// True if the role is provided by SumUp.
     pub is_predefined: bool,
@@ -32,6 +35,9 @@ pub struct CreateBody {
     /// User-defined name of the role.
     pub name: String,
     /// User's permissions.
+    ///
+    /// Constraints:
+    /// - max items: 100
     pub permissions: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
@@ -45,6 +51,9 @@ pub struct UpdateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// User's permissions.
+    ///
+    /// Constraints:
+    /// - max items: 100
     #[serde(skip_serializing_if = "Option::is_none")]
     pub permissions: Option<Vec<String>>,
     /// User-defined description of the role.

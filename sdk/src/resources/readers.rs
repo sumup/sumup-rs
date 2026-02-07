@@ -58,6 +58,9 @@ pub struct CreateReaderCheckoutRequest {
     ///
     /// Omit if the merchant country does support installments.
     /// Otherwise, the checkout will be rejected.
+    ///
+    /// Constraints:
+    /// - value >= 1
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -66,6 +69,9 @@ pub struct CreateReaderCheckoutRequest {
     pub installments: Option<crate::Nullable<i64>>,
     /// Webhook URL to which the payment result will be sent.
     /// It must be a HTTPS url.
+    ///
+    /// Constraints:
+    /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
     /// List of tipping rates to be displayed to the cardholder.
@@ -79,6 +85,10 @@ pub struct CreateReaderCheckoutRequest {
     /// It can only be set if `tip_rates` is provided.
     ///
     /// **Note**: If the target device is a Solo, it must be in version 3.3.38.0 or higher.
+    ///
+    /// Constraints:
+    /// - value >= 30
+    /// - value <= 120
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_timeout: Option<i64>,
     /// Amount structure.
@@ -230,7 +240,7 @@ pub struct BadRequestErrors {
     pub detail: Option<String>,
     /// Key indicating type of error
     #[serde(rename = "type")]
-    pub type_: String,
+    pub r#type: String,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutErrorErrors {
@@ -272,8 +282,14 @@ pub struct Money {
     pub currency: String,
     /// The minor units of the currency.
     /// It represents the number of decimals of the currency. For the currencies CLP, COP and HUF, the minor unit is 0.
+    ///
+    /// Constraints:
+    /// - value >= 0
     pub minor_unit: i64,
     /// Integer value of the amount.
+    ///
+    /// Constraints:
+    /// - value >= 0
     pub value: i64,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -311,6 +327,10 @@ pub struct NotFoundErrors {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StatusResponseData {
     /// Battery level percentage
+    ///
+    /// Constraints:
+    /// - value >= 0
+    /// - value <= 100
     #[serde(skip_serializing_if = "Option::is_none")]
     pub battery_level: Option<f32>,
     /// Battery temperature in Celsius
@@ -338,7 +358,7 @@ pub struct UnauthorizedErrors {
     pub detail: Option<String>,
     /// Key indicating type of error
     #[serde(rename = "type")]
-    pub type_: String,
+    pub r#type: String,
 }
 /// Returns a list Reader objects.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
