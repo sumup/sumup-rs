@@ -77,10 +77,12 @@ pub struct Event {
     pub type_: Option<EventType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<EventStatus>,
+    /// Amount of the event.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<AmountEvent>,
+    pub amount: Option<f32>,
+    /// Date and time of the transaction event.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<TimestampEvent>,
+    pub timestamp: Option<crate::datetime::DateTime>,
     /// Amount of the fee related to the event.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fee_amount: Option<f32>,
@@ -170,8 +172,9 @@ pub struct TransactionEvent {
     pub event_type: Option<EventType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<EventStatus>,
+    /// Amount of the event.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<AmountEvent>,
+    pub amount: Option<f32>,
     /// Date when the transaction event is due to occur.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub due_date: Option<crate::datetime::Date>,
@@ -181,8 +184,9 @@ pub struct TransactionEvent {
     /// Consecutive number of the installment that is paid. Applicable only payout events, i.e. `event_type = PAYOUT`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installment_number: Option<i64>,
+    /// Date and time of the transaction event.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<TimestampEvent>,
+    pub timestamp: Option<crate::datetime::DateTime>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFull {
