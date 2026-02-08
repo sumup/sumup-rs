@@ -216,6 +216,68 @@ where
     deserializer.deserialize_option(NullableVisitor(std::marker::PhantomData))
 }
 
+/// Helper function for deserializing `Option<Nullable<T>>` fields where values can be
+/// encoded either as JSON numbers or numeric strings.
+pub fn deserialize_string_or_number<'de, T, D>(
+    deserializer: D,
+) -> Result<Option<Nullable<T>>, D::Error>
+where
+    T: Deserialize<'de> + std::str::FromStr,
+    T::Err: std::fmt::Display,
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrNumber<T> {
+        String(String),
+        Number(T),
+    }
+
+    struct NullableVisitor<T>(std::marker::PhantomData<T>);
+
+    impl<'de, T> serde::de::Visitor<'de> for NullableVisitor<T>
+    where
+        T: Deserialize<'de> + std::str::FromStr,
+        T::Err: std::fmt::Display,
+    {
+        type Value = Option<Nullable<T>>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("null, a number, or a numeric string")
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Some(Nullable::Null))
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Some(Nullable::Null))
+        }
+
+        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            match StringOrNumber::<T>::deserialize(deserializer)? {
+                StringOrNumber::String(value) => value
+                    .parse()
+                    .map(Nullable::Value)
+                    .map(Some)
+                    .map_err(serde::de::Error::custom),
+                StringOrNumber::Number(value) => Ok(Some(Nullable::Value(value))),
+            }
+        }
+    }
+
+    deserializer.deserialize_option(NullableVisitor(std::marker::PhantomData))
+}
+
 impl<T: Serialize> Serialize for Nullable<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -329,5 +391,21 @@ mod tests {
     fn test_as_option() {
         assert_eq!(Nullable::<i32>::Null.as_option(), None);
         assert_eq!(Nullable::Value(42).as_option(), Some(&42));
+    }
+
+    #[test]
+    fn test_deserialize_string_or_number() {
+        #[derive(Debug, Deserialize)]
+        struct NumericNullable {
+            #[serde(
+                default,
+                skip_serializing_if = "Option::is_none",
+                deserialize_with = "crate::nullable::deserialize_string_or_number"
+            )]
+            field: Option<Nullable<f64>>,
+        }
+
+        let value: NumericNullable = serde_json::from_str(r#"{"field":"12.5"}"#).unwrap();
+        assert_eq!(value.field, Some(Nullable::Value(12.5)));
     }
 }

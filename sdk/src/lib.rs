@@ -149,6 +149,8 @@
 
 #![forbid(unsafe_code)]
 
+mod string_or_number;
+
 pub mod api_version;
 pub mod auth;
 pub mod client;
