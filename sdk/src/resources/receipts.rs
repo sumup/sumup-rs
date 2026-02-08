@@ -37,8 +37,12 @@ pub struct ReceiptEvent {
     ///
     /// Constraints:
     /// - format: `double`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    pub amount: Option<f64>,
     /// Date and time of the transaction event.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
@@ -154,32 +158,52 @@ pub struct ReceiptTransactionProductsItem {
     ///
     /// Constraints:
     /// - format: `double`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub price: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    pub price: Option<f64>,
     /// VAT rate
     ///
     /// Constraints:
     /// - format: `double`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_rate: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    pub vat_rate: Option<f64>,
     /// VAT amount for a single product
     ///
     /// Constraints:
     /// - format: `double`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub single_vat_amount: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    pub single_vat_amount: Option<f64>,
     /// Product price including VAT
     ///
     /// Constraints:
     /// - format: `double`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub price_with_vat: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    pub price_with_vat: Option<f64>,
     /// VAT amount
     ///
     /// Constraints:
     /// - format: `double`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_amount: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    pub vat_amount: Option<f64>,
     /// Product quantity
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
@@ -187,14 +211,22 @@ pub struct ReceiptTransactionProductsItem {
     ///
     /// Constraints:
     /// - format: `double`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_price: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    pub total_price: Option<f64>,
     /// Total price including VAT
     ///
     /// Constraints:
     /// - format: `double`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_with_vat: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    pub total_with_vat: Option<f64>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptTransactionVatRatesItem {

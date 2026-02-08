@@ -299,6 +299,49 @@ fn is_rust_mapped_integer_format(format: &openapiv3::IntegerFormat) -> bool {
     )
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StringEncodedNumericKind {
+    F32,
+    F64,
+    I32,
+    I64,
+}
+
+fn string_encoded_numeric_kind(
+    format: &openapiv3::VariantOrUnknownOrEmpty<openapiv3::StringFormat>,
+) -> Option<StringEncodedNumericKind> {
+    let openapiv3::VariantOrUnknownOrEmpty::Unknown(raw) = format else {
+        return None;
+    };
+
+    let normalized = raw.trim().to_ascii_lowercase();
+    match normalized.as_str() {
+        "float" => Some(StringEncodedNumericKind::F32),
+        "double" | "number" => Some(StringEncodedNumericKind::F64),
+        "int32" | "integer" => Some(StringEncodedNumericKind::I32),
+        "int64" => Some(StringEncodedNumericKind::I64),
+        _ => None,
+    }
+}
+
+fn string_schema_numeric_kind(
+    schema_kind: &openapiv3::SchemaKind,
+) -> Option<StringEncodedNumericKind> {
+    let openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) = schema_kind else {
+        return None;
+    };
+    string_encoded_numeric_kind(&string_type.format)
+}
+
+fn numeric_kind_rust_type(kind: StringEncodedNumericKind) -> TokenStream {
+    match kind {
+        StringEncodedNumericKind::F32 => quote! { f32 },
+        StringEncodedNumericKind::F64 => quote! { f64 },
+        StringEncodedNumericKind::I32 => quote! { i32 },
+        StringEncodedNumericKind::I64 => quote! { i64 },
+    }
+}
+
 /// Generates struct definitions for the selected component schemas.
 pub fn generate_structs_for_schemas(
     spec: &OpenAPI,
@@ -880,6 +923,7 @@ pub fn generate_struct_fields(
             };
 
             let is_nullable = prop.schema_data.nullable;
+            let uses_string_number_deserializer = string_schema_numeric_kind(&prop.schema_kind).is_some();
             let rust_type = infer_rust_type(
                 &prop.schema_kind,
                 is_required,
@@ -898,13 +942,27 @@ pub fn generate_struct_fields(
 
             let serde_attrs = if !is_required {
                 if is_nullable {
+                    if uses_string_number_deserializer {
+                        quote! {
+                            #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "crate::nullable::deserialize_string_or_number")]
+                        }
+                    } else {
+                        quote! {
+                            #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "crate::nullable::deserialize")]
+                        }
+                    }
+                } else if uses_string_number_deserializer {
                     quote! {
-                        #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "crate::nullable::deserialize")]
+                        #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "crate::string_or_number::deserialize_option")]
                     }
                 } else {
                     quote! {
                         #[serde(skip_serializing_if = "Option::is_none")]
                     }
+                }
+            } else if uses_string_number_deserializer {
+                quote! {
+                    #[serde(deserialize_with = "crate::string_or_number::deserialize")]
                 }
             } else {
                 quote! {}
@@ -937,23 +995,27 @@ pub fn infer_rust_type(
 ) -> TokenStream {
     let base_type = match schema_kind {
         openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
-            match &string_type.format {
-                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::DateTime) => {
-                    quote! { crate::datetime::DateTime }
+            if let Some(kind) = string_encoded_numeric_kind(&string_type.format) {
+                numeric_kind_rust_type(kind)
+            } else {
+                match &string_type.format {
+                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::DateTime) => {
+                        quote! { crate::datetime::DateTime }
+                    }
+                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Date) => {
+                        quote! { crate::datetime::Date }
+                    }
+                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Password) => {
+                        quote! { crate::secret::Secret }
+                    }
+                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Byte) => {
+                        quote! { Vec<u8> }
+                    }
+                    openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Binary) => {
+                        quote! { Vec<u8> }
+                    }
+                    _ => quote! { String },
                 }
-                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Date) => {
-                    quote! { crate::datetime::Date }
-                }
-                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Password) => {
-                    quote! { crate::secret::Secret }
-                }
-                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Byte) => {
-                    quote! { Vec<u8> }
-                }
-                openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Binary) => {
-                    quote! { Vec<u8> }
-                }
-                _ => quote! { String },
             }
         }
         openapiv3::SchemaKind::Type(openapiv3::Type::Number(number_type)) => {
