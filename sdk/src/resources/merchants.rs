@@ -320,24 +320,32 @@ pub type CountryCode = String;
 pub enum ErrorCategoryClient {
     #[serde(rename = "client_error")]
     ClientError,
+    #[serde(untagged)]
+    Other(String),
 }
 /// The category of the error.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ErrorCategoryServer {
     #[serde(rename = "server_error")]
     ServerError,
+    #[serde(untagged)]
+    Other(String),
 }
 /// An error code specifying the exact error that occurred.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ErrorCodeInternalServerError {
     #[serde(rename = "internal_error")]
     InternalError,
+    #[serde(untagged)]
+    Other(String),
 }
 /// An error code specifying the exact error that occurred.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ErrorCodeNotFound {
     #[serde(rename = "not_found")]
     NotFound,
+    #[serde(untagged)]
+    Other(String),
 }
 pub type LegalType = String;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -504,9 +512,15 @@ pub struct Person {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PersonalIdentifier {
     /// The unique reference for the personal identifier type.
+    ///
+    /// Constraints:
+    /// - max length: 32
     #[serde(rename = "ref")]
     pub r#ref: String,
     /// The company identifier value.
+    ///
+    /// Constraints:
+    /// - max length: 128
     pub value: String,
 }
 pub type PhoneNumber = String;

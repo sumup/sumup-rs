@@ -436,12 +436,14 @@ pub fn generate_structs_for_schemas(
             }
             openapiv3::SchemaKind::Type(openapiv3::Type::String(s)) => {
                 if !s.enumeration.is_empty() {
+                    let mut variant_names: HashSet<String> = HashSet::new();
                     let variants_tokens: Vec<TokenStream> = s
                         .enumeration
                         .iter()
                         .filter_map(|v| v.as_ref())
                         .map(|variant| {
                             let variant_name = sanitize_enum_variant(variant);
+                            variant_names.insert(variant_name.clone());
                             let variant_ident = Ident::new(&variant_name, Span::call_site());
                             if variant != &variant_name {
                                 quote! {
@@ -455,6 +457,12 @@ pub fn generate_structs_for_schemas(
                         .collect();
 
                     if !variants_tokens.is_empty() {
+                        let other_variant_ident = if variant_names.contains("Other") {
+                            Ident::new("OtherValue", Span::call_site())
+                        } else {
+                            Ident::new("Other", Span::call_site())
+                        };
+
                         let description = schema
                             .schema_data
                             .description
@@ -469,6 +477,8 @@ pub fn generate_structs_for_schemas(
                             #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
                             pub enum #struct_name {
                                 #(#variants_tokens,)*
+                                #[serde(untagged)]
+                                #other_variant_ident(String),
                             }
                         });
                     } else {

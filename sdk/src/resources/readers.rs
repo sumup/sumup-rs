@@ -211,6 +211,8 @@ pub enum ReaderStatus {
     Paired,
     #[serde(rename = "expired")]
     Expired,
+    #[serde(untagged)]
+    Other(String),
 }
 /// Status of a device
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
