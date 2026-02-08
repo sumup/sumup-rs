@@ -70,6 +70,8 @@ pub enum EntryModeFilter {
     ContactlessMagstripe,
     #[serde(rename = "N/A")]
     NA,
+    #[serde(untagged)]
+    Other(String),
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Event {

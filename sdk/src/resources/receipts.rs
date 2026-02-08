@@ -34,6 +34,9 @@ pub struct ReceiptEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<EventStatus>,
     /// Amount of the event.
+    ///
+    /// Constraints:
+    /// - format: `double`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<String>,
     /// Date and time of the transaction event.
@@ -148,27 +151,48 @@ pub struct ReceiptTransactionProductsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// Product price
+    ///
+    /// Constraints:
+    /// - format: `double`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub price: Option<String>,
     /// VAT rate
+    ///
+    /// Constraints:
+    /// - format: `double`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vat_rate: Option<String>,
     /// VAT amount for a single product
+    ///
+    /// Constraints:
+    /// - format: `double`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub single_vat_amount: Option<String>,
     /// Product price including VAT
+    ///
+    /// Constraints:
+    /// - format: `double`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub price_with_vat: Option<String>,
     /// VAT amount
+    ///
+    /// Constraints:
+    /// - format: `double`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vat_amount: Option<String>,
     /// Product quantity
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
     /// Quantity x product price
+    ///
+    /// Constraints:
+    /// - format: `double`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_price: Option<String>,
     /// Total price including VAT
+    ///
+    /// Constraints:
+    /// - format: `double`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_with_vat: Option<String>,
 }
