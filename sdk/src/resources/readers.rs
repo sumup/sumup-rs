@@ -177,6 +177,14 @@ pub struct Reader {
     pub device: ReaderDevice,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
+    /// Identifier of the system-managed service account associated with this reader.
+    /// Present only for readers that are already paired.
+    /// This field is currently in beta and may change.
+    ///
+    /// Constraints:
+    /// - format: `uuid`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_account_id: Option<String>,
     /// The timestamp of when the reader was created.
     pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the reader was last updated.
