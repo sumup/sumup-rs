@@ -25,15 +25,7 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
             openapiv3::ReferenceOr::Reference { .. } => continue,
         };
 
-        let operations = vec![
-            path_item.get.as_ref(),
-            path_item.post.as_ref(),
-            path_item.put.as_ref(),
-            path_item.patch.as_ref(),
-            path_item.delete.as_ref(),
-        ];
-
-        for operation in operations.into_iter().flatten() {
+        for (_http_method, operation) in crate::operations_for_path_item(path_item) {
             // Get tags for this operation
             let tags = if operation.tags.is_empty() {
                 vec!["Untagged".to_string()]

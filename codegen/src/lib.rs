@@ -24,6 +24,15 @@ pub use operation::generate_client_methods;
 pub use schema::generate_structs_for_schemas;
 pub use tag::{collect_schemas_by_tag, SchemasByTag, TagSchemas};
 
+/// A single operation selected for a given tag, along with traversal context.
+#[derive(Clone, Copy)]
+pub struct TaggedOperation<'a> {
+    pub path: &'a str,
+    pub http_method: &'static str,
+    pub operation: &'a openapiv3::Operation,
+    pub path_parameters: &'a [openapiv3::ReferenceOr<openapiv3::Parameter>],
+}
+
 /// Returns the canonical operation name for code generation.
 /// Prefers `x-codegen.method_name`, falling back to `operation_id` or "unknown".
 pub fn operation_name(operation: &openapiv3::Operation) -> String {
@@ -42,6 +51,56 @@ pub fn operation_name(operation: &openapiv3::Operation) -> String {
         .as_ref()
         .map(|s| s.to_string())
         .unwrap_or_else(|| "unknown".to_string())
+}
+
+/// Collects all operations belonging to `tag`, sorted by path and HTTP method.
+pub fn collect_tagged_operations<'a>(spec: &'a OpenAPI, tag: &str) -> Vec<TaggedOperation<'a>> {
+    let mut operations = Vec::new();
+
+    for (path, path_item_ref) in &spec.paths.paths {
+        let path_item = match path_item_ref {
+            openapiv3::ReferenceOr::Item(item) => item,
+            openapiv3::ReferenceOr::Reference { .. } => continue,
+        };
+
+        for (http_method, operation) in operations_for_path_item(path_item) {
+            if !operation
+                .tags
+                .iter()
+                .any(|operation_tag| operation_tag == tag)
+            {
+                continue;
+            }
+
+            operations.push(TaggedOperation {
+                path,
+                http_method,
+                operation,
+                path_parameters: &path_item.parameters,
+            });
+        }
+    }
+
+    operations.sort_by(|a, b| {
+        a.path
+            .cmp(b.path)
+            .then_with(|| a.http_method.cmp(b.http_method))
+    });
+    operations
+}
+
+pub(crate) fn operations_for_path_item(
+    path_item: &openapiv3::PathItem,
+) -> impl Iterator<Item = (&'static str, &openapiv3::Operation)> {
+    [
+        ("delete", path_item.delete.as_ref()),
+        ("get", path_item.get.as_ref()),
+        ("patch", path_item.patch.as_ref()),
+        ("post", path_item.post.as_ref()),
+        ("put", path_item.put.as_ref()),
+    ]
+    .into_iter()
+    .filter_map(|(method, operation)| operation.map(|op| (method, op)))
 }
 
 /// Coordinates SDK generation for a given OpenAPI spec and output location.
@@ -298,9 +357,12 @@ pub fn generate_common_file(
 pub fn format_generated_code(tokens: TokenStream) -> String {
     let header = "// The contents of this file are generated; do not modify them.\n\n";
 
-    // First use prettyplease for basic formatting
-    let file = syn::parse_file(&tokens.to_string()).unwrap();
-    let formatted = prettyplease::unparse(&file);
+    // First use prettyplease for basic formatting when the token stream parses as a full file.
+    let tokens_str = tokens.to_string();
+    let formatted = match syn::parse_file(&tokens_str) {
+        Ok(file) => prettyplease::unparse(&file),
+        Err(_) => tokens_str,
+    };
 
     let code_with_header = format!("{}{}\n", header, formatted);
 
@@ -414,39 +476,17 @@ pub fn does_tag_operations_reference_common(
     tag: &str,
     common_schemas: &std::collections::HashSet<String>,
 ) -> bool {
-    // Iterate through all paths and operations
-    for (_path, path_item) in &spec.paths.paths {
-        let path_item = match path_item {
-            openapiv3::ReferenceOr::Item(item) => item,
-            openapiv3::ReferenceOr::Reference { .. } => continue,
-        };
+    for tagged_operation in collect_tagged_operations(spec, tag) {
+        for response_ref in tagged_operation.operation.responses.responses.values() {
+            let response = match response_ref {
+                openapiv3::ReferenceOr::Item(r) => r,
+                openapiv3::ReferenceOr::Reference { .. } => continue,
+            };
 
-        let operations = vec![
-            path_item.get.as_ref(),
-            path_item.post.as_ref(),
-            path_item.put.as_ref(),
-            path_item.patch.as_ref(),
-            path_item.delete.as_ref(),
-        ];
-
-        for operation in operations.into_iter().flatten() {
-            // Check if this operation has the current tag
-            if !operation.tags.contains(&tag.to_string()) {
-                continue;
-            }
-
-            // Check responses for common schema references
-            for (_status, response_ref) in &operation.responses.responses {
-                let response = match response_ref {
-                    openapiv3::ReferenceOr::Item(r) => r,
-                    openapiv3::ReferenceOr::Reference { .. } => continue,
-                };
-
-                for (_content_type, media_type) in &response.content {
-                    if let Some(schema_ref) = &media_type.schema {
-                        if references_common_schema_ref(schema_ref, common_schemas) {
-                            return true;
-                        }
+            for media_type in response.content.values() {
+                if let Some(schema_ref) = &media_type.schema {
+                    if references_common_schema_ref(schema_ref, common_schemas) {
+                        return true;
                     }
                 }
             }
@@ -555,5 +595,107 @@ fn references_common_in_schema(
             false
         }
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proc_macro2::TokenStream;
+    use serde_json::json;
+    use std::{collections::HashSet, str::FromStr};
+
+    fn parse_spec(value: serde_json::Value) -> OpenAPI {
+        serde_json::from_value(value).expect("failed to parse OpenAPI fixture")
+    }
+
+    #[test]
+    fn collect_tagged_operations_filters_and_sorts_operations() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/z-endpoint": {
+                    "get": {
+                        "operationId": "listZ",
+                        "tags": ["Target"],
+                        "responses": { "200": { "description": "ok" } }
+                    }
+                },
+                "/a-endpoint": {
+                    "post": {
+                        "operationId": "createA",
+                        "tags": ["Target"],
+                        "responses": { "200": { "description": "ok" } }
+                    },
+                    "get": {
+                        "operationId": "listA",
+                        "tags": ["Other"],
+                        "responses": { "200": { "description": "ok" } }
+                    }
+                }
+            }
+        }));
+
+        let operations = collect_tagged_operations(&spec, "Target");
+        assert_eq!(operations.len(), 2);
+        assert_eq!(operations[0].path, "/a-endpoint");
+        assert_eq!(operations[0].http_method, "post");
+        assert_eq!(operations[1].path, "/z-endpoint");
+        assert_eq!(operations[1].http_method, "get");
+    }
+
+    #[test]
+    fn format_generated_code_falls_back_for_non_file_token_streams() {
+        let tokens = TokenStream::from_str("not valid rust syntax").expect("valid token stream");
+        let formatted = format_generated_code(tokens);
+        assert!(formatted
+            .starts_with("// The contents of this file are generated; do not modify them."));
+        assert!(formatted.contains("not valid rust syntax"));
+    }
+
+    #[test]
+    fn does_tag_operations_reference_common_checks_only_selected_tag() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/target": {
+                    "get": {
+                        "operationId": "targetOp",
+                        "tags": ["Target"],
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/Common" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "/other": {
+                    "get": {
+                        "operationId": "otherOp",
+                        "tags": ["Other"],
+                        "responses": { "200": { "description": "ok" } }
+                    }
+                }
+            }
+        }));
+
+        let common_schemas = HashSet::from(["Common".to_string()]);
+        assert!(does_tag_operations_reference_common(
+            &spec,
+            "Target",
+            &common_schemas
+        ));
+        assert!(!does_tag_operations_reference_common(
+            &spec,
+            "Other",
+            &common_schemas
+        ));
     }
 }

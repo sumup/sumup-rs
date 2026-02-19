@@ -39,34 +39,6 @@ struct GeneratedOperation {
     extra_items: Vec<TokenStream>,
 }
 
-/// Generates documentation attributes from a description string.
-/// Splits multi-line descriptions into separate doc attributes for better formatting.
-fn generate_doc_comment(description: &str) -> TokenStream {
-    let lines: Vec<&str> = description.lines().collect();
-
-    if lines.is_empty() {
-        return quote! {};
-    }
-
-    // Generate a separate #[doc = " line"] for each line (note the leading space)
-    let doc_attrs: Vec<_> = lines
-        .iter()
-        .map(|line| {
-            let trimmed = line.trim();
-            let doc_line = if trimmed.is_empty() {
-                // For empty lines, just use an empty doc comment
-                String::new()
-            } else {
-                // Add a space before the content
-                format!(" {}", trimmed)
-            };
-            quote! { #[doc = #doc_line] }
-        })
-        .collect();
-
-    quote! { #(#doc_attrs)* }
-}
-
 /// Produces client method implementations for all operations labeled with the supplied tag.
 pub fn generate_client_methods(
     spec: &OpenAPI,
@@ -75,47 +47,14 @@ pub fn generate_client_methods(
     let mut methods = Vec::new();
     let mut extra_items = Vec::new();
 
-    // Collect all operations with this tag and sort them
-    let mut operations_to_process = Vec::new();
-
-    // Iterate through all paths and operations
-    for (path, path_item) in &spec.paths.paths {
-        let path_item = match path_item {
-            openapiv3::ReferenceOr::Item(item) => item,
-            openapiv3::ReferenceOr::Reference { .. } => continue,
-        };
-
-        let operations = vec![
-            ("delete", path_item.delete.as_ref()),
-            ("get", path_item.get.as_ref()),
-            ("patch", path_item.patch.as_ref()),
-            ("post", path_item.post.as_ref()),
-            ("put", path_item.put.as_ref()),
-        ];
-
-        for (http_method, operation) in operations.into_iter() {
-            if let Some(op) = operation {
-                // Check if this operation has the current tag
-                if !op.tags.contains(&tag.to_string()) {
-                    continue;
-                }
-
-                operations_to_process.push((
-                    path.clone(),
-                    http_method,
-                    op,
-                    path_item.parameters.clone(),
-                ));
-            }
-        }
-    }
-
-    // Sort operations alphabetically by path, then method
-    operations_to_process.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(b.1)));
-
-    for (path, http_method, operation, path_parameters) in operations_to_process {
-        let generated =
-            generate_operation_method(spec, &path, http_method, operation, &path_parameters)?;
+    for tagged_operation in crate::collect_tagged_operations(spec, tag) {
+        let generated = generate_operation_method(
+            spec,
+            tagged_operation.path,
+            tagged_operation.http_method,
+            tagged_operation.operation,
+            tagged_operation.path_parameters,
+        )?;
         methods.push(generated.method);
         extra_items.extend(generated.extra_items);
     }
@@ -337,15 +276,15 @@ fn generate_operation_method(
         (Some(summary), Some(description)) if summary != description => {
             // Both available and different - combine them
             let combined = format!("{}\n\n{}", summary.trim(), description.trim());
-            Some(generate_doc_comment(&combined))
+            Some(crate::schema::generate_doc_comment(&combined))
         }
         (Some(summary), _) => {
             // Only summary, or both are the same
-            Some(generate_doc_comment(summary))
+            Some(crate::schema::generate_doc_comment(summary))
         }
         (None, Some(description)) => {
             // Only description
-            Some(generate_doc_comment(description))
+            Some(crate::schema::generate_doc_comment(description))
         }
         (None, None) => None,
     };

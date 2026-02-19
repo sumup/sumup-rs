@@ -9,50 +9,34 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
     let mut generated_names = std::collections::HashSet::new();
     let mut nested_schemas = Vec::new();
 
-    // Collect all operations with this tag and sort them by path and method
+    // Collect all operations with this tag and sort them by path, method, and operation name.
     let mut operations_to_process = Vec::new();
 
-    // Iterate through all paths and operations
-    for (path, path_item) in &spec.paths.paths {
-        let path_item = match path_item {
-            openapiv3::ReferenceOr::Item(item) => item,
-            openapiv3::ReferenceOr::Reference { .. } => continue,
-        };
+    for tagged_operation in crate::collect_tagged_operations(spec, tag) {
+        let operation_id = tagged_operation
+            .operation
+            .operation_id
+            .as_ref()
+            .ok_or_else(|| {
+                format!(
+                    "Operation {} {} missing operation_id",
+                    tagged_operation.http_method, tagged_operation.path
+                )
+            })?;
+        let operation_name = crate::operation_name(tagged_operation.operation);
 
-        let operations = vec![
-            ("delete", path_item.delete.as_ref()),
-            ("get", path_item.get.as_ref()),
-            ("patch", path_item.patch.as_ref()),
-            ("post", path_item.post.as_ref()),
-            ("put", path_item.put.as_ref()),
-        ];
-
-        for (http_method, operation) in operations {
-            if let Some(op) = operation {
-                // Check if this operation has the current tag
-                if !op.tags.contains(&tag.to_string()) {
-                    continue;
-                }
-
-                let operation_id = op.operation_id.as_ref().ok_or_else(|| {
-                    format!("Operation {} {} missing operation_id", http_method, path)
-                })?;
-                let operation_name = crate::operation_name(op);
-
-                operations_to_process.push((
-                    path.clone(),
-                    http_method,
-                    operation_id.clone(),
-                    operation_name,
-                    op,
-                ));
-            }
-        }
+        operations_to_process.push((
+            tagged_operation.path,
+            tagged_operation.http_method,
+            operation_id.clone(),
+            operation_name,
+            tagged_operation.operation,
+        ));
     }
 
     // Sort operations alphabetically by path, then method, then operation name
     operations_to_process.sort_by(|a, b| {
-        a.0.cmp(&b.0)
+        a.0.cmp(b.0)
             .then_with(|| a.1.cmp(b.1))
             .then_with(|| a.3.cmp(&b.3))
     });
