@@ -99,15 +99,6 @@ pub struct Address {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub eircode: Option<String>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct BaseError {
-    /// A unique identifier for the error instance. This can be used to trace the error back to the server logs.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub instance: Option<String>,
-    /// A human-readable message describing the error that occurred.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
-}
 /// Base schema for a person associated with a merchant. This can be a legal representative, business owner (ultimate beneficial owner), or an officer. A legal representative is the person who registered the merchant with SumUp. They should always have a `user_id`.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BasePerson {
@@ -315,38 +306,6 @@ pub struct CompanyIdentifier {
 }
 pub type CompanyIdentifiers = Vec<CompanyIdentifier>;
 pub type CountryCode = String;
-/// The category of the error.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum ErrorCategoryClient {
-    #[serde(rename = "client_error")]
-    ClientError,
-    #[serde(untagged)]
-    Other(String),
-}
-/// The category of the error.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum ErrorCategoryServer {
-    #[serde(rename = "server_error")]
-    ServerError,
-    #[serde(untagged)]
-    Other(String),
-}
-/// An error code specifying the exact error that occurred.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum ErrorCodeInternalServerError {
-    #[serde(rename = "internal_error")]
-    InternalError,
-    #[serde(untagged)]
-    Other(String),
-}
-/// An error code specifying the exact error that occurred.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum ErrorCodeNotFound {
-    #[serde(rename = "not_found")]
-    NotFound,
-    #[serde(untagged)]
-    Other(String),
-}
 pub type LegalType = String;
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListPersonsResponseBody {
@@ -559,17 +518,17 @@ pub struct GetPersonParams {
 use crate::client::Client;
 #[derive(Debug)]
 pub enum GetErrorBody {
-    NotFound,
+    NotFound(Problem),
 }
 #[derive(Debug)]
 pub enum ListPersonsErrorBody {
-    NotFound,
-    InternalServerError,
+    NotFound(Problem),
+    InternalServerError(Problem),
 }
 #[derive(Debug)]
 pub enum GetPersonErrorBody {
-    NotFound,
-    InternalServerError,
+    NotFound(Problem),
+    InternalServerError(Problem),
 }
 ///Client for the Merchants API endpoints.
 #[derive(Debug)]
@@ -617,7 +576,8 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                Err(crate::error::SdkError::api(GetErrorBody::NotFound))
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -659,11 +619,17 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                Err(crate::error::SdkError::api(ListPersonsErrorBody::NotFound))
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(ListPersonsErrorBody::NotFound(
+                    body,
+                )))
             }
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => Err(crate::error::SdkError::api(
-                ListPersonsErrorBody::InternalServerError,
-            )),
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListPersonsErrorBody::InternalServerError(body),
+                ))
+            }
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
@@ -709,11 +675,17 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                Err(crate::error::SdkError::api(GetPersonErrorBody::NotFound))
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(GetPersonErrorBody::NotFound(
+                    body,
+                )))
             }
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => Err(crate::error::SdkError::api(
-                GetPersonErrorBody::InternalServerError,
-            )),
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetPersonErrorBody::InternalServerError(body),
+                ))
+            }
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
