@@ -5,7 +5,11 @@ use quote::quote;
 use std::collections::HashSet;
 
 type Properties = indexmap::IndexMap<String, openapiv3::ReferenceOr<Box<openapiv3::Schema>>>;
-type FlattenedObject = Option<(Properties, Vec<String>)>;
+type FlattenedObject = Option<(
+    Properties,
+    Vec<String>,
+    Option<openapiv3::AdditionalProperties>,
+)>;
 
 /// Generates documentation attributes from a description string.
 /// Splits multi-line descriptions into separate doc attributes for better formatting.
@@ -387,7 +391,12 @@ pub fn generate_structs_for_schemas(
                 // Collect nested inline schemas
                 collect_nested_schemas(spec, name, &obj.properties, &mut nested_schemas)?;
 
-                let fields = generate_struct_fields(name, &obj.properties, &obj.required);
+                let fields = generate_struct_fields(
+                    name,
+                    &obj.properties,
+                    &obj.required,
+                    obj.additional_properties.as_ref(),
+                );
 
                 let can_derive_default = can_fields_derive_default(&obj.properties, &obj.required);
 
@@ -424,13 +433,20 @@ pub fn generate_structs_for_schemas(
                 }
             }
             openapiv3::SchemaKind::AllOf { all_of } => {
-                if let Some((combined_properties, combined_required)) =
-                    flatten_all_of_object(spec, all_of)?
+                if let Some((
+                    combined_properties,
+                    combined_required,
+                    combined_additional_properties,
+                )) = flatten_all_of_object(spec, all_of)?
                 {
                     collect_nested_schemas(spec, name, &combined_properties, &mut nested_schemas)?;
 
-                    let fields =
-                        generate_struct_fields(name, &combined_properties, &combined_required);
+                    let fields = generate_struct_fields(
+                        name,
+                        &combined_properties,
+                        &combined_required,
+                        combined_additional_properties.as_ref(),
+                    );
 
                     let can_derive_default =
                         can_fields_derive_default(&combined_properties, &combined_required);
@@ -596,11 +612,11 @@ impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
         obj: &openapiv3::ObjectType,
     ) -> Result<(), String> {
         self.generate_for_object_like(
-            parent_name,
-            field_name,
+            (parent_name, field_name),
             schema,
             &obj.properties,
             &obj.required,
+            obj.additional_properties.as_ref(),
             "",
         )
     }
@@ -608,13 +624,14 @@ impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
     /// Generates a nested struct for an object-like schema, including `allOf` composites.
     fn generate_for_object_like(
         &mut self,
-        parent_name: &str,
-        field_name: &str,
+        parent_field: (&str, &str),
         schema: &openapiv3::Schema,
         properties: &Properties,
         required: &[String],
+        additional_properties: Option<&openapiv3::AdditionalProperties>,
         fallback_suffix: &str,
     ) -> Result<(), String> {
+        let (parent_name, field_name) = parent_field;
         let nested_struct_name = schema
             .schema_data
             .title
@@ -637,7 +654,12 @@ impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
             &mut *self.nested_schemas,
         )?;
 
-        let fields = generate_struct_fields(&nested_struct_name, properties, required);
+        let fields = generate_struct_fields(
+            &nested_struct_name,
+            properties,
+            required,
+            additional_properties,
+        );
         let can_derive_default = can_fields_derive_default(properties, required);
 
         let description = schema
@@ -722,15 +744,18 @@ pub fn collect_nested_schemas(
                     generator.generate_for_object(parent_name, field_name, schema, obj)?;
                 }
                 openapiv3::SchemaKind::AllOf { all_of } => {
-                    if let Some((combined_properties, combined_required)) =
-                        flatten_all_of_object(spec, all_of)?
+                    if let Some((
+                        combined_properties,
+                        combined_required,
+                        combined_additional_properties,
+                    )) = flatten_all_of_object(spec, all_of)?
                     {
                         generator.generate_for_object_like(
-                            parent_name,
-                            field_name,
+                            (parent_name, field_name),
                             schema,
                             &combined_properties,
                             &combined_required,
+                            combined_additional_properties.as_ref(),
                             "",
                         )?;
                     }
@@ -740,24 +765,27 @@ pub fn collect_nested_schemas(
                         match &item_schema.schema_kind {
                             openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
                                 generator.generate_for_object_like(
-                                    parent_name,
-                                    field_name,
+                                    (parent_name, field_name),
                                     item_schema,
                                     &obj.properties,
                                     &obj.required,
+                                    obj.additional_properties.as_ref(),
                                     "Item",
                                 )?;
                             }
                             openapiv3::SchemaKind::AllOf { all_of } => {
-                                if let Some((combined_properties, combined_required)) =
-                                    flatten_all_of_object(spec, all_of)?
+                                if let Some((
+                                    combined_properties,
+                                    combined_required,
+                                    combined_additional_properties,
+                                )) = flatten_all_of_object(spec, all_of)?
                                 {
                                     generator.generate_for_object_like(
-                                        parent_name,
-                                        field_name,
+                                        (parent_name, field_name),
                                         item_schema,
                                         &combined_properties,
                                         &combined_required,
+                                        combined_additional_properties.as_ref(),
                                         "Item",
                                     )?;
                                 }
@@ -783,6 +811,7 @@ pub(crate) fn flatten_all_of_object(
 
     let mut combined_properties = Properties::new();
     let mut combined_required: Vec<String> = Vec::new();
+    let mut combined_additional_properties: Option<openapiv3::AdditionalProperties> = None;
     let mut found_object = false;
 
     for schema_ref in all_of {
@@ -798,9 +827,31 @@ pub(crate) fn flatten_all_of_object(
                         combined_required.push(req.clone());
                     }
                 }
+                if let Some(additional_properties) = &obj.additional_properties {
+                    match additional_properties {
+                        openapiv3::AdditionalProperties::Any(true) => {
+                            combined_additional_properties = Some(additional_properties.clone());
+                        }
+                        openapiv3::AdditionalProperties::Schema(_) => {
+                            if !matches!(
+                                combined_additional_properties,
+                                Some(openapiv3::AdditionalProperties::Any(true))
+                            ) {
+                                combined_additional_properties =
+                                    Some(additional_properties.clone());
+                            }
+                        }
+                        openapiv3::AdditionalProperties::Any(false) => {
+                            if combined_additional_properties.is_none() {
+                                combined_additional_properties =
+                                    Some(additional_properties.clone());
+                            }
+                        }
+                    }
+                }
             }
             SchemaKind::AllOf { all_of: nested } => {
-                if let Some((nested_properties, nested_required)) =
+                if let Some((nested_properties, nested_required, nested_additional_properties)) =
                     flatten_all_of_object(spec, nested)?
                 {
                     found_object = true;
@@ -812,6 +863,29 @@ pub(crate) fn flatten_all_of_object(
                             combined_required.push(req);
                         }
                     }
+                    if let Some(additional_properties) = nested_additional_properties {
+                        match additional_properties {
+                            openapiv3::AdditionalProperties::Any(true) => {
+                                combined_additional_properties =
+                                    Some(openapiv3::AdditionalProperties::Any(true));
+                            }
+                            openapiv3::AdditionalProperties::Schema(schema_ref) => {
+                                if !matches!(
+                                    combined_additional_properties,
+                                    Some(openapiv3::AdditionalProperties::Any(true))
+                                ) {
+                                    combined_additional_properties =
+                                        Some(openapiv3::AdditionalProperties::Schema(schema_ref));
+                                }
+                            }
+                            openapiv3::AdditionalProperties::Any(false) => {
+                                if combined_additional_properties.is_none() {
+                                    combined_additional_properties =
+                                        Some(openapiv3::AdditionalProperties::Any(false));
+                                }
+                            }
+                        }
+                    }
                 }
             }
             _ => {}
@@ -819,7 +893,11 @@ pub(crate) fn flatten_all_of_object(
     }
 
     if found_object {
-        Ok(Some((combined_properties, combined_required)))
+        Ok(Some((
+            combined_properties,
+            combined_required,
+            combined_additional_properties,
+        )))
     } else {
         Ok(None)
     }
@@ -880,8 +958,9 @@ pub fn generate_struct_fields(
     parent_name: &str,
     properties: &Properties,
     required: &[String],
+    additional_properties: Option<&openapiv3::AdditionalProperties>,
 ) -> Vec<TokenStream> {
-    properties
+    let mut fields: Vec<TokenStream> = properties
         .iter()
         .map(|(name, prop_ref)| {
             let field_name = make_rust_field_ident(name);
@@ -982,7 +1061,81 @@ pub fn generate_struct_fields(
                 pub #field_name: #rust_type,
             }
         })
-        .collect()
+        .collect();
+
+    if let Some(extra_properties_field) =
+        generate_additional_properties_field(properties, additional_properties)
+    {
+        fields.push(extra_properties_field);
+    }
+
+    fields
+}
+
+fn generate_additional_properties_field(
+    properties: &Properties,
+    additional_properties: Option<&openapiv3::AdditionalProperties>,
+) -> Option<TokenStream> {
+    let additional_properties = additional_properties?;
+
+    if properties.is_empty() {
+        return None;
+    }
+
+    let value_type = infer_additional_properties_value_type(additional_properties)?;
+
+    let field_name = pick_additional_properties_field_ident(properties);
+
+    Some(quote! {
+        #[serde(flatten, default, skip_serializing_if = "std::collections::HashMap::is_empty")]
+        pub #field_name: std::collections::HashMap<String, #value_type>,
+    })
+}
+
+fn infer_additional_properties_value_type(
+    additional_properties: &openapiv3::AdditionalProperties,
+) -> Option<TokenStream> {
+    match additional_properties {
+        openapiv3::AdditionalProperties::Any(true) => Some(quote! { serde_json::Value }),
+        openapiv3::AdditionalProperties::Any(false) => None,
+        openapiv3::AdditionalProperties::Schema(schema_ref) => Some(match schema_ref.as_ref() {
+            openapiv3::ReferenceOr::Reference { reference } => {
+                let type_name = reference.split('/').next_back().unwrap_or("Unknown");
+                let type_ident = Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
+                quote! { #type_ident }
+            }
+            openapiv3::ReferenceOr::Item(schema) => match &schema.schema_kind {
+                openapiv3::SchemaKind::Type(openapiv3::Type::Object(_))
+                | openapiv3::SchemaKind::AllOf { .. } => quote! { serde_json::Value },
+                _ => {
+                    let dummy_ref = openapiv3::ReferenceOr::Item(Box::new(schema.clone()));
+                    infer_rust_type(&schema.schema_kind, true, false, None, &dummy_ref)
+                }
+            },
+        }),
+    }
+}
+
+fn pick_additional_properties_field_ident(properties: &Properties) -> Ident {
+    let mut candidates = vec![
+        "additional_properties".to_string(),
+        "extra_properties".to_string(),
+        "extra".to_string(),
+    ];
+    candidates.push(format!("extra_properties_{}", properties.len()));
+
+    let existing_field_names: HashSet<String> = properties
+        .keys()
+        .map(|name| make_rust_field_ident(name).to_string())
+        .collect();
+
+    for candidate in candidates {
+        if !existing_field_names.contains(&candidate) {
+            return Ident::new(&candidate, Span::call_site());
+        }
+    }
+
+    Ident::new("extra_properties_fallback", Span::call_site())
 }
 
 /// Infers an appropriate Rust type for the provided schema kind.
@@ -1326,5 +1479,47 @@ fn generate_error_impl(
         }
 
         impl std::error::Error for #struct_name {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn string_property() -> openapiv3::ReferenceOr<Box<openapiv3::Schema>> {
+        openapiv3::ReferenceOr::Item(Box::new(openapiv3::Schema {
+            schema_data: Default::default(),
+            schema_kind: openapiv3::SchemaKind::Type(openapiv3::Type::String(Default::default())),
+        }))
+    }
+
+    #[test]
+    fn struct_fields_include_flattened_extra_properties_for_mixed_object_schema() {
+        let mut properties = Properties::new();
+        properties.insert("type".to_string(), string_property());
+
+        let additional_properties = openapiv3::AdditionalProperties::Any(true);
+        let fields = generate_struct_fields(
+            "Problem",
+            &properties,
+            &["type".to_string()],
+            Some(&additional_properties),
+        );
+        let field_tokens = quote! { #(#fields)* }.to_string();
+
+        assert!(field_tokens.contains("flatten"));
+        assert!(field_tokens.contains("HashMap < String , serde_json :: Value >"));
+        assert!(field_tokens.contains("pub additional_properties :"));
+    }
+
+    #[test]
+    fn struct_fields_do_not_add_flattened_map_for_property_only_object() {
+        let mut properties = Properties::new();
+        properties.insert("type".to_string(), string_property());
+
+        let fields = generate_struct_fields("Problem", &properties, &["type".to_string()], None);
+        let field_tokens = quote! { #(#fields)* }.to_string();
+
+        assert!(!field_tokens.contains("pub additional_properties :"));
     }
 }

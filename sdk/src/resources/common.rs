@@ -361,6 +361,12 @@ pub struct Problem {
     /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub instance: Option<String>,
+    #[serde(
+        flatten,
+        default,
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
 impl std::fmt::Display for Problem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
