@@ -570,6 +570,7 @@ fn generate_schema_struct(
                 &struct_name_str,
                 &obj.properties,
                 &obj.required,
+                obj.additional_properties.as_ref(),
             );
 
             let can_derive_default =
@@ -590,7 +591,7 @@ fn generate_schema_struct(
             })
         }
         openapiv3::SchemaKind::AllOf { all_of } => {
-            if let Some((combined_properties, combined_required)) =
+            if let Some((combined_properties, combined_required, combined_additional_properties)) =
                 crate::schema::flatten_all_of_object(spec, all_of)?
             {
                 let struct_name_str = struct_name.to_string();
@@ -606,6 +607,7 @@ fn generate_schema_struct(
                     &struct_name_str,
                     &combined_properties,
                     &combined_required,
+                    combined_additional_properties.as_ref(),
                 );
 
                 let can_derive_default = crate::schema::can_fields_derive_default(
