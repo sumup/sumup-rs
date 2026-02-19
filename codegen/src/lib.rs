@@ -36,14 +36,8 @@ pub struct TaggedOperation<'a> {
 /// Returns the canonical operation name for code generation.
 /// Prefers `x-codegen.method_name`, falling back to `operation_id` or "unknown".
 pub fn operation_name(operation: &openapiv3::Operation) -> String {
-    if let Some(codegen) = operation.extensions.get("x-codegen") {
-        if let Some(codegen_obj) = codegen.as_object() {
-            if let Some(method_name_value) = codegen_obj.get("method_name") {
-                if let Some(name_str) = method_name_value.as_str() {
-                    return name_str.to_string();
-                }
-            }
-        }
+    if let Some(name) = operation_codegen_method_name(operation) {
+        return name.to_string();
     }
 
     operation
@@ -51,6 +45,15 @@ pub fn operation_name(operation: &openapiv3::Operation) -> String {
         .as_ref()
         .map(|s| s.to_string())
         .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn operation_codegen_method_name(operation: &openapiv3::Operation) -> Option<&str> {
+    operation
+        .extensions
+        .get("x-codegen")
+        .and_then(serde_json::Value::as_object)
+        .and_then(|codegen_obj| codegen_obj.get("method_name"))
+        .and_then(serde_json::Value::as_str)
 }
 
 /// Collects all operations belonging to `tag`, sorted by path and HTTP method.
@@ -697,5 +700,43 @@ mod tests {
             "Other",
             &common_schemas
         ));
+    }
+
+    #[test]
+    fn operation_name_prefers_codegen_method_name() {
+        let operation = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/demo": {
+                    "get": {
+                        "operationId": "listDemo",
+                        "x-codegen": { "method_name": "customDemoMethod" },
+                        "responses": { "200": { "description": "ok" } }
+                    }
+                }
+            }
+        }))
+        .paths
+        .paths
+        .values()
+        .find_map(|path_item_ref| match path_item_ref {
+            openapiv3::ReferenceOr::Item(path_item) => path_item.get.as_ref(),
+            openapiv3::ReferenceOr::Reference { .. } => None,
+        })
+        .expect("fixture should contain operation")
+        .clone();
+
+        assert_eq!(operation_name(&operation), "customDemoMethod");
+    }
+
+    #[test]
+    fn operation_name_falls_back_to_operation_id_and_unknown() {
+        let mut with_operation_id = openapiv3::Operation::default();
+        with_operation_id.operation_id = Some("listDemo".to_string());
+        assert_eq!(operation_name(&with_operation_id), "listDemo");
+
+        let without_name = openapiv3::Operation::default();
+        assert_eq!(operation_name(&without_name), "unknown");
     }
 }

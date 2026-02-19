@@ -19,7 +19,7 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
     let mut tag_schemas: HashMap<String, TagSchemas> = HashMap::new();
 
     // Iterate through all paths and operations
-    for (_path, path_item) in &spec.paths.paths {
+    for path_item in spec.paths.paths.values() {
         let path_item = match path_item {
             openapiv3::ReferenceOr::Item(item) => item,
             openapiv3::ReferenceOr::Reference { .. } => continue,
@@ -48,7 +48,7 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
                         openapiv3::ReferenceOr::Reference { .. } => continue,
                     };
 
-                    for (_content_type, media_type) in &request_body.content {
+                    for media_type in request_body.content.values() {
                         if let Some(schema_ref) = &media_type.schema {
                             collect_schema_references_unboxed(
                                 schema_ref,
@@ -71,7 +71,7 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
                         _ => false,
                     };
 
-                    for (_content_type, media_type) in &response.content {
+                    for media_type in response.content.values() {
                         if let Some(schema_ref) = &media_type.schema {
                             // Collect to all_schemas first
                             collect_schema_references_unboxed(
@@ -305,5 +305,109 @@ fn collect_schema_references_from_schema(
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn parse_spec(value: serde_json::Value) -> OpenAPI {
+        serde_json::from_value(value).expect("failed to parse OpenAPI fixture")
+    }
+
+    #[test]
+    fn collect_schemas_by_tag_tracks_common_and_untagged_schemas() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/a": {
+                    "get": {
+                        "operationId": "getA",
+                        "tags": ["TagA"],
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/Shared" }
+                                    }
+                                }
+                            },
+                            "400": {
+                                "description": "error",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/ErrShared" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "/b": {
+                    "get": {
+                        "operationId": "getB",
+                        "tags": ["TagB"],
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/Shared" }
+                                    }
+                                }
+                            },
+                            "400": {
+                                "description": "error",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/ErrShared" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "/untagged": {
+                    "get": {
+                        "operationId": "getUntagged",
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/UntaggedOnly" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "Shared": { "type": "string" },
+                    "ErrShared": { "type": "object", "properties": { "message": { "type": "string" } } },
+                    "UntaggedOnly": { "type": "integer" }
+                }
+            }
+        }));
+
+        let grouped = collect_schemas_by_tag(&spec).expect("schema grouping should succeed");
+
+        assert!(grouped.common_schemas.contains("Shared"));
+        assert!(grouped.common_schemas.contains("ErrShared"));
+        assert!(grouped.common_error_schemas.contains("ErrShared"));
+        assert!(!grouped.common_error_schemas.contains("Shared"));
+
+        let untagged = grouped
+            .tag_schemas
+            .get("Untagged")
+            .expect("untagged operations should be grouped");
+        assert!(untagged.all_schemas.contains("UntaggedOnly"));
+        assert!(untagged.error_schemas.is_empty());
     }
 }
