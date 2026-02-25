@@ -84,9 +84,6 @@ impl Client {
     pub fn memberships(&self) -> crate::resources::memberships::MembershipsClient<'_> {
         crate::resources::memberships::MembershipsClient::new(self)
     }
-    pub fn merchant(&self) -> crate::resources::merchant::MerchantClient<'_> {
-        crate::resources::merchant::MerchantClient::new(self)
-    }
     pub fn merchants(&self) -> crate::resources::merchants::MerchantsClient<'_> {
         crate::resources::merchants::MerchantsClient::new(self)
     }

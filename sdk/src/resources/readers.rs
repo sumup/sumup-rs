@@ -252,11 +252,14 @@ pub struct BadRequestErrors {
     #[serde(rename = "type")]
     pub r#type: String,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutErrorErrors {
     /// Error message
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
+    /// Error code
+    #[serde(rename = "type")]
+    pub r#type: String,
 }
 /// Additional metadata for the transaction.
 /// It is key-value object that can be associated with the transaction.
@@ -311,11 +314,14 @@ pub struct CreateReaderCheckoutResponseData {
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutUnprocessableEntityErrors {}
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderTerminateErrorErrors {
     /// Error message
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
+    /// Error code
+    #[serde(rename = "type")]
+    pub r#type: String,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderTerminateUnprocessableEntityErrors {}

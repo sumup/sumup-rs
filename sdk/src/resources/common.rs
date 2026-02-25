@@ -86,6 +86,8 @@ pub enum Currency {
     BRL,
     CHF,
     CLP,
+    #[serde(rename = "COP")]
+    Cop,
     CZK,
     DKK,
     EUR,
