@@ -1351,8 +1351,8 @@ fn sanitize_enum_variant(variant: &str) -> String {
     // Handle well-known abbreviations that should remain uppercase
     match variant {
         // Currency codes (ISO 4217)
-        "EUR" | "USD" | "GBP" | "CHF" | "JPY" | "CAD" | "AUD" | "NZD" | "SEK" | "NOK" | "DKK"
-        | "PLN" | "CZK" | "HUF" | "RON" | "BGN" | "HRK" | "BRL" | "CLP" => {
+        "EUR" | "USD" | "GBP" | "CHF" | "JPY" | "CAD" | "COP" | "AUD" | "NZD" | "SEK" | "NOK"
+        | "DKK" | "PLN" | "CZK" | "HUF" | "RON" | "BGN" | "HRK" | "BRL" | "CLP" => {
             return variant.to_string()
         }
 
