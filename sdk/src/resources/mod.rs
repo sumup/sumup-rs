@@ -5,7 +5,6 @@ pub mod common;
 pub mod customers;
 pub mod members;
 pub mod memberships;
-pub mod merchant;
 pub mod merchants;
 pub mod payouts;
 pub mod readers;

@@ -86,6 +86,7 @@ pub enum Currency {
     BRL,
     CHF,
     CLP,
+    COP,
     CZK,
     DKK,
     EUR,
