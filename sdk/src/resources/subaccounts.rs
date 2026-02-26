@@ -192,41 +192,6 @@ impl<'a> SubaccountsClient<'a> {
             }
         }
     }
-    /// Disable an operator.
-    ///
-    /// Disable the specified operator for the merchant account.
-    pub async fn deactivate_sub_account(
-        &self,
-        operator_id: impl Into<String>,
-    ) -> crate::error::SdkResult<Operator, crate::error::UnknownApiBody> {
-        let path = format!("/v0.1/me/accounts/{}", operator_id.into());
-        let url = format!("{}{}", self.client.base_url(), path);
-        let mut request = self
-            .client
-            .http_client()
-            .delete(&url)
-            .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
-        if let Some(authorization) = self.client.authorization() {
-            request = request.header("Authorization", format!("Bearer {}", authorization));
-        }
-        for (header_name, header_value) in self.client.runtime_headers() {
-            request = request.header(*header_name, header_value);
-        }
-        let response = request.send().await?;
-        let status = response.status();
-        match status {
-            reqwest::StatusCode::OK => {
-                let data: Operator = response.json().await?;
-                Ok(data)
-            }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
-        }
-    }
     /// Retrieve an operator
     ///
     /// Returns specific operator.
