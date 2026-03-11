@@ -114,6 +114,10 @@ async fn client_requests_include_runtime_headers() {
 
     let mut mock = Mock::given(method("GET"))
         .and(path("/v0.1/checkouts"))
+        .and(header(
+            "Accept",
+            "application/problem+json, application/json",
+        ))
         .and(header("User-Agent", expected_user_agent.as_str()));
 
     for (header_name, header_value) in version::runtime_info() {
