@@ -1,17 +1,21 @@
 // The contents of this file are generated; do not modify them.
 
 use super::common::*;
+/// Receipt details for a transaction.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Receipt {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_data: Option<ReceiptTransaction>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_data: Option<ReceiptMerchantData>,
+    /// EMV-specific metadata returned for card-present payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub emv_data: Option<ReceiptEmvData>,
+    /// Acquirer-specific metadata related to the card authorization.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub acquirer_data: Option<ReceiptAcquirerData>,
 }
+/// Payment card details displayed on the receipt.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptCard {
     /// Card last 4 digits.
@@ -22,6 +26,7 @@ pub struct ReceiptCard {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
 }
+/// Transaction event details as rendered on the receipt.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -46,14 +51,17 @@ pub struct ReceiptEvent {
     /// Date and time of the transaction event.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
+    /// Receipt number associated with the event.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub receipt_no: Option<String>,
 }
 /// Receipt merchant data
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptMerchantData {
+    /// Merchant profile details displayed on the receipt.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_profile: Option<ReceiptMerchantDataMerchantProfile>,
+    /// Locale used for rendering localized receipt fields.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
 }
@@ -108,8 +116,10 @@ pub struct ReceiptTransaction {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub receipt_no: Option<String>,
 }
+/// EMV-specific metadata returned for card-present payments.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptEmvData {}
+/// Acquirer-specific metadata related to the card authorization.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptAcquirerData {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -138,6 +148,7 @@ pub struct ReceiptMerchantDataMerchantProfileAddress {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub landline: Option<String>,
 }
+/// Merchant profile details displayed on the receipt.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptMerchantDataMerchantProfile {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -255,7 +266,8 @@ use crate::client::Client;
 #[derive(Debug)]
 pub enum GetErrorBody {
     BadRequest(Error),
-    Unauthorized(Error),
+    Unauthorized(Problem),
+    NotFound(Error),
 }
 ///Client for the Receipts API endpoints.
 #[derive(Debug)]
@@ -308,10 +320,14 @@ impl<'a> ReceiptsClient<'a> {
                 Err(crate::error::SdkError::api(GetErrorBody::BadRequest(body)))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
                     body,
                 )))
+            }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;

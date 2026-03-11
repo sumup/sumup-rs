@@ -19,13 +19,11 @@ impl Client {
             reqwest::header::ACCEPT,
             reqwest::header::HeaderValue::from_static("application/problem+json, application/json"),
         );
-
         reqwest::Client::builder()
             .default_headers(default_headers)
             .build()
             .expect("failed to build reqwest client with default headers")
     }
-
     /// Creates a new SumUp API client with the default base URL.
     /// Tries to read the authorization token from the SUMUP_API_KEY environment variable.
     /// Default timeout is 10 seconds.

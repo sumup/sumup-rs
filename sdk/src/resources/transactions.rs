@@ -16,6 +16,7 @@ pub struct CardResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<CardType>,
 }
+/// Details of the device used to create the transaction.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Device {
     /// Device name.
@@ -34,6 +35,7 @@ pub struct Device {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uuid: Option<String>,
 }
+/// Details of the ELV card account associated with the transaction.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ElvCardAccount {
     /// ELV card sort code.
@@ -106,6 +108,7 @@ pub enum EntryModeFilter {
     #[serde(untagged)]
     Other(String),
 }
+/// Transaction event details.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Event {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -239,6 +242,7 @@ pub struct TransactionEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
 }
+/// Full transaction resource with checkout, payout, and event details.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFull {
     /// Unique ID of the transaction.
@@ -371,6 +375,7 @@ pub struct TransactionFull {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tax_enabled: Option<bool>,
 }
+/// Transaction entry returned in history listing responses.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionHistory {
     /// Unique ID of the transaction.
@@ -440,6 +445,7 @@ pub struct TransactionHistory {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub refunded_amount: Option<f64>,
 }
+/// Hypermedia link used for transaction history pagination.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TransactionsHistoryLink {
     /// Relation.
@@ -484,6 +490,7 @@ pub struct TransactionFullLocation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub horizontal_accuracy: Option<HorizontalAccuracy>,
 }
+/// Optional amount for partial refunds.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct RefundBody {
     /// Amount to be refunded. Eligible amount can't exceed the amount of the transaction and varies based on country and currency. If you do not specify a value, the system performs a full refund of the transaction.
@@ -517,6 +524,7 @@ pub struct ListDeprecatedParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<String>>,
     /// Filters the returned results by the specified list of final statuses of the transactions.
+    #[serde(rename = "statuses[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub statuses: Option<Vec<String>>,
     /// Filters the returned results by the specified list of payment types used for the transactions.
@@ -541,7 +549,7 @@ pub struct ListDeprecatedParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oldest_ref: Option<String>,
 }
-/// OK
+/// Returns a page of transaction history items.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListDeprecatedResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -582,6 +590,7 @@ pub struct ListParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<String>>,
     /// Filters the returned results by the specified list of final statuses of the transactions.
+    #[serde(rename = "statuses[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub statuses: Option<Vec<String>>,
     /// Filters the returned results by the specified list of payment types used for the transactions.
@@ -610,7 +619,7 @@ pub struct ListParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oldest_ref: Option<String>,
 }
-/// OK
+/// Returns a page of transaction history items.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -626,21 +635,23 @@ pub enum RefundErrorBody {
 }
 #[derive(Debug)]
 pub enum GetDeprecatedErrorBody {
-    Unauthorized(Error),
+    Unauthorized(Problem),
     NotFound(Error),
 }
 #[derive(Debug)]
 pub enum ListDeprecatedErrorBody {
-    Unauthorized(Error),
+    BadRequest(Error),
+    Unauthorized(Problem),
 }
 #[derive(Debug)]
 pub enum GetErrorBody {
-    Unauthorized(Error),
+    Unauthorized(Problem),
     NotFound(Error),
 }
 #[derive(Debug)]
 pub enum ListErrorBody {
-    Unauthorized(Error),
+    BadRequest(Error),
+    Unauthorized(Problem),
 }
 ///Client for the Transactions API endpoints.
 #[derive(Debug)]
@@ -743,7 +754,7 @@ impl<'a> TransactionsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     GetDeprecatedErrorBody::Unauthorized(body),
                 ))
@@ -795,7 +806,7 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("users", value)]);
         }
         if let Some(ref value) = params.statuses {
-            request = request.query(&[("statuses", value)]);
+            request = request.query(&[("statuses[]", value)]);
         }
         if let Some(ref value) = params.payment_types {
             request = request.query(&[("payment_types", value)]);
@@ -825,8 +836,14 @@ impl<'a> TransactionsClient<'a> {
                 let data: ListDeprecatedResponse = response.json().await?;
                 Ok(data)
             }
-            reqwest::StatusCode::UNAUTHORIZED => {
+            reqwest::StatusCode::BAD_REQUEST => {
                 let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListDeprecatedErrorBody::BadRequest(body),
+                ))
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     ListDeprecatedErrorBody::Unauthorized(body),
                 ))
@@ -889,7 +906,7 @@ impl<'a> TransactionsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
                     body,
                 )))
@@ -943,7 +960,7 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("users", value)]);
         }
         if let Some(ref value) = params.statuses {
-            request = request.query(&[("statuses", value)]);
+            request = request.query(&[("statuses[]", value)]);
         }
         if let Some(ref value) = params.payment_types {
             request = request.query(&[("payment_types", value)]);
@@ -976,8 +993,12 @@ impl<'a> TransactionsClient<'a> {
                 let data: ListResponse = response.json().await?;
                 Ok(data)
             }
-            reqwest::StatusCode::UNAUTHORIZED => {
+            reqwest::StatusCode::BAD_REQUEST => {
                 let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(ListErrorBody::BadRequest(body)))
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
                     body,
                 )))

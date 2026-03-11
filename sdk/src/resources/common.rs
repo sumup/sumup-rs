@@ -179,6 +179,29 @@ impl std::fmt::Display for Error {
     }
 }
 impl std::error::Error for Error {}
+/// Error payload with the invalid parameter reference.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ErrorExtended {
+    /// Short description of the error.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// Platform code for the error.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    /// Parameter name (with relative location) to which the error applies. Parameters from embedded resources are displayed using dot notation. For example, `card.name` refers to the `name` parameter embedded in the `card` object.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub param: Option<String>,
+}
+impl std::fmt::Display for ErrorExtended {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(message) = &self.message {
+            write!(f, "{}", message)
+        } else {
+            write!(f, "{:?}", self)
+        }
+    }
+}
+impl std::error::Error for ErrorExtended {}
 /// Error message for forbidden requests.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ErrorForbidden {
@@ -409,6 +432,7 @@ pub struct TransactionBase {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
 }
+/// Checkout-specific fields associated with a transaction.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionCheckoutInfo {
     /// Unique code of the registered merchant to whom the payment is made.
