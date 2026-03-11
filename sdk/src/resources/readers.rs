@@ -1,39 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
 use super::common::*;
-/// 502 Bad Gateway
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BadGateway {
-    pub errors: BadGatewayErrors,
-}
-impl std::fmt::Display for BadGateway {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for BadGateway {}
-/// 400 Bad Request
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BadRequest {
-    pub errors: BadRequestErrors,
-}
-impl std::fmt::Display for BadRequest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for BadRequest {}
-/// Error description
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderCheckoutError {
-    pub errors: CreateReaderCheckoutErrorErrors,
-}
-impl std::fmt::Display for CreateReaderCheckoutError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for CreateReaderCheckoutError {}
 /// Reader Checkout
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequest {
@@ -102,72 +69,6 @@ pub struct CreateReaderCheckoutRequest {
 pub struct CreateReaderCheckoutResponse {
     pub data: CreateReaderCheckoutResponseData,
 }
-/// Unprocessable entity
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderCheckoutUnprocessableEntity {
-    pub errors: CreateReaderCheckoutUnprocessableEntityErrors,
-}
-impl std::fmt::Display for CreateReaderCheckoutUnprocessableEntity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for CreateReaderCheckoutUnprocessableEntity {}
-/// Error description
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderTerminateError {
-    pub errors: CreateReaderTerminateErrorErrors,
-}
-impl std::fmt::Display for CreateReaderTerminateError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for CreateReaderTerminateError {}
-/// Unprocessable entity
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderTerminateUnprocessableEntity {
-    pub errors: CreateReaderTerminateUnprocessableEntityErrors,
-}
-impl std::fmt::Display for CreateReaderTerminateUnprocessableEntity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for CreateReaderTerminateUnprocessableEntity {}
-/// 504 Gateway Timeout
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct GatewayTimeout {
-    pub errors: GatewayTimeoutErrors,
-}
-impl std::fmt::Display for GatewayTimeout {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for GatewayTimeout {}
-/// 500 Internal Server Error
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct InternalServerError {
-    pub errors: InternalServerErrorErrors,
-}
-impl std::fmt::Display for InternalServerError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for InternalServerError {}
-/// 404 Not Found
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct NotFound {
-    pub errors: NotFoundErrors,
-}
-impl std::fmt::Display for NotFound {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for NotFound {}
 /// A physical card reader device that can accept in-person payments.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Reader {
@@ -227,40 +128,6 @@ pub enum ReaderStatus {
 pub struct StatusResponse {
     pub data: StatusResponseData,
 }
-/// 401 Unauthorized
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Unauthorized {
-    pub errors: UnauthorizedErrors,
-}
-impl std::fmt::Display for Unauthorized {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for Unauthorized {}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BadGatewayErrors {
-    /// Fuller message giving context to error
-    pub detail: String,
-}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BadRequestErrors {
-    /// Fuller message giving context to error
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub detail: Option<String>,
-    /// Key indicating type of error
-    #[serde(rename = "type")]
-    pub r#type: String,
-}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderCheckoutErrorErrors {
-    /// Error message
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub detail: Option<String>,
-    /// Error code
-    #[serde(rename = "type")]
-    pub r#type: String,
-}
 /// Additional metadata for the transaction.
 /// It is key-value object that can be associated with the transaction.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -312,34 +179,6 @@ pub struct CreateReaderCheckoutResponseData {
     /// It can be used later to fetch the transaction details via the [Transactions API](https://developer.sumup.com/api/transactions/get).
     pub client_transaction_id: String,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderCheckoutUnprocessableEntityErrors {}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderTerminateErrorErrors {
-    /// Error message
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub detail: Option<String>,
-    /// Error code
-    #[serde(rename = "type")]
-    pub r#type: String,
-}
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct CreateReaderTerminateUnprocessableEntityErrors {}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct GatewayTimeoutErrors {
-    /// Fuller message giving context to error
-    pub detail: String,
-}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct InternalServerErrorErrors {
-    /// Fuller message giving context to error
-    pub detail: String,
-}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct NotFoundErrors {
-    /// Fuller message giving context to error
-    pub detail: String,
-}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StatusResponseData {
     /// Battery level percentage
@@ -366,15 +205,6 @@ pub struct StatusResponseData {
     pub state: Option<String>,
     /// Status of a device
     pub status: String,
-}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct UnauthorizedErrors {
-    /// Fuller message giving context to error
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub detail: Option<String>,
-    /// Key indicating type of error
-    #[serde(rename = "type")]
-    pub r#type: String,
 }
 /// Returns a list Reader objects.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -417,30 +247,23 @@ pub enum UpdateErrorBody {
 }
 #[derive(Debug)]
 pub enum CreateCheckoutErrorBody {
-    BadRequest(CreateReaderCheckoutError),
-    Unauthorized(CreateReaderCheckoutError),
-    UnprocessableEntity(CreateReaderCheckoutUnprocessableEntity),
-    InternalServerError(CreateReaderCheckoutError),
-    BadGateway(CreateReaderCheckoutError),
-    GatewayTimeout(CreateReaderCheckoutError),
+    BadRequest(Problem),
+    Unauthorized(Problem),
+    NotFound(Problem),
+    UnprocessableEntity(Problem),
 }
 #[derive(Debug)]
 pub enum GetStatusErrorBody {
-    BadRequest(BadRequest),
-    Unauthorized(Unauthorized),
-    NotFound(NotFound),
-    InternalServerError(InternalServerError),
-    BadGateway(BadGateway),
-    GatewayTimeout(GatewayTimeout),
+    BadRequest(Problem),
+    Unauthorized(Problem),
+    NotFound(Problem),
 }
 #[derive(Debug)]
 pub enum TerminateCheckoutErrorBody {
-    BadRequest(CreateReaderTerminateError),
-    Unauthorized(CreateReaderTerminateError),
-    UnprocessableEntity(CreateReaderTerminateUnprocessableEntity),
-    InternalServerError(CreateReaderTerminateError),
-    BadGateway(CreateReaderTerminateError),
-    GatewayTimeout(CreateReaderTerminateError),
+    BadRequest(Problem),
+    Unauthorized(Problem),
+    NotFound(Problem),
+    UnprocessableEntity(Problem),
 }
 ///Client for the Readers API endpoints.
 #[derive(Debug)]
@@ -724,39 +547,27 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: CreateReaderCheckoutError = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     CreateCheckoutErrorBody::BadRequest(body),
                 ))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: CreateReaderCheckoutError = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     CreateCheckoutErrorBody::Unauthorized(body),
                 ))
             }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateCheckoutErrorBody::NotFound(body),
+                ))
+            }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
-                let body: CreateReaderCheckoutUnprocessableEntity = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     CreateCheckoutErrorBody::UnprocessableEntity(body),
-                ))
-            }
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
-                let body: CreateReaderCheckoutError = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::InternalServerError(body),
-                ))
-            }
-            reqwest::StatusCode::BAD_GATEWAY => {
-                let body: CreateReaderCheckoutError = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::BadGateway(body),
-                ))
-            }
-            reqwest::StatusCode::GATEWAY_TIMEOUT => {
-                let body: CreateReaderCheckoutError = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::GatewayTimeout(body),
                 ))
             }
             _ => {
@@ -818,40 +629,22 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: BadRequest = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(GetStatusErrorBody::BadRequest(
                     body,
                 )))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Unauthorized = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     GetStatusErrorBody::Unauthorized(body),
                 ))
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: NotFound = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(GetStatusErrorBody::NotFound(
                     body,
                 )))
-            }
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
-                let body: InternalServerError = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetStatusErrorBody::InternalServerError(body),
-                ))
-            }
-            reqwest::StatusCode::BAD_GATEWAY => {
-                let body: BadGateway = response.json().await?;
-                Err(crate::error::SdkError::api(GetStatusErrorBody::BadGateway(
-                    body,
-                )))
-            }
-            reqwest::StatusCode::GATEWAY_TIMEOUT => {
-                let body: GatewayTimeout = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetStatusErrorBody::GatewayTimeout(body),
-                ))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -904,39 +697,27 @@ impl<'a> ReadersClient<'a> {
         match status {
             reqwest::StatusCode::ACCEPTED => Ok(()),
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: CreateReaderTerminateError = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     TerminateCheckoutErrorBody::BadRequest(body),
                 ))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: CreateReaderTerminateError = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     TerminateCheckoutErrorBody::Unauthorized(body),
                 ))
             }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    TerminateCheckoutErrorBody::NotFound(body),
+                ))
+            }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
-                let body: CreateReaderTerminateUnprocessableEntity = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     TerminateCheckoutErrorBody::UnprocessableEntity(body),
-                ))
-            }
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
-                let body: CreateReaderTerminateError = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    TerminateCheckoutErrorBody::InternalServerError(body),
-                ))
-            }
-            reqwest::StatusCode::BAD_GATEWAY => {
-                let body: CreateReaderTerminateError = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    TerminateCheckoutErrorBody::BadGateway(body),
-                ))
-            }
-            reqwest::StatusCode::GATEWAY_TIMEOUT => {
-                let body: CreateReaderTerminateError = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    TerminateCheckoutErrorBody::GatewayTimeout(body),
                 ))
             }
             _ => {

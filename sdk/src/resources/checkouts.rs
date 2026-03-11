@@ -179,6 +179,7 @@ pub struct CheckoutCreateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_url: Option<String>,
 }
+/// Checkout response returned after a successful processing attempt.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccess {
     /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
@@ -268,6 +269,7 @@ pub struct DetailsError {
     /// The status code.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<f64>,
+    /// List of violated validation constraints.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub failed_constraints: Option<Vec<DetailsErrorFailedConstraintsItem>>,
 }
@@ -282,28 +284,6 @@ impl std::fmt::Display for DetailsError {
     }
 }
 impl std::error::Error for DetailsError {}
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ErrorExtended {
-    /// Short description of the error.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
-    /// Platform code for the error.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Parameter name (with relative location) to which the error applies. Parameters from embedded resources are displayed using dot notation. For example, `card.name` refers to the `name` parameter embedded in the `card` object.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub param: Option<String>,
-}
-impl std::fmt::Display for ErrorExtended {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(message) = &self.message {
-            write!(f, "{}", message)
-        } else {
-            write!(f, "{:?}", self)
-        }
-    }
-}
-impl std::error::Error for ErrorExtended {}
 /// Mandate is passed when a card is to be tokenized
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MandatePayload {
@@ -533,7 +513,7 @@ pub struct ListParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkout_reference: Option<String>,
 }
-/// OK
+/// Returns a list of checkout resources.
 pub type ListResponse = Vec<CheckoutSuccess>;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
@@ -543,7 +523,7 @@ pub enum ProcessResponse {
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListAvailablePaymentMethodsParams {
-    /// The amount for which the payment methods should be eligible, in major units. Note that currency must also be provided when filtering by amount.
+    /// The amount for which the payment methods should be eligible, in major units.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f64>,
     /// The currency for which the payment methods should be eligible.
@@ -560,37 +540,36 @@ pub struct ListAvailablePaymentMethodsResponse {
 use crate::client::Client;
 #[derive(Debug)]
 pub enum ListErrorBody {
-    Unauthorized(Error),
+    Unauthorized(Problem),
 }
 #[derive(Debug)]
 pub enum CreateErrorBody {
     BadRequest(ErrorExtended),
-    Unauthorized(Error),
+    Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     Conflict(Error),
 }
 #[derive(Debug)]
 pub enum DeactivateErrorBody {
-    Unauthorized(Error),
+    Unauthorized(Problem),
     NotFound(Error),
     Conflict(Error),
 }
 #[derive(Debug)]
 pub enum GetErrorBody {
-    Unauthorized(Error),
+    Unauthorized(Problem),
     NotFound(Error),
 }
 #[derive(Debug)]
 pub enum ProcessErrorBody {
     BadRequest,
-    Unauthorized(Error),
+    Unauthorized(Problem),
     NotFound(Error),
     Conflict(Error),
 }
 #[derive(Debug)]
 pub enum ListAvailablePaymentMethodsErrorBody {
     BadRequest(DetailsError),
-    Unauthorized(Error),
 }
 ///Client for the Checkouts API endpoints.
 #[derive(Debug)]
@@ -637,7 +616,7 @@ impl<'a> CheckoutsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
                     body,
                 )))
@@ -689,7 +668,7 @@ impl<'a> CheckoutsClient<'a> {
                 )))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(CreateErrorBody::Unauthorized(
                     body,
                 )))
@@ -740,7 +719,7 @@ impl<'a> CheckoutsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     DeactivateErrorBody::Unauthorized(body),
                 ))
@@ -793,7 +772,7 @@ impl<'a> CheckoutsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
                     body,
                 )))
@@ -849,7 +828,7 @@ impl<'a> CheckoutsClient<'a> {
                 Err(crate::error::SdkError::api(ProcessErrorBody::BadRequest))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(ProcessErrorBody::Unauthorized(
                     body,
                 )))
@@ -915,12 +894,6 @@ impl<'a> CheckoutsClient<'a> {
                 let body: DetailsError = response.json().await?;
                 Err(crate::error::SdkError::api(
                     ListAvailablePaymentMethodsErrorBody::BadRequest(body),
-                ))
-            }
-            reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListAvailablePaymentMethodsErrorBody::Unauthorized(body),
                 ))
             }
             _ => {

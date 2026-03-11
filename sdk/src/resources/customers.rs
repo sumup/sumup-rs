@@ -1,6 +1,7 @@
 // The contents of this file are generated; do not modify them.
 
 use super::common::*;
+/// Saved customer details.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Customer {
     /// Unique ID of the customer.
@@ -51,41 +52,44 @@ pub struct PaymentInstrumentResponseCard {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<CardType>,
 }
+/// Customer fields to update.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub personal_details: Option<PersonalDetails>,
 }
-/// OK
+/// Returns the list of saved payment instruments for the customer.
 pub type ListPaymentInstrumentsResponse = Vec<PaymentInstrumentResponse>;
 use crate::client::Client;
 #[derive(Debug)]
 pub enum CreateErrorBody {
-    Unauthorized(Error),
+    BadRequest,
+    Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     Conflict(Error),
 }
 #[derive(Debug)]
 pub enum GetErrorBody {
-    Unauthorized(Error),
+    Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
 }
 #[derive(Debug)]
 pub enum UpdateErrorBody {
-    Unauthorized(Error),
+    Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
 }
 #[derive(Debug)]
 pub enum ListPaymentInstrumentsErrorBody {
-    Unauthorized(Error),
+    Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
 }
 #[derive(Debug)]
 pub enum DeactivatePaymentInstrumentErrorBody {
-    Unauthorized(Error),
+    BadRequest(Error),
+    Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
 }
@@ -131,8 +135,11 @@ impl<'a> CustomersClient<'a> {
                 let data: Customer = response.json().await?;
                 Ok(data)
             }
+            reqwest::StatusCode::BAD_REQUEST => {
+                Err(crate::error::SdkError::api(CreateErrorBody::BadRequest))
+            }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(CreateErrorBody::Unauthorized(
                     body,
                 )))
@@ -183,7 +190,7 @@ impl<'a> CustomersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
                     body,
                 )))
@@ -236,7 +243,7 @@ impl<'a> CustomersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(UpdateErrorBody::Unauthorized(
                     body,
                 )))
@@ -288,7 +295,7 @@ impl<'a> CustomersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     ListPaymentInstrumentsErrorBody::Unauthorized(body),
                 ))
@@ -342,8 +349,14 @@ impl<'a> CustomersClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::NO_CONTENT => Ok(()),
-            reqwest::StatusCode::UNAUTHORIZED => {
+            reqwest::StatusCode::BAD_REQUEST => {
                 let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    DeactivatePaymentInstrumentErrorBody::BadRequest(body),
+                ))
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     DeactivatePaymentInstrumentErrorBody::Unauthorized(body),
                 ))

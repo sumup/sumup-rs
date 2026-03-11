@@ -31,11 +31,13 @@ pub struct ListParams {
 use crate::client::Client;
 #[derive(Debug)]
 pub enum ListDeprecatedErrorBody {
-    Unauthorized(Error),
+    BadRequest,
+    Unauthorized(Problem),
 }
 #[derive(Debug)]
 pub enum ListErrorBody {
-    Unauthorized(Error),
+    BadRequest,
+    Unauthorized(Problem),
 }
 ///Client for the Payouts API endpoints.
 #[derive(Debug)]
@@ -89,8 +91,11 @@ impl<'a> PayoutsClient<'a> {
                 let data: FinancialPayouts = response.json().await?;
                 Ok(data)
             }
+            reqwest::StatusCode::BAD_REQUEST => Err(crate::error::SdkError::api(
+                ListDeprecatedErrorBody::BadRequest,
+            )),
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     ListDeprecatedErrorBody::Unauthorized(body),
                 ))
@@ -142,8 +147,11 @@ impl<'a> PayoutsClient<'a> {
                 let data: FinancialPayouts = response.json().await?;
                 Ok(data)
             }
+            reqwest::StatusCode::BAD_REQUEST => {
+                Err(crate::error::SdkError::api(ListErrorBody::BadRequest))
+            }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
                     body,
                 )))
