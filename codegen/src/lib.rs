@@ -106,6 +106,14 @@ pub(crate) fn operations_for_path_item(
     .filter_map(|(method, operation)| operation.map(|op| (method, op)))
 }
 
+pub(crate) fn preferred_response_media_type(
+    content: &openapiv3::Content,
+) -> Option<&openapiv3::MediaType> {
+    content
+        .get("application/problem+json")
+        .or_else(|| content.get("application/json"))
+}
+
 /// Coordinates SDK generation for a given OpenAPI spec and output location.
 pub struct Generator {
     spec: OpenAPI,
@@ -486,7 +494,7 @@ pub fn does_tag_operations_reference_common(
                 openapiv3::ReferenceOr::Reference { .. } => continue,
             };
 
-            for media_type in response.content.values() {
+            if let Some(media_type) = preferred_response_media_type(&response.content) {
                 if let Some(schema_ref) = &media_type.schema {
                     if references_common_schema_ref(schema_ref, common_schemas) {
                         return true;

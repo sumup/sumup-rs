@@ -71,7 +71,9 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
                         _ => false,
                     };
 
-                    for media_type in response.content.values() {
+                    if let Some(media_type) =
+                        crate::preferred_response_media_type(&response.content)
+                    {
                         if let Some(schema_ref) = &media_type.schema {
                             // Collect to all_schemas first
                             collect_schema_references_unboxed(

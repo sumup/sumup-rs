@@ -491,11 +491,7 @@ fn get_response_type_for_single(
         }
         openapiv3::ReferenceOr::Item(response) => {
             // Check if response has content with a schema
-            if let Some(media_type) = response
-                .content
-                .get("application/json")
-                .or_else(|| response.content.values().next())
-            {
+            if let Some(media_type) = crate::preferred_response_media_type(&response.content) {
                 if let Some(schema_ref) = &media_type.schema {
                     match schema_ref {
                         openapiv3::ReferenceOr::Reference { reference } => {
@@ -761,10 +757,7 @@ fn extract_error_schema_ident(
 }
 
 fn extract_schema_from_response(response: &openapiv3::Response) -> Option<Ident> {
-    let media_type = response
-        .content
-        .get("application/json")
-        .or_else(|| response.content.values().next())?;
+    let media_type = crate::preferred_response_media_type(&response.content)?;
     let schema_ref = media_type.schema.as_ref()?;
     match schema_ref {
         openapiv3::ReferenceOr::Reference { reference } => {
@@ -811,7 +804,8 @@ fn generate_single_response_handling(
         openapiv3::ReferenceOr::Reference { .. } => true,
         openapiv3::ReferenceOr::Item(response) => response
             .content
-            .get("application/json")
+            .get("application/problem+json")
+            .or_else(|| response.content.get("application/json"))
             .and_then(|mt| mt.schema.as_ref())
             .is_some(),
     };
@@ -881,11 +875,7 @@ fn generate_multi_response_handling(
             }
             openapiv3::ReferenceOr::Item(resp) => {
                 // Check if response has content with a schema
-                if let Some(media_type) = resp
-                    .content
-                    .get("application/json")
-                    .or_else(|| resp.content.values().next())
-                {
+                if let Some(media_type) = crate::preferred_response_media_type(&resp.content) {
                     if let Some(schema_ref) = &media_type.schema {
                         match schema_ref {
                             openapiv3::ReferenceOr::Reference { reference } => {

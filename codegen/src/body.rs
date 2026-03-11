@@ -380,11 +380,7 @@ fn generate_response_body_structs(
             }
         };
 
-        if let Some(media_type) = response
-            .content
-            .get("application/json")
-            .or_else(|| response.content.values().next())
-        {
+        if let Some(media_type) = crate::preferred_response_media_type(&response.content) {
             if let Some(schema_ref) = &media_type.schema {
                 match schema_ref {
                     openapiv3::ReferenceOr::Reference { .. } => {
@@ -449,10 +445,8 @@ fn generate_response_body_structs(
                         });
                     }
                     openapiv3::ReferenceOr::Item(response) => {
-                        if let Some(media_type) = response
-                            .content
-                            .get("application/json")
-                            .or_else(|| response.content.values().next())
+                        if let Some(media_type) =
+                            crate::preferred_response_media_type(&response.content)
                         {
                             if let Some(schema_ref) = &media_type.schema {
                                 match schema_ref {
