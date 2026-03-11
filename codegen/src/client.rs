@@ -72,6 +72,19 @@ pub fn generate_client_file(
         }
 
         impl Client {
+            fn build_http_client() -> reqwest::Client {
+                let mut default_headers = reqwest::header::HeaderMap::new();
+                default_headers.insert(
+                    reqwest::header::ACCEPT,
+                    reqwest::header::HeaderValue::from_static("application/problem+json, application/json"),
+                );
+
+                reqwest::Client::builder()
+                    .default_headers(default_headers)
+                    .build()
+                    .expect("failed to build reqwest client with default headers")
+            }
+
             /// Creates a new SumUp API client with the default base URL.
             /// Tries to read the authorization token from the SUMUP_API_KEY environment variable.
             /// Default timeout is 10 seconds.
@@ -80,7 +93,7 @@ pub fn generate_client_file(
                     .ok()
                     .map(Authorization::APIKey);
                 Self {
-                    http_client: reqwest::Client::new(),
+                    http_client: Self::build_http_client(),
                     base_url: "https://api.sumup.com".to_string(),
                     authorization,
                     timeout: std::time::Duration::from_secs(10),
