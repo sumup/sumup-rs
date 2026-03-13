@@ -89,8 +89,16 @@ pub struct UpdateSubAccountBody {
 }
 use crate::client::Client;
 #[derive(Debug)]
+pub enum ListSubAccountsErrorBody {
+    Unauthorized(Problem),
+}
+#[derive(Debug)]
 pub enum CreateSubAccountErrorBody {
     Forbidden(Problem),
+}
+#[derive(Debug)]
+pub enum CompatGetOperatorErrorBody {
+    Unauthorized(Problem),
 }
 #[derive(Debug)]
 pub enum UpdateSubAccountErrorBody {
@@ -115,7 +123,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn list_sub_accounts(
         &self,
         params: ListSubAccountsParams,
-    ) -> crate::error::SdkResult<ListSubAccountsResponse, crate::error::UnknownApiBody> {
+    ) -> crate::error::SdkResult<ListSubAccountsResponse, ListSubAccountsErrorBody> {
         let path = "/v0.1/me/accounts";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -142,6 +150,12 @@ impl<'a> SubaccountsClient<'a> {
             reqwest::StatusCode::OK => {
                 let data: ListSubAccountsResponse = response.json().await?;
                 Ok(data)
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    ListSubAccountsErrorBody::Unauthorized(body),
+                ))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
@@ -198,7 +212,7 @@ impl<'a> SubaccountsClient<'a> {
     pub async fn compat_get_operator(
         &self,
         operator_id: impl Into<String>,
-    ) -> crate::error::SdkResult<Operator, crate::error::UnknownApiBody> {
+    ) -> crate::error::SdkResult<Operator, CompatGetOperatorErrorBody> {
         let path = format!("/v0.1/me/accounts/{}", operator_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -219,6 +233,12 @@ impl<'a> SubaccountsClient<'a> {
             reqwest::StatusCode::OK => {
                 let data: Operator = response.json().await?;
                 Ok(data)
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CompatGetOperatorErrorBody::Unauthorized(body),
+                ))
             }
             _ => {
                 let body_bytes = response.bytes().await?;

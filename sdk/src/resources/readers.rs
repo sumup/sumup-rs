@@ -227,6 +227,10 @@ pub struct UpdateBody {
 }
 use crate::client::Client;
 #[derive(Debug)]
+pub enum ListErrorBody {
+    Unauthorized(Problem),
+}
+#[derive(Debug)]
 pub enum CreateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
@@ -284,7 +288,7 @@ impl<'a> ReadersClient<'a> {
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
-    ) -> crate::error::SdkResult<ListResponse, crate::error::UnknownApiBody> {
+    ) -> crate::error::SdkResult<ListResponse, ListErrorBody> {
         let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -305,6 +309,12 @@ impl<'a> ReadersClient<'a> {
             reqwest::StatusCode::OK => {
                 let data: ListResponse = response.json().await?;
                 Ok(data)
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
+                    body,
+                )))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
