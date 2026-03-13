@@ -116,6 +116,11 @@ pub struct ListResponse {
     pub total_count: i64,
 }
 use crate::client::Client;
+#[derive(Debug)]
+pub enum ListErrorBody {
+    BadRequest(Problem),
+    Unauthorized(Problem),
+}
 ///Client for the Memberships API endpoints.
 #[derive(Debug)]
 pub struct MembershipsClient<'a> {
@@ -135,7 +140,7 @@ impl<'a> MembershipsClient<'a> {
     pub async fn list(
         &self,
         params: ListParams,
-    ) -> crate::error::SdkResult<ListResponse, crate::error::UnknownApiBody> {
+    ) -> crate::error::SdkResult<ListResponse, ListErrorBody> {
         let path = "/v0.1/memberships";
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -200,6 +205,16 @@ impl<'a> MembershipsClient<'a> {
             reqwest::StatusCode::OK => {
                 let data: ListResponse = response.json().await?;
                 Ok(data)
+            }
+            reqwest::StatusCode::BAD_REQUEST => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(ListErrorBody::BadRequest(body)))
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
+                    body,
+                )))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
