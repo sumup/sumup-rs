@@ -41,13 +41,6 @@ pub struct Card {
     /// - max length: 5
     #[serde(skip_serializing_if = "Option::is_none")]
     pub zip_code: Option<String>,
-    /// Last 4 digits of the payment card number.
-    ///
-    /// Constraints:
-    /// - read-only
-    /// - min length: 4
-    /// - max length: 4
-    pub last_4_digits: String,
     #[serde(rename = "type")]
     pub r#type: CardType,
 }
@@ -143,24 +136,6 @@ pub struct CheckoutCreateRequest {
     /// Purpose of the checkout.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub purpose: Option<String>,
-    /// Unique ID of the checkout resource.
-    ///
-    /// Constraints:
-    /// - read-only
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// Current status of the checkout.
-    ///
-    /// Constraints:
-    /// - read-only
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
-    /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
-    ///
-    /// Constraints:
-    /// - read-only
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub date: Option<crate::datetime::DateTime>,
     /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
     #[serde(
         default,
@@ -168,13 +143,6 @@ pub struct CheckoutCreateRequest {
         deserialize_with = "crate::nullable::deserialize"
     )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
-    /// List of transactions related to the payment.
-    ///
-    /// Constraints:
-    /// - read-only
-    /// - items must be unique
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transactions: Option<Vec<CheckoutCreateRequestTransactionsItem>>,
     /// __Required__ for [APMs](https://developer.sumup.com/online-payments/apm/introduction) and __recommended__ for card payments. Refers to a url where the end user is redirected once the payment processing completes. If not specified, the [Payment Widget](https://developer.sumup.com/online-payments/tools/card-widget) renders [3DS challenge](https://developer.sumup.com/online-payments/features/3ds) within an iframe instead of performing a full-page redirect.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_url: Option<String>,
@@ -397,51 +365,6 @@ pub struct CheckoutAcceptedNextStep {
     /// Contains parameters essential for form redirection. Number of object keys and their content can vary.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payload: Option<CheckoutAcceptedNextStepPayload>,
-}
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct CheckoutCreateRequestTransactionsItem {
-    /// Unique ID of the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// Transaction code returned by the acquirer/processing entity after processing the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transaction_code: Option<String>,
-    /// Total amount of the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub currency: Option<Currency>,
-    /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<crate::datetime::DateTime>,
-    /// Current status of the transaction.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payment_type: Option<PaymentType>,
-    /// Current number of the installment for deferred payments.
-    ///
-    /// Constraints:
-    /// - value >= 1
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub installments_count: Option<i64>,
-    /// Unique code of the registered merchant to whom the payment is made.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub merchant_code: Option<String>,
-    /// Amount of the applicable VAT (out of the total transaction amount).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub vat_amount: Option<f32>,
-    /// Amount of the tip (out of the total transaction amount).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tip_amount: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub entry_mode: Option<EntryMode>,
-    /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth_code: Option<String>,
-    /// Internal unique ID of the transaction on the SumUp platform.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub internal_id: Option<i64>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccessTransactionsItem {

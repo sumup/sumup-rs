@@ -66,11 +66,7 @@
 //!     return_url: None,
 //!     customer_id: None,
 //!     purpose: None,
-//!     id: None,
-//!     status: None,
-//!     date: None,
 //!     valid_until: None,
-//!     transactions: None,
 //!     redirect_url: None,
 //! })
 //! .await
