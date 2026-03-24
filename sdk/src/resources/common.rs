@@ -154,6 +154,8 @@ pub enum EntryMode {
     GooglePay,
     #[serde(rename = "paypal")]
     Paypal,
+    #[serde(rename = "twint")]
+    Twint,
     #[serde(rename = "na")]
     Na,
     #[serde(untagged)]
