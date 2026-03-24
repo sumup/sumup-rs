@@ -83,6 +83,8 @@ pub enum EntryModeFilter {
     GooglePay,
     #[serde(rename = "PAYPAL")]
     Paypal,
+    #[serde(rename = "TWINT")]
+    Twint,
     #[serde(rename = "NONE")]
     None,
     #[serde(rename = "CHIP")]
@@ -157,6 +159,12 @@ pub struct Link {
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
+    /// Minimum allowed amount for the refund.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_amount: Option<f32>,
+    /// Maximum allowed amount for the refund.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_amount: Option<f32>,
 }
 pub type Lon = f32;
 /// Purchase product.
