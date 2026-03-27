@@ -1,4 +1,4 @@
-use heck::ToUpperCamelCase;
+use heck::{ToSnakeCase, ToUpperCamelCase};
 use openapiv3::OpenAPI;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -43,9 +43,10 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
 
     for (_path, _http_method, _operation_id, operation_name, op) in operations_to_process {
         // Generate query params struct if present
-        if let Some(params_struct) =
-            generate_query_params_struct(&operation_name, op, &mut generated_names)?
-        {
+        let query_types = generate_query_param_types(&operation_name, op, &mut generated_names)?;
+        nested_schemas.extend(query_types);
+
+        if let Some(params_struct) = generate_query_params_struct(op, &operation_name) {
             body_structs.push(params_struct);
         }
 
@@ -85,12 +86,9 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
 
 /// Creates a query params struct for the operation when query parameters are defined.
 fn generate_query_params_struct(
-    operation_name: &str,
     operation: &openapiv3::Operation,
-    generated_names: &mut std::collections::HashSet<String>,
-) -> Result<Option<TokenStream>, String> {
-    use heck::ToSnakeCase;
-
+    operation_name: &str,
+) -> Option<TokenStream> {
     // Collect query parameters
     let mut query_params = Vec::new();
 
@@ -106,17 +104,10 @@ fn generate_query_params_struct(
     }
 
     if query_params.is_empty() {
-        return Ok(None);
+        return None;
     }
 
     let params_struct_name = format!("{}Params", operation_name.to_upper_camel_case());
-
-    // Check if already generated
-    if generated_names.contains(&params_struct_name) {
-        return Ok(None);
-    }
-    generated_names.insert(params_struct_name.clone());
-
     let struct_name = Ident::new(&params_struct_name, Span::call_site());
 
     // Generate fields
@@ -128,7 +119,12 @@ fn generate_query_params_struct(
         // Determine field type based on schema
         let (field_type, is_nullable) =
             if let openapiv3::ParameterSchemaOrContent::Schema(schema_ref) = &param_data.format {
-                infer_param_type(schema_ref, param_data.required)
+                infer_param_type(
+                    operation_name,
+                    &field_name.to_string(),
+                    schema_ref,
+                    param_data.required,
+                )
             } else if param_data.required {
                 (quote! { String }, false)
             } else {
@@ -177,17 +173,19 @@ fn generate_query_params_struct(
         });
     }
 
-    Ok(Some(quote! {
+    Some(quote! {
         #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
         pub struct #struct_name {
             #(#fields,)*
         }
-    }))
+    })
 }
 
 /// Infers the Rust type for a query parameter schema and reports whether it is nullable.
 /// Returns a tuple of (field_type, is_nullable).
 fn infer_param_type(
+    operation_name: &str,
+    field_name: &str,
     schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
     required: bool,
 ) -> (TokenStream, bool) {
@@ -201,21 +199,28 @@ fn infer_param_type(
             let is_nullable = schema.schema_data.nullable;
             let base = match &schema.schema_kind {
                 openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
-                    match &string_type.format {
-                        openapiv3::VariantOrUnknownOrEmpty::Item(
-                            openapiv3::StringFormat::DateTime,
-                        ) => {
-                            quote! { crate::datetime::DateTime }
+                    if !string_type.enumeration.is_empty() {
+                        let type_ident = query_param_type_ident(operation_name, field_name);
+                        quote! { #type_ident }
+                    } else {
+                        match &string_type.format {
+                            openapiv3::VariantOrUnknownOrEmpty::Item(
+                                openapiv3::StringFormat::DateTime,
+                            ) => {
+                                quote! { crate::datetime::DateTime }
+                            }
+                            openapiv3::VariantOrUnknownOrEmpty::Item(
+                                openapiv3::StringFormat::Date,
+                            ) => {
+                                quote! { crate::datetime::Date }
+                            }
+                            openapiv3::VariantOrUnknownOrEmpty::Item(
+                                openapiv3::StringFormat::Password,
+                            ) => {
+                                quote! { crate::secret::Secret }
+                            }
+                            _ => quote! { String },
                         }
-                        openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Date) => {
-                            quote! { crate::datetime::Date }
-                        }
-                        openapiv3::VariantOrUnknownOrEmpty::Item(
-                            openapiv3::StringFormat::Password,
-                        ) => {
-                            quote! { crate::secret::Secret }
-                        }
-                        _ => quote! { String },
                     }
                 }
                 openapiv3::SchemaKind::Type(openapiv3::Type::Number(_)) => quote! { f64 },
@@ -235,19 +240,29 @@ fn infer_param_type(
                                 match &inner_schema.schema_kind {
                                     openapiv3::SchemaKind::Type(openapiv3::Type::String(
                                         string_type,
-                                    )) => match &string_type.format {
-                                        openapiv3::VariantOrUnknownOrEmpty::Item(
-                                            openapiv3::StringFormat::DateTime,
-                                        ) => {
-                                            quote! { crate::datetime::DateTime }
+                                    )) => {
+                                        if !string_type.enumeration.is_empty() {
+                                            let type_ident = query_param_item_type_ident(
+                                                operation_name,
+                                                field_name,
+                                            );
+                                            quote! { #type_ident }
+                                        } else {
+                                            match &string_type.format {
+                                                openapiv3::VariantOrUnknownOrEmpty::Item(
+                                                    openapiv3::StringFormat::DateTime,
+                                                ) => {
+                                                    quote! { crate::datetime::DateTime }
+                                                }
+                                                openapiv3::VariantOrUnknownOrEmpty::Item(
+                                                    openapiv3::StringFormat::Date,
+                                                ) => {
+                                                    quote! { crate::datetime::Date }
+                                                }
+                                                _ => quote! { String },
+                                            }
                                         }
-                                        openapiv3::VariantOrUnknownOrEmpty::Item(
-                                            openapiv3::StringFormat::Date,
-                                        ) => {
-                                            quote! { crate::datetime::Date }
-                                        }
-                                        _ => quote! { String },
-                                    },
+                                    }
                                     openapiv3::SchemaKind::Type(openapiv3::Type::Integer(_)) => {
                                         quote! { i64 }
                                     }
@@ -278,6 +293,168 @@ fn infer_param_type(
     };
 
     (field_type, is_nullable)
+}
+
+fn generate_query_param_types(
+    operation_name: &str,
+    operation: &openapiv3::Operation,
+    generated_names: &mut std::collections::HashSet<String>,
+) -> Result<Vec<TokenStream>, String> {
+    let mut generated = Vec::new();
+
+    for param_ref in &operation.parameters {
+        let param = match param_ref {
+            openapiv3::ReferenceOr::Item(p) => p,
+            openapiv3::ReferenceOr::Reference { .. } => continue,
+        };
+
+        let openapiv3::Parameter::Query { parameter_data, .. } = param else {
+            continue;
+        };
+
+        let openapiv3::ParameterSchemaOrContent::Schema(schema_ref) = &parameter_data.format else {
+            continue;
+        };
+
+        let field_name = parameter_data.name.to_snake_case();
+        generated.extend(generate_query_param_type_definition(
+            operation_name,
+            &field_name,
+            schema_ref,
+            generated_names,
+        )?);
+    }
+
+    Ok(generated)
+}
+
+fn generate_query_param_type_definition(
+    operation_name: &str,
+    field_name: &str,
+    schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
+    generated_names: &mut std::collections::HashSet<String>,
+) -> Result<Vec<TokenStream>, String> {
+    let openapiv3::ReferenceOr::Item(schema) = schema_ref else {
+        return Ok(Vec::new());
+    };
+
+    match &schema.schema_kind {
+        openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
+            if string_type.enumeration.is_empty() {
+                return Ok(Vec::new());
+            }
+
+            let type_ident = query_param_type_ident(operation_name, field_name);
+            if !generated_names.insert(type_ident.to_string()) {
+                return Ok(Vec::new());
+            }
+
+            Ok(vec![build_string_enum(
+                type_ident,
+                &string_type.enumeration,
+                schema.schema_data.description.as_deref(),
+            )?])
+        }
+        openapiv3::SchemaKind::Type(openapiv3::Type::Array(arr)) => {
+            let Some(openapiv3::ReferenceOr::Item(item_schema)) = &arr.items else {
+                return Ok(Vec::new());
+            };
+
+            let openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) =
+                &item_schema.schema_kind
+            else {
+                return Ok(Vec::new());
+            };
+
+            if string_type.enumeration.is_empty() {
+                return Ok(Vec::new());
+            }
+
+            let type_ident = query_param_item_type_ident(operation_name, field_name);
+            if !generated_names.insert(type_ident.to_string()) {
+                return Ok(Vec::new());
+            }
+
+            Ok(vec![build_string_enum(
+                type_ident,
+                &string_type.enumeration,
+                item_schema.schema_data.description.as_deref(),
+            )?])
+        }
+        _ => Ok(Vec::new()),
+    }
+}
+
+fn build_string_enum(
+    type_ident: Ident,
+    enumeration: &[Option<String>],
+    description: Option<&str>,
+) -> Result<TokenStream, String> {
+    let mut variant_names = std::collections::HashSet::new();
+    let mut variants_tokens = Vec::new();
+
+    for variant in enumeration.iter().filter_map(|v| v.as_deref()) {
+        let variant_name = crate::schema::sanitize_enum_variant(variant);
+        if !variant_names.insert(variant_name.clone()) {
+            return Err(format!(
+                "Duplicate enum variant name generated for query param enum: {variant_name}"
+            ));
+        }
+
+        let variant_ident = Ident::new(&variant_name, Span::call_site());
+        if variant != variant_name {
+            variants_tokens.push(quote! {
+                #[serde(rename = #variant)]
+                #variant_ident
+            });
+        } else {
+            variants_tokens.push(quote! { #variant_ident });
+        }
+    }
+
+    if variants_tokens.is_empty() {
+        return Ok(quote! { pub type #type_ident = String; });
+    }
+
+    let other_variant_ident = if variant_names.contains("Other") {
+        Ident::new("OtherValue", Span::call_site())
+    } else {
+        Ident::new("Other", Span::call_site())
+    };
+
+    let description = description.map(crate::schema::generate_doc_comment);
+
+    Ok(quote! {
+        #description
+        #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+        pub enum #type_ident {
+            #(#variants_tokens,)*
+            #[serde(untagged)]
+            #other_variant_ident(String),
+        }
+    })
+}
+
+fn query_param_type_ident(operation_name: &str, field_name: &str) -> Ident {
+    Ident::new(
+        &format!(
+            "{}Params{}",
+            operation_name.to_upper_camel_case(),
+            field_name.to_upper_camel_case()
+        ),
+        Span::call_site(),
+    )
+}
+
+fn query_param_item_type_ident(operation_name: &str, field_name: &str) -> Ident {
+    Ident::new(
+        &format!(
+            "{}Params{}Item",
+            operation_name.to_upper_camel_case(),
+            field_name.to_upper_camel_case()
+        ),
+        Span::call_site(),
+    )
 }
 
 /// Emits a request body struct for inline request schemas referenced by the operation.

@@ -1345,7 +1345,7 @@ pub fn infer_rust_type(
 }
 
 /// Normalizes raw enum variant strings into valid Rust identifiers.
-fn sanitize_enum_variant(variant: &str) -> String {
+pub fn sanitize_enum_variant(variant: &str) -> String {
     use heck::ToPascalCase;
 
     // Handle well-known abbreviations that should remain uppercase

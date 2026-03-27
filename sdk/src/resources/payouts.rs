@@ -2,6 +2,42 @@
 
 use super::common::*;
 pub type FinancialPayouts = Vec<serde_json::Value>;
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListDeprecatedParamsFormat {
+    #[serde(rename = "json")]
+    Json,
+    #[serde(rename = "csv")]
+    Csv,
+    #[serde(untagged)]
+    Other(String),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListDeprecatedParamsOrder {
+    #[serde(rename = "desc")]
+    Desc,
+    #[serde(rename = "asc")]
+    Asc,
+    #[serde(untagged)]
+    Other(String),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListParamsFormat {
+    #[serde(rename = "json")]
+    Json,
+    #[serde(rename = "csv")]
+    Csv,
+    #[serde(untagged)]
+    Other(String),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListParamsOrder {
+    #[serde(rename = "desc")]
+    Desc,
+    #[serde(rename = "asc")]
+    Asc,
+    #[serde(untagged)]
+    Other(String),
+}
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListDeprecatedParams {
     /// Start date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
@@ -9,11 +45,11 @@ pub struct ListDeprecatedParams {
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     pub end_date: crate::datetime::Date,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub format: Option<String>,
+    pub format: Option<ListDeprecatedParamsFormat>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<String>,
+    pub order: Option<ListDeprecatedParamsOrder>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
@@ -22,11 +58,11 @@ pub struct ListParams {
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     pub end_date: crate::datetime::Date,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub format: Option<String>,
+    pub format: Option<ListParamsFormat>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<String>,
+    pub order: Option<ListParamsOrder>,
 }
 use crate::client::Client;
 #[derive(Debug)]
