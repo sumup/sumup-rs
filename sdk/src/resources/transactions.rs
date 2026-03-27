@@ -498,6 +498,76 @@ pub struct TransactionFullLocation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub horizontal_accuracy: Option<HorizontalAccuracy>,
 }
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListDeprecatedParamsOrder {
+    #[serde(rename = "ascending")]
+    Ascending,
+    #[serde(rename = "descending")]
+    Descending,
+    #[serde(untagged)]
+    Other(String),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListDeprecatedParamsStatusesItem {
+    #[serde(rename = "SUCCESSFUL")]
+    Successful,
+    #[serde(rename = "CANCELLED")]
+    Cancelled,
+    #[serde(rename = "FAILED")]
+    Failed,
+    #[serde(rename = "REFUNDED")]
+    Refunded,
+    #[serde(rename = "CHARGE_BACK")]
+    ChargeBack,
+    #[serde(untagged)]
+    Other(String),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListDeprecatedParamsTypesItem {
+    #[serde(rename = "PAYMENT")]
+    Payment,
+    #[serde(rename = "REFUND")]
+    Refund,
+    #[serde(rename = "CHARGE_BACK")]
+    ChargeBack,
+    #[serde(untagged)]
+    Other(String),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListParamsOrder {
+    #[serde(rename = "ascending")]
+    Ascending,
+    #[serde(rename = "descending")]
+    Descending,
+    #[serde(untagged)]
+    Other(String),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListParamsStatusesItem {
+    #[serde(rename = "SUCCESSFUL")]
+    Successful,
+    #[serde(rename = "CANCELLED")]
+    Cancelled,
+    #[serde(rename = "FAILED")]
+    Failed,
+    #[serde(rename = "REFUNDED")]
+    Refunded,
+    #[serde(rename = "CHARGE_BACK")]
+    ChargeBack,
+    #[serde(untagged)]
+    Other(String),
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ListParamsTypesItem {
+    #[serde(rename = "PAYMENT")]
+    Payment,
+    #[serde(rename = "REFUND")]
+    Refund,
+    #[serde(rename = "CHARGE_BACK")]
+    ChargeBack,
+    #[serde(untagged)]
+    Other(String),
+}
 /// Optional amount for partial refunds.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct RefundBody {
@@ -524,7 +594,7 @@ pub struct ListDeprecatedParams {
     pub transaction_code: Option<String>,
     /// Specifies the order in which the returned results are displayed.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<String>,
+    pub order: Option<ListDeprecatedParamsOrder>,
     /// Specifies the maximum number of results per page. Value must be a positive integer and if not specified, will return 10 results.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
@@ -534,13 +604,13 @@ pub struct ListDeprecatedParams {
     /// Filters the returned results by the specified list of final statuses of the transactions.
     #[serde(rename = "statuses[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub statuses: Option<Vec<String>>,
+    pub statuses: Option<Vec<ListDeprecatedParamsStatusesItem>>,
     /// Filters the returned results by the specified list of payment types used for the transactions.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_types: Option<Vec<PaymentType>>,
     /// Filters the returned results by the specified list of transaction types.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub types: Option<Vec<String>>,
+    pub types: Option<Vec<ListDeprecatedParamsTypesItem>>,
     /// Filters the results by the latest modification time of resources and returns only transactions that are modified *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub changes_since: Option<crate::datetime::DateTime>,
@@ -590,7 +660,7 @@ pub struct ListParams {
     pub transaction_code: Option<String>,
     /// Specifies the order in which the returned results are displayed.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<String>,
+    pub order: Option<ListParamsOrder>,
     /// Specifies the maximum number of results per page. Value must be a positive integer and if not specified, will return 10 results.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
@@ -600,7 +670,7 @@ pub struct ListParams {
     /// Filters the returned results by the specified list of final statuses of the transactions.
     #[serde(rename = "statuses[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub statuses: Option<Vec<String>>,
+    pub statuses: Option<Vec<ListParamsStatusesItem>>,
     /// Filters the returned results by the specified list of payment types used for the transactions.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_types: Option<Vec<PaymentType>>,
@@ -610,7 +680,7 @@ pub struct ListParams {
     pub entry_modes: Option<Vec<EntryModeFilter>>,
     /// Filters the returned results by the specified list of transaction types.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub types: Option<Vec<String>>,
+    pub types: Option<Vec<ListParamsTypesItem>>,
     /// Filters the results by the latest modification time of resources and returns only transactions that are modified *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub changes_since: Option<crate::datetime::DateTime>,
