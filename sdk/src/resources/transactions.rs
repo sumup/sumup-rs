@@ -51,65 +51,6 @@ pub struct ElvCardAccount {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub iban: Option<String>,
 }
-/// Entry mode value accepted by the `entry_modes[]` filter.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum EntryModeFilter {
-    #[serde(rename = "BOLETO")]
-    Boleto,
-    #[serde(rename = "SOFORT")]
-    Sofort,
-    #[serde(rename = "IDEAL")]
-    Ideal,
-    #[serde(rename = "BANCONTACT")]
-    Bancontact,
-    #[serde(rename = "EPS")]
-    Eps,
-    #[serde(rename = "MYBANK")]
-    Mybank,
-    #[serde(rename = "SATISPAY")]
-    Satispay,
-    #[serde(rename = "BLIK")]
-    Blik,
-    P24,
-    #[serde(rename = "GIROPAY")]
-    Giropay,
-    #[serde(rename = "PIX")]
-    Pix,
-    #[serde(rename = "QR_CODE_PIX")]
-    QrCodePix,
-    #[serde(rename = "APPLE_PAY")]
-    ApplePay,
-    #[serde(rename = "GOOGLE_PAY")]
-    GooglePay,
-    #[serde(rename = "PAYPAL")]
-    Paypal,
-    #[serde(rename = "TWINT")]
-    Twint,
-    #[serde(rename = "NONE")]
-    None,
-    #[serde(rename = "CHIP")]
-    Chip,
-    #[serde(rename = "MANUAL_ENTRY")]
-    ManualEntry,
-    #[serde(rename = "CUSTOMER_ENTRY")]
-    CustomerEntry,
-    #[serde(rename = "MAGSTRIPE_FALLBACK")]
-    MagstripeFallback,
-    #[serde(rename = "MAGSTRIPE")]
-    Magstripe,
-    #[serde(rename = "DIRECT_DEBIT")]
-    DirectDebit,
-    #[serde(rename = "CONTACTLESS")]
-    Contactless,
-    #[serde(rename = "MOTO")]
-    Moto,
-    #[serde(rename = "CONTACTLESS_MAGSTRIPE")]
-    ContactlessMagstripe,
-    #[serde(rename = "N/A")]
-    NA,
-    #[serde(untagged)]
-    Other(String),
-}
 /// Transaction event details.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Event {
@@ -677,7 +618,7 @@ pub struct ListParams {
     /// Filters the returned results by the specified list of entry modes.
     #[serde(rename = "entry_modes[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub entry_modes: Option<Vec<EntryModeFilter>>,
+    pub entry_modes: Option<Vec<EntryMode>>,
     /// Filters the returned results by the specified list of transaction types.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub types: Option<Vec<ListParamsTypesItem>>,

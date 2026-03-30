@@ -104,60 +104,59 @@ pub enum Currency {
 /// Entry mode of the payment details.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum EntryMode {
-    #[serde(rename = "none")]
-    None,
-    #[serde(rename = "magstripe")]
-    Magstripe,
-    #[serde(rename = "chip")]
-    Chip,
-    #[serde(rename = "manual entry")]
-    ManualEntry,
-    #[serde(rename = "customer entry")]
-    CustomerEntry,
-    #[serde(rename = "magstripe fallback")]
-    MagstripeFallback,
-    #[serde(rename = "contactless")]
-    Contactless,
-    #[serde(rename = "moto")]
-    Moto,
-    #[serde(rename = "contactless magstripe")]
-    ContactlessMagstripe,
-    #[serde(rename = "boleto")]
+    #[serde(rename = "BOLETO")]
     Boleto,
-    #[serde(rename = "direct debit")]
-    DirectDebit,
-    #[serde(rename = "sofort")]
+    #[serde(rename = "SOFORT")]
     Sofort,
-    #[serde(rename = "ideal")]
+    #[serde(rename = "IDEAL")]
     Ideal,
-    #[serde(rename = "bancontact")]
+    #[serde(rename = "BANCONTACT")]
     Bancontact,
-    #[serde(rename = "eps")]
+    #[serde(rename = "EPS")]
     Eps,
-    #[serde(rename = "mybank")]
+    #[serde(rename = "MYBANK")]
     Mybank,
-    #[serde(rename = "satispay")]
+    #[serde(rename = "SATISPAY")]
     Satispay,
-    #[serde(rename = "blik")]
+    #[serde(rename = "BLIK")]
     Blik,
-    #[serde(rename = "p24")]
     P24,
-    #[serde(rename = "giropay")]
+    #[serde(rename = "GIROPAY")]
     Giropay,
-    #[serde(rename = "pix")]
+    #[serde(rename = "PIX")]
     Pix,
-    #[serde(rename = "qr code pix")]
+    #[serde(rename = "QR_CODE_PIX")]
     QrCodePix,
-    #[serde(rename = "apple pay")]
+    #[serde(rename = "APPLE_PAY")]
     ApplePay,
-    #[serde(rename = "google pay")]
+    #[serde(rename = "GOOGLE_PAY")]
     GooglePay,
-    #[serde(rename = "paypal")]
+    #[serde(rename = "PAYPAL")]
     Paypal,
-    #[serde(rename = "twint")]
+    #[serde(rename = "TWINT")]
     Twint,
-    #[serde(rename = "na")]
-    Na,
+    #[serde(rename = "NONE")]
+    None,
+    #[serde(rename = "CHIP")]
+    Chip,
+    #[serde(rename = "MANUAL_ENTRY")]
+    ManualEntry,
+    #[serde(rename = "CUSTOMER_ENTRY")]
+    CustomerEntry,
+    #[serde(rename = "MAGSTRIPE_FALLBACK")]
+    MagstripeFallback,
+    #[serde(rename = "MAGSTRIPE")]
+    Magstripe,
+    #[serde(rename = "DIRECT_DEBIT")]
+    DirectDebit,
+    #[serde(rename = "CONTACTLESS")]
+    Contactless,
+    #[serde(rename = "MOTO")]
+    Moto,
+    #[serde(rename = "CONTACTLESS_MAGSTRIPE")]
+    ContactlessMagstripe,
+    #[serde(rename = "N/A")]
+    NA,
     #[serde(untagged)]
     Other(String),
 }

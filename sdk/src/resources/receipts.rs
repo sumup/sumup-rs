@@ -65,12 +65,28 @@ pub struct ReceiptMerchantData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
 }
+/// Card reader details displayed on the receipt.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ReceiptReader {
+    /// Reader serial number.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// Reader type.
+    #[serde(rename = "type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+}
 /// Transaction information.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptTransaction {
     /// Transaction code.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transaction_id: Option<TransactionId>,
+    /// Merchant code.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub merchant_code: Option<String>,
     /// Transaction amount.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<String>,
@@ -99,10 +115,15 @@ pub struct ReceiptTransaction {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub verification_method: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub card_reader: Option<ReceiptReader>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub card: Option<ReceiptCard>,
     /// Number of installments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
+    /// Debit/Credit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub process_as: Option<String>,
     /// Products
     #[serde(skip_serializing_if = "Option::is_none")]
     pub products: Option<Vec<ReceiptTransactionProductsItem>>,
@@ -136,6 +157,8 @@ pub struct ReceiptMerchantDataMerchantProfileAddress {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address_line1: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub address_line2: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub city: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<String>,
@@ -143,6 +166,8 @@ pub struct ReceiptMerchantDataMerchantProfileAddress {
     pub country_en_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub country_native_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub region_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub post_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -156,7 +181,15 @@ pub struct ReceiptMerchantDataMerchantProfile {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub business_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub company_registration_number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vat_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub website: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<ReceiptMerchantDataMerchantProfileAddress>,
 }
@@ -165,6 +198,9 @@ pub struct ReceiptTransactionProductsItem {
     /// Product name
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// Product description
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     /// Product price
     ///
     /// Constraints:
