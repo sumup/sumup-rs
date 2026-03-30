@@ -218,6 +218,7 @@ pub struct BusinessProfile {
     /// The customer-facing business name.
     ///
     /// Constraints:
+    /// - min length: 1
     /// - max length: 512
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -226,12 +227,14 @@ pub struct BusinessProfile {
     ///
     /// Constraints:
     /// - pattern: `^[a-zA-Z0-9 \-+\'_.]{0,30}$`
+    /// - min length: 1
     /// - max length: 30
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dynamic_descriptor: Option<String>,
     /// The business's publicly available website.
     ///
     /// Constraints:
+    /// - format: `uri`
     /// - max length: 512
     #[serde(skip_serializing_if = "Option::is_none")]
     pub website: Option<String>,
@@ -261,6 +264,7 @@ pub struct Company {
     /// The company's legal name.
     ///
     /// Constraints:
+    /// - min length: 1
     /// - max length: 512
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -283,6 +287,7 @@ pub struct Company {
     /// HTTP(S) URL of the company's website.
     ///
     /// Constraints:
+    /// - format: `uri`
     /// - max length: 255
     #[serde(
         default,
@@ -337,7 +342,7 @@ pub struct Merchant {
     /// A user-facing small-format logo for use in dashboards and other user-facing applications. For customer-facing branding see `merchant.business_profile.branding`.
     ///
     /// Constraints:
-    /// - format: `url`
+    /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar: Option<String>,
     /// A user-facing name of the merchant account for use in dashboards and other user-facing applications. For customer-facing business name see `merchant.business_profile`.
