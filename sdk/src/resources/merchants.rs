@@ -388,7 +388,14 @@ pub struct Merchant {
 ///
 /// **Warning**: Updating Meta will overwrite the existing data. Make sure to always include the complete JSON object.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Meta {}
+pub struct Meta {
+    #[serde(
+        flatten,
+        default,
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    pub additional_properties: std::collections::HashMap<String, String>,
+}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ownership {
     /// The percent of ownership shares held by the person expressed in percent mille (1/100000). Only persons with the relationship `owner` can have ownership.

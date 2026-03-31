@@ -10,7 +10,7 @@ pub struct Receipt {
     pub merchant_data: Option<ReceiptMerchantData>,
     /// EMV-specific metadata returned for card-present payments.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub emv_data: Option<ReceiptEmvData>,
+    pub emv_data: Option<serde_json::Value>,
     /// Acquirer-specific metadata related to the card authorization.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub acquirer_data: Option<ReceiptAcquirerData>,
@@ -137,9 +137,6 @@ pub struct ReceiptTransaction {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub receipt_no: Option<String>,
 }
-/// EMV-specific metadata returned for card-present payments.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ReceiptEmvData {}
 /// Acquirer-specific metadata related to the card authorization.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptAcquirerData {
