@@ -711,6 +711,16 @@ fn generate_schema_struct(
 ) -> Result<TokenStream, String> {
     match &schema.schema_kind {
         openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
+            if crate::schema::should_emit_free_form_object_alias(
+                &obj.properties,
+                obj.additional_properties.as_ref(),
+            ) {
+                return Ok(quote! {
+                    #description
+                    pub type #struct_name = serde_json::Value;
+                });
+            }
+
             let struct_name_str = struct_name.to_string();
 
             // Collect nested inline schemas

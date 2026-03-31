@@ -24,7 +24,14 @@ pub struct AddressLegacy {
 }
 /// Object attributes that are modifiable only by SumUp applications.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Attributes {}
+pub struct Attributes {
+    #[serde(
+        flatten,
+        default,
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
+}
 /// Issuing card network of the payment card used for the transaction.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum CardType {
@@ -304,7 +311,14 @@ pub enum MembershipStatus {
 /// Constraints:
 /// - max properties: 64
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Metadata {}
+pub struct Metadata {
+    #[serde(
+        flatten,
+        default,
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
+}
 /// Payment type used for the transaction.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum PaymentType {

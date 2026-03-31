@@ -131,7 +131,14 @@ pub struct StatusResponse {
 /// Additional metadata for the transaction.
 /// It is key-value object that can be associated with the transaction.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct AffiliateTags {}
+pub struct AffiliateTags {
+    #[serde(
+        flatten,
+        default,
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
+}
 /// Affiliate metadata for the transaction.
 /// It is a field that allow for integrators to track the source of the transaction.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

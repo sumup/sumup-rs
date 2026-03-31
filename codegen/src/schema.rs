@@ -11,6 +11,13 @@ type FlattenedObject = Option<(
     Option<openapiv3::AdditionalProperties>,
 )>;
 
+pub(crate) fn should_emit_free_form_object_alias(
+    properties: &Properties,
+    additional_properties: Option<&openapiv3::AdditionalProperties>,
+) -> bool {
+    properties.is_empty() && additional_properties.is_none()
+}
+
 /// Generates documentation attributes from a description string.
 /// Splits multi-line descriptions into separate doc attributes for better formatting.
 pub fn generate_doc_comment(description: &str) -> TokenStream {
@@ -388,6 +395,16 @@ pub fn generate_structs_for_schemas(
 
         match &schema.schema_kind {
             openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
+                if should_emit_free_form_object_alias(
+                    &obj.properties,
+                    obj.additional_properties.as_ref(),
+                ) {
+                    items.push(quote! {
+                        pub type #struct_name = serde_json::Value;
+                    });
+                    continue;
+                }
+
                 // Collect nested inline schemas
                 collect_nested_schemas(spec, name, &obj.properties, &mut nested_schemas)?;
 
@@ -439,6 +456,16 @@ pub fn generate_structs_for_schemas(
                     combined_additional_properties,
                 )) = flatten_all_of_object(spec, all_of)?
                 {
+                    if should_emit_free_form_object_alias(
+                        &combined_properties,
+                        combined_additional_properties.as_ref(),
+                    ) {
+                        items.push(quote! {
+                            pub type #struct_name = serde_json::Value;
+                        });
+                        continue;
+                    }
+
                     collect_nested_schemas(spec, name, &combined_properties, &mut nested_schemas)?;
 
                     let fields = generate_struct_fields(
@@ -741,6 +768,12 @@ pub fn collect_nested_schemas(
         if let openapiv3::ReferenceOr::Item(schema) = prop_ref {
             match &schema.schema_kind {
                 openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
+                    if should_emit_free_form_object_alias(
+                        &obj.properties,
+                        obj.additional_properties.as_ref(),
+                    ) {
+                        continue;
+                    }
                     generator.generate_for_object(parent_name, field_name, schema, obj)?;
                 }
                 openapiv3::SchemaKind::AllOf { all_of } => {
@@ -750,6 +783,12 @@ pub fn collect_nested_schemas(
                         combined_additional_properties,
                     )) = flatten_all_of_object(spec, all_of)?
                     {
+                        if should_emit_free_form_object_alias(
+                            &combined_properties,
+                            combined_additional_properties.as_ref(),
+                        ) {
+                            continue;
+                        }
                         generator.generate_for_object_like(
                             (parent_name, field_name),
                             schema,
@@ -764,6 +803,12 @@ pub fn collect_nested_schemas(
                     if let Some(openapiv3::ReferenceOr::Item(item_schema)) = &arr.items {
                         match &item_schema.schema_kind {
                             openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
+                                if should_emit_free_form_object_alias(
+                                    &obj.properties,
+                                    obj.additional_properties.as_ref(),
+                                ) {
+                                    continue;
+                                }
                                 generator.generate_for_object_like(
                                     (parent_name, field_name),
                                     item_schema,
@@ -780,6 +825,12 @@ pub fn collect_nested_schemas(
                                     combined_additional_properties,
                                 )) = flatten_all_of_object(spec, all_of)?
                                 {
+                                    if should_emit_free_form_object_alias(
+                                        &combined_properties,
+                                        combined_additional_properties.as_ref(),
+                                    ) {
+                                        continue;
+                                    }
                                     generator.generate_for_object_like(
                                         (parent_name, field_name),
                                         item_schema,
@@ -1077,13 +1128,7 @@ fn generate_additional_properties_field(
     additional_properties: Option<&openapiv3::AdditionalProperties>,
 ) -> Option<TokenStream> {
     let additional_properties = additional_properties?;
-
-    if properties.is_empty() {
-        return None;
-    }
-
     let value_type = infer_additional_properties_value_type(additional_properties)?;
-
     let field_name = pick_additional_properties_field_ident(properties);
 
     Some(quote! {
@@ -1204,29 +1249,36 @@ pub fn infer_rust_type(
                         quote! { #type_ident }
                     }
                     openapiv3::ReferenceOr::Item(schema) => match &schema.schema_kind {
-                        openapiv3::SchemaKind::Type(openapiv3::Type::Object(_)) => {
-                            // Prefer title if available, otherwise use nested struct name
-                            let nested_type = schema
-                                .schema_data
-                                .title
-                                .as_ref()
-                                .map(|t| t.to_upper_camel_case())
-                                .or_else(|| {
-                                    parent_field.map(|(parent_name, field_name)| {
-                                        format!(
-                                            "{}{}Item",
-                                            parent_name.to_upper_camel_case(),
-                                            field_name.to_upper_camel_case()
-                                        )
-                                    })
-                                })
-                                .unwrap_or_else(|| "serde_json::Value".to_string());
-
-                            if nested_type == "serde_json::Value" {
+                        openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
+                            if should_emit_free_form_object_alias(
+                                &obj.properties,
+                                obj.additional_properties.as_ref(),
+                            ) {
                                 quote! { serde_json::Value }
                             } else {
-                                let type_ident = Ident::new(&nested_type, Span::call_site());
-                                quote! { #type_ident }
+                                // Prefer title if available, otherwise use nested struct name
+                                let nested_type = schema
+                                    .schema_data
+                                    .title
+                                    .as_ref()
+                                    .map(|t| t.to_upper_camel_case())
+                                    .or_else(|| {
+                                        parent_field.map(|(parent_name, field_name)| {
+                                            format!(
+                                                "{}{}Item",
+                                                parent_name.to_upper_camel_case(),
+                                                field_name.to_upper_camel_case()
+                                            )
+                                        })
+                                    })
+                                    .unwrap_or_else(|| "serde_json::Value".to_string());
+
+                                if nested_type == "serde_json::Value" {
+                                    quote! { serde_json::Value }
+                                } else {
+                                    let type_ident = Ident::new(&nested_type, Span::call_site());
+                                    quote! { #type_ident }
+                                }
                             }
                         }
                         openapiv3::SchemaKind::AllOf { .. } => {
@@ -1266,6 +1318,26 @@ pub fn infer_rust_type(
             }
         }
         openapiv3::SchemaKind::Type(openapiv3::Type::Object(_)) => {
+            if let openapiv3::ReferenceOr::Item(schema) = schema_ref {
+                if let openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) =
+                    &schema.schema_kind
+                {
+                    if should_emit_free_form_object_alias(
+                        &obj.properties,
+                        obj.additional_properties.as_ref(),
+                    ) {
+                        let base_type = quote! { serde_json::Value };
+                        return if required {
+                            base_type
+                        } else if nullable {
+                            quote! { Option<crate::Nullable<#base_type>> }
+                        } else {
+                            quote! { Option<#base_type> }
+                        };
+                    }
+                }
+            }
+
             // Prefer title if available from the schema_ref
             let nested_type = if let openapiv3::ReferenceOr::Item(schema) = schema_ref {
                 schema
@@ -1521,5 +1593,30 @@ mod tests {
         let field_tokens = quote! { #(#fields)* }.to_string();
 
         assert!(!field_tokens.contains("pub additional_properties :"));
+    }
+
+    #[test]
+    fn empty_object_without_additional_properties_becomes_free_form_alias() {
+        let properties = Properties::new();
+        assert!(should_emit_free_form_object_alias(&properties, None));
+    }
+
+    #[test]
+    fn struct_fields_keep_closed_empty_object_when_additional_properties_disabled() {
+        let properties = Properties::new();
+        let additional_properties = openapiv3::AdditionalProperties::Any(false);
+
+        let fields = generate_struct_fields(
+            "ClosedObject",
+            &properties,
+            &[],
+            Some(&additional_properties),
+        );
+
+        assert!(fields.is_empty());
+        assert!(!should_emit_free_form_object_alias(
+            &properties,
+            Some(&additional_properties)
+        ));
     }
 }
