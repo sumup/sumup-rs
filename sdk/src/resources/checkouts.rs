@@ -280,6 +280,12 @@ pub struct ProcessCheckout {
     pub mandate: Option<MandatePayload>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub card: Option<Card>,
+    /// Raw `PaymentData` object received from Google Pay. Send the Google Pay response payload as-is.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub google_pay: Option<ProcessCheckoutGooglePay>,
+    /// Raw payment token object received from Apple Pay. Send the Apple Pay response payload as-is.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple_pay: Option<ProcessCheckoutApplePay>,
     /// __Required when using a tokenized card to process a checkout.__ Unique token identifying the saved payment card for a customer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
@@ -425,6 +431,12 @@ pub struct DetailsErrorFailedConstraintsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reference: Option<String>,
 }
+/// Raw `PaymentData` object received from Google Pay. Send the Google Pay response payload as-is.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ProcessCheckoutGooglePay {}
+/// Raw payment token object received from Apple Pay. Send the Apple Pay response payload as-is.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ProcessCheckoutApplePay {}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem {
     /// The ID of the payment method.

@@ -219,7 +219,7 @@ pub struct BusinessProfile {
     ///
     /// Constraints:
     /// - min length: 1
-    /// - max length: 512
+    /// - max length: 150
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// The descriptor is the text that your customer sees on their bank account statement.
@@ -235,13 +235,13 @@ pub struct BusinessProfile {
     ///
     /// Constraints:
     /// - format: `uri`
-    /// - max length: 512
+    /// - max length: 255
     #[serde(skip_serializing_if = "Option::is_none")]
     pub website: Option<String>,
     /// A publicly available email address.
     ///
     /// Constraints:
-    /// - max length: 256
+    /// - max length: 255
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -265,7 +265,7 @@ pub struct Company {
     ///
     /// Constraints:
     /// - min length: 1
-    /// - max length: 512
+    /// - max length: 150
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// The merchant category code for the account as specified by [ISO18245](https://www.iso.org/standard/33365.html). MCCs are used to classify businesses based on the goods or services they provide.
