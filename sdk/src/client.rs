@@ -83,37 +83,48 @@ impl Client {
     pub(crate) fn runtime_headers(&self) -> &[(&'static str, String)] {
         &self.runtime_info
     }
+    /// Returns a client for the Checkouts API endpoints.
     pub fn checkouts(&self) -> crate::resources::checkouts::CheckoutsClient<'_> {
         crate::resources::checkouts::CheckoutsClient::new(self)
     }
+    /// Returns a client for the Customers API endpoints.
     pub fn customers(&self) -> crate::resources::customers::CustomersClient<'_> {
         crate::resources::customers::CustomersClient::new(self)
     }
+    /// Returns a client for the Members API endpoints.
     pub fn members(&self) -> crate::resources::members::MembersClient<'_> {
         crate::resources::members::MembersClient::new(self)
     }
+    /// Returns a client for the Memberships API endpoints.
     pub fn memberships(&self) -> crate::resources::memberships::MembershipsClient<'_> {
         crate::resources::memberships::MembershipsClient::new(self)
     }
+    /// Returns a client for the Merchants API endpoints.
     pub fn merchants(&self) -> crate::resources::merchants::MerchantsClient<'_> {
         crate::resources::merchants::MerchantsClient::new(self)
     }
+    /// Returns a client for the Payouts API endpoints.
     pub fn payouts(&self) -> crate::resources::payouts::PayoutsClient<'_> {
         crate::resources::payouts::PayoutsClient::new(self)
     }
+    /// Returns a client for the Readers API endpoints.
     pub fn readers(&self) -> crate::resources::readers::ReadersClient<'_> {
         crate::resources::readers::ReadersClient::new(self)
     }
+    /// Returns a client for the Receipts API endpoints.
     pub fn receipts(&self) -> crate::resources::receipts::ReceiptsClient<'_> {
         crate::resources::receipts::ReceiptsClient::new(self)
     }
+    /// Returns a client for the Roles API endpoints.
     pub fn roles(&self) -> crate::resources::roles::RolesClient<'_> {
         crate::resources::roles::RolesClient::new(self)
     }
+    /// Returns a client for the Subaccounts API endpoints.
     #[deprecated = "Subaccounts API is deprecated, please use [Members](https://developer.sumup.com/api/members) API instead to manage your account members."]
     pub fn subaccounts(&self) -> crate::resources::subaccounts::SubaccountsClient<'_> {
         crate::resources::subaccounts::SubaccountsClient::new(self)
     }
+    /// Returns a client for the Transactions API endpoints.
     pub fn transactions(&self) -> crate::resources::transactions::TransactionsClient<'_> {
         crate::resources::transactions::TransactionsClient::new(self)
     }

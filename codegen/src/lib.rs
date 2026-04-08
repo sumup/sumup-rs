@@ -21,7 +21,7 @@ pub mod tag;
 pub use body::generate_operation_bodies;
 pub use client::generate_client_file;
 pub use operation::generate_client_methods;
-pub use schema::generate_structs_for_schemas;
+pub use schema::{generate_module_doc_comment, generate_structs_for_schemas};
 pub use tag::{collect_schemas_by_tag, SchemasByTag, TagSchemas};
 
 /// A single operation selected for a given tag, along with traversal context.
@@ -200,6 +200,9 @@ impl Generator {
         )?;
         let body_tokens = generate_operation_bodies(&self.spec, tag)?;
         let client_tokens = generate_tag_client(&self.spec, tag)?;
+        let module_doc_comment = tag_description(&self.spec, tag)
+            .map(generate_module_doc_comment)
+            .unwrap_or_else(TokenStream::new);
 
         let use_common = if self.should_import_common(tag, tag_data) {
             quote! {
@@ -210,6 +213,8 @@ impl Generator {
         };
 
         let combined_tokens = quote! {
+            #module_doc_comment
+
             #use_common
 
             #schema_tokens
@@ -289,6 +294,13 @@ impl Generator {
         println!("{}", message);
         let _ = std::io::stdout().flush();
     }
+}
+
+pub(crate) fn tag_description<'a>(spec: &'a OpenAPI, tag: &str) -> Option<&'a str> {
+    spec.tags
+        .iter()
+        .find(|candidate| candidate.name == tag)
+        .and_then(|candidate| candidate.description.as_deref())
 }
 
 /// Generates `resources/mod.rs`, wiring up tag modules and common exports.
@@ -414,7 +426,8 @@ pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, Str
         &format!("{}Client", tag.to_upper_camel_case()),
         Span::call_site(),
     );
-    let doc_comment = format!("Client for the {} API endpoints.", tag);
+    let doc_comment =
+        schema::generate_doc_comment(&format!("Client for the {} API endpoints.", tag));
 
     // Generate methods for operations with this tag
     let GeneratedClientMethods {
@@ -433,7 +446,7 @@ pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, Str
 
         #extra_items_tokens
 
-        #[doc = #doc_comment]
+        #doc_comment
         #[derive(Debug)]
         pub struct #client_type<'a> {
             client: &'a Client,
@@ -746,5 +759,26 @@ mod tests {
 
         let without_name = openapiv3::Operation::default();
         assert_eq!(operation_name(&without_name), "unknown");
+    }
+
+    #[test]
+    fn tag_description_returns_matching_tag_description() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "tags": [
+                {
+                    "name": "Checkouts",
+                    "description": "Checkout operations."
+                }
+            ],
+            "paths": {}
+        }));
+
+        assert_eq!(
+            tag_description(&spec, "Checkouts"),
+            Some("Checkout operations.")
+        );
+        assert_eq!(tag_description(&spec, "Transactions"), None);
     }
 }

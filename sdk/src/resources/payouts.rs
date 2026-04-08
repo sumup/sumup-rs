@@ -1,5 +1,8 @@
 // The contents of this file are generated; do not modify them.
 
+//! The Payouts model will allow you to track funds you’ve received from SumUp.
+//!
+//! You can receive a detailed payouts list with information like dates, fees, references and statuses, using the `List payouts` endpoint.
 use super::common::*;
 pub type FinancialPayouts = Vec<serde_json::Value>;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -75,7 +78,7 @@ pub enum ListErrorBody {
     BadRequest,
     Unauthorized(Problem),
 }
-///Client for the Payouts API endpoints.
+/// Client for the Payouts API endpoints.
 #[derive(Debug)]
 pub struct PayoutsClient<'a> {
     client: &'a Client,

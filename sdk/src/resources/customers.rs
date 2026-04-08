@@ -1,5 +1,10 @@
 // The contents of this file are generated; do not modify them.
 
+//! Allow your regular customers to save their information with the Customers model.
+//!
+//! This will prevent re-entering payment instrument information for recurring payments on your platform.
+//!
+//! Depending on the needs you can allow, creating, listing or deactivating payment instruments & creating, retrieving and updating customers.
 use super::common::*;
 /// Saved customer details.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -93,7 +98,7 @@ pub enum DeactivatePaymentInstrumentErrorBody {
     Forbidden(ErrorForbidden),
     NotFound(Error),
 }
-///Client for the Customers API endpoints.
+/// Client for the Customers API endpoints.
 #[derive(Debug)]
 pub struct CustomersClient<'a> {
     client: &'a Client,

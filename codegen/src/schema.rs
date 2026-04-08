@@ -28,6 +28,15 @@ pub fn generate_doc_comment(description: &str) -> TokenStream {
     generate_doc_comment_from_lines(lines)
 }
 
+/// Generates inner module documentation attributes from a description string.
+pub fn generate_module_doc_comment(description: &str) -> TokenStream {
+    let lines: Vec<String> = description
+        .lines()
+        .map(|line| line.trim().to_string())
+        .collect();
+    generate_module_doc_comment_from_lines(lines)
+}
+
 /// Generates documentation attributes from description + schema constraints.
 pub fn generate_schema_doc_comment(
     description: Option<&str>,
@@ -65,6 +74,26 @@ fn generate_doc_comment_from_lines(lines: Vec<String>) -> TokenStream {
                 format!(" {}", line)
             };
             quote! { #[doc = #doc_line] }
+        })
+        .collect();
+
+    quote! { #(#doc_attrs)* }
+}
+
+fn generate_module_doc_comment_from_lines(lines: Vec<String>) -> TokenStream {
+    if lines.is_empty() {
+        return quote! {};
+    }
+
+    let doc_attrs: Vec<_> = lines
+        .into_iter()
+        .map(|line| {
+            let doc_line = if line.is_empty() {
+                String::new()
+            } else {
+                format!(" {}", line)
+            };
+            quote! { #![doc = #doc_line] }
         })
         .collect();
 

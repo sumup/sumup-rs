@@ -1,5 +1,19 @@
 // The contents of this file are generated; do not modify them.
 
+//! Checkouts represent online payment sessions that you create before attempting to charge a payer. A checkout captures the payment intent, such as the amount, currency, merchant, and optional customer or redirect settings, and then moves through its lifecycle as you process it.
+//!
+//! Use this tag to:
+//! - create a checkout before collecting or confirming payment details
+//! - process the checkout with a card, saved card, wallet, or supported alternative payment method
+//! - retrieve or list checkouts to inspect their current state and associated payment attempts
+//! - deactivate a checkout that should no longer be used
+//!
+//! Typical workflow:
+//! - create a checkout with the order amount, currency, and merchant information
+//! - process the checkout through SumUp client tools such as the [Payment Widget and Swift Checkout SDK](https://developer.sumup.com/online-payments/checkouts)
+//! - retrieve the checkout or use the Transactions endpoints to inspect the resulting payment record
+//!
+//! Checkouts are used to initiate and orchestrate online payments. Transactions remain the authoritative record of the resulting payment outcome.
 use super::common::*;
 /// __Required when payment type is `card`.__ Details of the payment card.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -500,7 +514,7 @@ pub enum ProcessErrorBody {
 pub enum ListAvailablePaymentMethodsErrorBody {
     BadRequest(DetailsError),
 }
-///Client for the Checkouts API endpoints.
+/// Client for the Checkouts API endpoints.
 #[derive(Debug)]
 pub struct CheckoutsClient<'a> {
     client: &'a Client,

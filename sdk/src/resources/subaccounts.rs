@@ -1,5 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
+//! Endpoints for managing merchant sub-accounts (operators).
 use super::common::*;
 /// Operator account for a merchant.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -104,7 +105,7 @@ pub enum CompatGetOperatorErrorBody {
 pub enum UpdateSubAccountErrorBody {
     BadRequest(Problem),
 }
-///Client for the Subaccounts API endpoints.
+/// Client for the Subaccounts API endpoints.
 #[derive(Debug)]
 pub struct SubaccountsClient<'a> {
     client: &'a Client,

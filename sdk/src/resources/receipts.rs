@@ -1,5 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
+//! The Receipts model obtains receipt-like details for specific transactions.
 use super::common::*;
 /// Receipt details for a transaction.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -302,7 +303,7 @@ pub enum GetErrorBody {
     Unauthorized(Problem),
     NotFound(Error),
 }
-///Client for the Receipts API endpoints.
+/// Client for the Receipts API endpoints.
 #[derive(Debug)]
 pub struct ReceiptsClient<'a> {
     client: &'a Client,

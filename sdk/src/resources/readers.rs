@@ -1,5 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
+//! A reader represents a device that accepts payments. You can use the SumUp Solo to accept in-person payments.
 use super::common::*;
 /// Reader Checkout
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -291,7 +292,7 @@ pub enum TerminateCheckoutErrorBody {
     NotFound(Problem),
     UnprocessableEntity(Problem),
 }
-///Client for the Readers API endpoints.
+/// Client for the Readers API endpoints.
 #[derive(Debug)]
 pub struct ReadersClient<'a> {
     client: &'a Client,
