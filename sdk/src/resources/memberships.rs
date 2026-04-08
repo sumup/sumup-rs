@@ -1,5 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
+//! Endpoints to manage user's memberships. Memberships are used to connect the user to merchant accounts and to grant them access to the merchant's resources via roles.
 use super::common::*;
 /// A membership associates a user with a resource, memberships is defined by user, resource, resource type, and associated roles.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -121,7 +122,7 @@ pub enum ListErrorBody {
     BadRequest(Problem),
     Unauthorized(Problem),
 }
-///Client for the Memberships API endpoints.
+/// Client for the Memberships API endpoints.
 #[derive(Debug)]
 pub struct MembershipsClient<'a> {
     client: &'a Client,

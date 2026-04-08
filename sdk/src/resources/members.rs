@@ -1,5 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
+//! Endpoints to manage account members. Members are users that have membership within merchant accounts.
 use super::common::*;
 /// A member is user within specific resource identified by resource id, resource type, and associated roles.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -180,7 +181,7 @@ pub enum UpdateErrorBody {
     NotFound(Problem),
     Conflict(Problem),
 }
-///Client for the Members API endpoints.
+/// Client for the Members API endpoints.
 #[derive(Debug)]
 pub struct MembersClient<'a> {
     client: &'a Client,

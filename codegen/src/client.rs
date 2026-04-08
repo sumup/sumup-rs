@@ -20,7 +20,7 @@ pub fn generate_client_file(
     let mut sorted_tags: Vec<_> = tag_schemas.keys().collect();
     sorted_tags.sort();
 
-    // Build a map of tag names to their deprecation notices
+    // Build a map of tag names to their deprecation notices.
     let mut tag_deprecations: HashMap<String, String> = HashMap::new();
     for tag in &spec.tags {
         if let Some(serde_json::Value::String(notice)) = tag.extensions.get("x-deprecation-notice")
@@ -47,8 +47,13 @@ pub fn generate_client_file(
         } else {
             quote! {}
         };
+        let doc_comment = crate::schema::generate_doc_comment(&format!(
+            "Returns a client for the {} API endpoints.",
+            tag
+        ));
 
         tag_methods.push(quote! {
+            #doc_comment
             #deprecation_attr
             pub fn #method_name(&self) -> crate::resources::#client_module::#client_type<'_> {
                 crate::resources::#client_module::#client_type::new(self)

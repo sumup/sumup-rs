@@ -1,5 +1,19 @@
 // The contents of this file are generated; do not modify them.
 
+//! Checkouts represent online payment sessions that you create before attempting to charge a payer. A checkout captures the payment intent, such as the amount, currency, merchant, and optional customer or redirect settings, and then moves through its lifecycle as you process it.
+//!
+//! Use this tag to:
+//! - create a checkout before collecting or confirming payment details
+//! - process the checkout with a card, saved card, wallet, or supported alternative payment method
+//! - retrieve or list checkouts to inspect their current state and associated payment attempts
+//! - deactivate a checkout that should no longer be used
+//!
+//! Typical workflow:
+//! - create a checkout with the order amount, currency, and merchant information
+//! - process the checkout through SumUp client tools such as the [Payment Widget and Swift Checkout SDK](https://developer.sumup.com/online-payments/checkouts)
+//! - retrieve the checkout or use the Transactions endpoints to inspect the resulting payment record
+//!
+//! Checkouts are used to initiate and orchestrate online payments. Transactions remain the authoritative record of the resulting payment outcome.
 use super::common::*;
 /// __Required when payment type is `card`.__ Details of the payment card.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -44,160 +58,160 @@ pub struct Card {
     #[serde(rename = "type")]
     pub r#type: CardType,
 }
-/// Details of the payment checkout.
+/// Core checkout resource returned by the Checkouts API. A checkout is created before payment processing and then updated as payment attempts, redirects, and resulting transactions are attached to it.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Checkout {
-    /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
+    /// Merchant-defined reference for the checkout. Use it to correlate the SumUp checkout with your own order, cart, subscription, or payment attempt in your systems.
     ///
     /// Constraints:
     /// - max length: 90
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkout_reference: Option<String>,
-    /// Amount of the payment.
+    /// Amount to be charged to the payer, expressed in major units.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
-    /// Unique identifying code of the merchant profile.
+    /// Merchant account that receives the payment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_code: Option<String>,
-    /// Short description of the checkout visible in the SumUp dashboard. The description can contribute to reporting, allowing easier identification of a checkout.
+    /// Short merchant-defined description shown in SumUp tools and reporting. Use it to make the checkout easier to recognize in dashboards, support workflows, and reconciliation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// URL to which the SumUp platform sends the processing status of the payment checkout.
+    /// Optional backend callback URL used by SumUp to notify your platform about processing updates for the checkout.
     ///
     /// Constraints:
     /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
-    /// Unique ID of the checkout resource.
+    /// Unique SumUp identifier of the checkout resource.
     ///
     /// Constraints:
     /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    /// Current status of the checkout.
+    /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
     /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<crate::datetime::DateTime>,
-    /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
+    /// Optional expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable. If omitted, the checkout does not have an explicit expiry time.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
-    /// Unique identification of a customer. If specified, the checkout session and payment instrument are associated with the referenced customer.
+    /// Merchant-scoped identifier of the customer associated with the checkout. Use it when storing payment instruments or reusing saved customer context for recurring and returning-payer flows.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub customer_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mandate: Option<MandateResponse>,
-    /// List of transactions related to the payment.
+    /// Payment attempts and resulting transaction records linked to this checkout. Use the Transactions endpoints when you need the authoritative payment result and event history.
     ///
     /// Constraints:
     /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transactions: Option<Vec<CheckoutTransactionsItem>>,
 }
-/// 3DS Response
+/// Response returned when checkout processing requires an additional payer action, such as a 3DS challenge or a redirect to an external payment method page.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutAccepted {
-    /// Required action processing 3D Secure payments.
+    /// Instructions for the next action the payer or client must take.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<CheckoutAcceptedNextStep>,
 }
-/// Details of the payment checkout.
+/// Request body for creating a checkout before processing payment. Define the payment amount, currency, merchant, and optional customer or redirect behavior here.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutCreateRequest {
-    /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
+    /// Merchant-defined reference for the new checkout. It should be unique enough for you to identify the payment attempt in your own systems.
     ///
     /// Constraints:
     /// - max length: 90
     pub checkout_reference: String,
-    /// Amount of the payment.
+    /// Amount to be charged to the payer, expressed in major units.
     pub amount: f32,
     pub currency: Currency,
-    /// Unique identifying code of the merchant profile.
+    /// Merchant account that should receive the payment.
     pub merchant_code: String,
-    /// Short description of the checkout visible in the SumUp dashboard. The description can contribute to reporting, allowing easier identification of a checkout.
+    /// Short merchant-defined description shown in SumUp tools and reporting for easier identification of the checkout.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// URL to which the SumUp platform sends the processing status of the payment checkout.
+    /// Optional backend callback URL used by SumUp to notify your platform about processing updates for the checkout.
     ///
     /// Constraints:
     /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
-    /// Unique identification of a customer. If specified, the checkout session and payment instrument are associated with the referenced customer.
+    /// Merchant-scoped customer identifier. Required when setting up recurring payments and useful when the checkout should be linked to a returning payer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub customer_id: Option<String>,
-    /// Purpose of the checkout.
+    /// Business purpose of the checkout. Use `CHECKOUT` for a standard payment and `SETUP_RECURRING_PAYMENT` when collecting consent and payment details for future recurring charges.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub purpose: Option<String>,
-    /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
+    /// Optional expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable. If omitted, the checkout does not have an explicit expiry time.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
-    /// __Required__ for [APMs](https://developer.sumup.com/online-payments/apm/introduction) and __recommended__ for card payments. Refers to a url where the end user is redirected once the payment processing completes. If not specified, the [Payment Widget](https://developer.sumup.com/online-payments/tools/card-widget) renders [3DS challenge](https://developer.sumup.com/online-payments/features/3ds) within an iframe instead of performing a full-page redirect.
+    /// URL where the payer should be sent after a redirect-based payment or SCA flow completes. This is required for [APMs](https://developer.sumup.com/online-payments/apm/introduction) and recommended for card checkouts that may require [3DS](https://developer.sumup.com/online-payments/features/3ds). If it is omitted, the [Payment Widget](https://developer.sumup.com/online-payments/checkouts) can render the challenge in an iframe instead of using a full-page redirect.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_url: Option<String>,
 }
-/// Checkout response returned after a successful processing attempt.
+/// Checkout resource returned after a synchronous processing attempt. In addition to the base checkout fields, it can include the resulting transaction identifiers and any newly created payment instrument token.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccess {
-    /// Unique ID of the payment checkout specified by the client application when creating the checkout resource.
+    /// Merchant-defined reference for the checkout. Use it to correlate the SumUp checkout with your own order, cart, subscription, or payment attempt in your systems.
     ///
     /// Constraints:
     /// - max length: 90
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkout_reference: Option<String>,
-    /// Amount of the payment.
+    /// Amount to be charged to the payer, expressed in major units.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
-    /// Unique identifying code of the merchant profile.
+    /// Merchant account that receives the payment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_code: Option<String>,
-    /// Short description of the checkout visible in the SumUp dashboard. The description can contribute to reporting, allowing easier identification of a checkout.
+    /// Short merchant-defined description shown in SumUp tools and reporting. Use it to make the checkout easier to recognize in dashboards, support workflows, and reconciliation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// URL to which the SumUp platform sends the processing status of the payment checkout.
+    /// Optional backend callback URL used by SumUp to notify your platform about processing updates for the checkout.
     ///
     /// Constraints:
     /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
-    /// Unique ID of the checkout resource.
+    /// Unique SumUp identifier of the checkout resource.
     ///
     /// Constraints:
     /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    /// Current status of the checkout.
+    /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
     /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<crate::datetime::DateTime>,
-    /// Date and time of the checkout expiration before which the client application needs to send a processing request. If no value is present, the checkout does not have an expiration time.
+    /// Optional expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable. If omitted, the checkout does not have an explicit expiry time.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
-    /// Unique identification of a customer. If specified, the checkout session and payment instrument are associated with the referenced customer.
+    /// Merchant-scoped identifier of the customer associated with the checkout. Use it when storing payment instruments or reusing saved customer context for recurring and returning-payer flows.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub customer_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mandate: Option<MandateResponse>,
-    /// List of transactions related to the payment.
+    /// Payment attempts and resulting transaction records linked to this checkout. Use the Transactions endpoints when you need the authoritative payment result and event history.
     ///
     /// Constraints:
     /// - items must be unique
@@ -218,10 +232,10 @@ pub struct CheckoutSuccess {
     /// Name of the merchant
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_name: Option<String>,
-    /// Refers to a url where the end user is redirected once the payment processing completes.
+    /// URL where the payer is redirected after a redirect-based payment or SCA flow completes.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_url: Option<String>,
-    /// Object containing token information for the specified payment instrument
+    /// Details of the saved payment instrument created or reused during checkout processing.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_instrument: Option<CheckoutSuccessPaymentInstrument>,
 }
@@ -252,22 +266,22 @@ impl std::fmt::Display for DetailsError {
     }
 }
 impl std::error::Error for DetailsError {}
-/// Mandate is passed when a card is to be tokenized
+/// Mandate details used when a checkout should create a reusable card token for future recurring or merchant-initiated payments.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MandatePayload {
-    /// Indicates the mandate type
+    /// Type of mandate to create for the saved payment instrument.
     #[serde(rename = "type")]
     pub r#type: String,
-    /// Operating system and web client used by the end-user
+    /// Browser or client user agent observed when consent was collected.
     pub user_agent: String,
-    /// IP address of the end user. Supports IPv4 and IPv6
+    /// IP address of the payer when the mandate was accepted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_ip: Option<String>,
 }
-/// Details of the payment instrument for processing the checkout.
+/// Request body for attempting payment on an existing checkout. The required companion fields depend on the selected `payment_type`, for example card details, saved-card data, or payer information required by a specific payment method.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ProcessCheckout {
-    /// Describes the payment method used to attempt processing
+    /// Payment method used for this processing attempt. It determines which additional request fields are required.
     pub payment_type: String,
     /// Number of installments for deferred payments. Available only to merchant users in Brazil.
     ///
@@ -286,10 +300,10 @@ pub struct ProcessCheckout {
     /// Raw payment token object received from Apple Pay. Send the Apple Pay response payload as-is.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apple_pay: Option<serde_json::Value>,
-    /// __Required when using a tokenized card to process a checkout.__ Unique token identifying the saved payment card for a customer.
+    /// Saved-card token to use instead of raw card details when processing with a previously stored payment instrument.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
-    /// __Required when `token` is provided.__ Unique ID of the customer.
+    /// Customer identifier associated with the saved payment instrument. Required when `token` is provided.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub customer_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -340,7 +354,7 @@ pub struct CheckoutTransactionsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub internal_id: Option<i64>,
 }
-/// Contains parameters essential for form redirection. Number of object keys and their content can vary.
+/// Parameters required to complete the next step. The exact keys depend on the payment provider and flow type.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutAcceptedNextStepPayload {
     #[serde(rename = "PaReq")]
@@ -353,22 +367,22 @@ pub struct CheckoutAcceptedNextStepPayload {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub termurl: Option<serde_json::Value>,
 }
-/// Required action processing 3D Secure payments.
+/// Instructions for the next action the payer or client must take.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutAcceptedNextStep {
-    /// Where the end user is redirected.
+    /// URL to open or submit in order to continue processing.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
-    /// Method used to complete the redirect.
+    /// HTTP method to use when following the next step.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub method: Option<String>,
-    /// Refers to a url where the end user is redirected once the payment processing completes.
+    /// Merchant URL where the payer returns after the external flow finishes.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_url: Option<String>,
-    /// Indicates allowed mechanisms for redirecting an end user. If both values are provided to ensure a redirect takes place in either.
+    /// Allowed presentation mechanisms for the next step. `iframe` means the flow can be embedded, while `browser` means it can be completed through a full-page redirect.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mechanism: Option<Vec<String>>,
-    /// Contains parameters essential for form redirection. Number of object keys and their content can vary.
+    /// Parameters required to complete the next step. The exact keys depend on the payment provider and flow type.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payload: Option<CheckoutAcceptedNextStepPayload>,
 }
@@ -417,7 +431,7 @@ pub struct CheckoutSuccessTransactionsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub internal_id: Option<i64>,
 }
-/// Object containing token information for the specified payment instrument
+/// Details of the saved payment instrument created or reused during checkout processing.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccessPaymentInstrument {
     /// Token value
@@ -500,7 +514,7 @@ pub enum ProcessErrorBody {
 pub enum ListAvailablePaymentMethodsErrorBody {
     BadRequest(DetailsError),
 }
-///Client for the Checkouts API endpoints.
+/// Client for the Checkouts API endpoints.
 #[derive(Debug)]
 pub struct CheckoutsClient<'a> {
     client: &'a Client,

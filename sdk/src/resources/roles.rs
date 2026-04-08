@@ -1,5 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
+//! Endpoints to manage custom roles. Custom roles allow you to tailor roles from individual permissions to match your needs. Once created, you can assign your custom roles to your merchant account members using the memberships.
 use super::common::*;
 /// A custom role that can be used to assign set of permissions to members.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -84,7 +85,7 @@ pub enum UpdateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
 }
-///Client for the Roles API endpoints.
+/// Client for the Roles API endpoints.
 #[derive(Debug)]
 pub struct RolesClient<'a> {
     client: &'a Client,
