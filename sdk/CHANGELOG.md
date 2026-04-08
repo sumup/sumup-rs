@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.8](https://github.com/sumup/sumup-rs/compare/v0.5.7...v0.5.8) - 2026-04-08
+
+### Fixed
+
+- *(codegen)* generate enums for query params ([#150](https://github.com/sumup/sumup-rs/pull/150))
+
+### Other
+
+- synced file(s) with sumup/apis ([#156](https://github.com/sumup/sumup-rs/pull/156))
+- synced file(s) with sumup/apis ([#155](https://github.com/sumup/sumup-rs/pull/155))
+- *(deps)* bump uuid from 1.22.0 to 1.23.0 ([#154](https://github.com/sumup/sumup-rs/pull/154))
+- synced file(s) with sumup/apis ([#153](https://github.com/sumup/sumup-rs/pull/153))
+- synced file(s) with sumup/apis ([#152](https://github.com/sumup/sumup-rs/pull/152))
+- synced file(s) with sumup/apis ([#151](https://github.com/sumup/sumup-rs/pull/151))
+- synced file(s) with sumup/apis ([#149](https://github.com/sumup/sumup-rs/pull/149))
+- synced file(s) with sumup/apis ([#148](https://github.com/sumup/sumup-rs/pull/148))
+- synced file(s) with sumup/apis ([#147](https://github.com/sumup/sumup-rs/pull/147))
+- *(deps)* bump uuid from 1.21.0 to 1.22.0 ([#138](https://github.com/sumup/sumup-rs/pull/138))
+
 ## [0.5.7](https://github.com/sumup/sumup-rs/compare/v0.5.6...v0.5.7) - 2026-03-13
 
 ### Added
