@@ -51,7 +51,7 @@ pub struct ElvCardAccount {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub iban: Option<String>,
 }
-/// Transaction event details.
+/// High-level transaction event details.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Event {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -163,7 +163,7 @@ pub struct Product {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_with_vat: Option<f64>,
 }
-/// Details of a transaction event.
+/// Detailed information about a transaction event.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -305,16 +305,27 @@ pub struct TransactionFull {
     /// List of VAT rates applicable to the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vat_rates: Option<Vec<TransactionFullVatRatesItem>>,
-    /// List of transaction events related to the transaction.
+    /// Detailed list of events related to the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_events: Option<Vec<TransactionEvent>>,
-    /// Status generated from the processing status and the latest transaction state.
+    /// High-level status of the transaction from the merchant's perspective.
+    ///
+    /// - `PENDING`: The payment has been initiated and is still being processed. A final outcome is not available yet.
+    /// - `SUCCESSFUL`: The payment was completed successfully.
+    /// - `PAID_OUT`: The payment was completed successfully and the funds have already been included in a payout to the merchant.
+    /// - `FAILED`: The payment did not complete successfully.
+    /// - `CANCELLED`: The payment was cancelled or reversed and is no longer payable or payable to the merchant.
+    /// - `CANCEL_FAILED`: An attempt to cancel or reverse the payment was not completed successfully.
+    /// - `REFUNDED`: The payment was refunded in full or in part.
+    /// - `REFUND_FAILED`: An attempt to refund the payment was not completed successfully.
+    /// - `CHARGEBACK`: The payment was subject to a chargeback.
+    /// - `NON_COLLECTION`: The amount could not be collected from the merchant after a chargeback or related adjustment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub simple_status: Option<String>,
     /// List of hyperlinks for accessing related resources.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub links: Option<Vec<Link>>,
-    /// List of events related to the transaction.
+    /// Compact list of events related to the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub events: Option<Vec<Event>>,
     /// Details of the payment location as received from the payment terminal.
@@ -732,12 +743,11 @@ impl<'a> TransactionsClient<'a> {
     /// Retrieve a transaction
     ///
     /// Retrieves the full details of an identified transaction. The transaction resource is identified by a query parameter and *one* of following parameters is required:
-    ///
-    /// *  `id`
-    /// *  `internal_id`
-    /// *  `transaction_code`
-    /// *  `foreign_transaction_id`
-    /// *  `client_transaction_id`
+    /// - `id`
+    /// - `internal_id`
+    /// - `transaction_code`
+    /// - `foreign_transaction_id`
+    /// - `client_transaction_id`
     pub async fn get_deprecated(
         &self,
         params: GetDeprecatedParams,
@@ -877,12 +887,11 @@ impl<'a> TransactionsClient<'a> {
     /// Retrieve a transaction
     ///
     /// Retrieves the full details of an identified transaction. The transaction resource is identified by a query parameter and *one* of following parameters is required:
-    ///
-    /// *  `id`
-    /// *  `internal_id`
-    /// *  `transaction_code`
-    /// *  `foreign_transaction_id`
-    /// *  `client_transaction_id`
+    /// - `id`
+    /// - `internal_id`
+    /// - `transaction_code`
+    /// - `foreign_transaction_id`
+    /// - `client_transaction_id`
     pub async fn get(
         &self,
         merchant_code: impl Into<String>,

@@ -90,7 +90,7 @@ impl<'a> PayoutsClient<'a> {
     }
     /// List payouts
     ///
-    /// Lists ordered payouts for the merchant profile.
+    /// Lists ordered payouts for the merchant account.
     pub async fn list_deprecated(
         &self,
         params: ListDeprecatedParams,
@@ -145,7 +145,7 @@ impl<'a> PayoutsClient<'a> {
     }
     /// List payouts
     ///
-    /// Lists ordered payouts for the merchant profile.
+    /// Lists ordered payouts for the merchant account.
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
