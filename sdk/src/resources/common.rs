@@ -237,18 +237,20 @@ pub type EventId = i64;
 /// Status of the transaction event.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum EventStatus {
-    #[serde(rename = "PENDING")]
-    Pending,
-    #[serde(rename = "SCHEDULED")]
-    Scheduled,
     #[serde(rename = "FAILED")]
     Failed,
-    #[serde(rename = "REFUNDED")]
-    Refunded,
-    #[serde(rename = "SUCCESSFUL")]
-    Successful,
     #[serde(rename = "PAID_OUT")]
     PaidOut,
+    #[serde(rename = "PENDING")]
+    Pending,
+    #[serde(rename = "RECONCILED")]
+    Reconciled,
+    #[serde(rename = "REFUNDED")]
+    Refunded,
+    #[serde(rename = "SCHEDULED")]
+    Scheduled,
+    #[serde(rename = "SUCCESSFUL")]
+    Successful,
     #[serde(untagged)]
     Other(String),
 }

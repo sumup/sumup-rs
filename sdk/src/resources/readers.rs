@@ -4,6 +4,10 @@ use super::common::*;
 /// Reader Checkout
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequest {
+    /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
+    /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aade: Option<CreateReaderCheckoutRequestAade>,
     /// Affiliate metadata for the transaction.
     /// It is a field that allow for integrators to track the source of the transaction.
     #[serde(
@@ -127,6 +131,17 @@ pub enum ReaderStatus {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StatusResponse {
     pub data: StatusResponseData,
+}
+/// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
+/// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CreateReaderCheckoutRequestAade {
+    /// The identifier of the AADE signature provider.
+    pub provider_id: String,
+    /// The base64 encoded signature of the transaction data.
+    pub signature: String,
+    /// The string containing the signed transaction data.
+    pub signature_data: String,
 }
 /// Additional metadata for the transaction.
 /// It is key-value object that can be associated with the transaction.
