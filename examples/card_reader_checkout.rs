@@ -51,6 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 return_url: None,
                 tip_rates: None,
                 tip_timeout: None,
+                aade: None,
             },
         )
         .await
