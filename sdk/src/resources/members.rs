@@ -2,6 +2,36 @@
 
 //! Endpoints to manage account members. Members are users that have membership within merchant accounts.
 use super::common::*;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum MemberCreated {}
+impl crate::events::EventSpec for MemberCreated {
+    const EVENT_TYPE: &'static str = "members.created";
+    const OBJECT_TYPE: &'static str = "member";
+    type FetchedObject = Member;
+}
+/// Event notification for this event type.
+pub type MemberCreatedEvent<'a> = crate::events::Event<'a, MemberCreated>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum MemberDeleted {}
+impl crate::events::EventSpec for MemberDeleted {
+    const EVENT_TYPE: &'static str = "members.deleted";
+    const OBJECT_TYPE: &'static str = "member";
+    type FetchedObject = Member;
+}
+/// Event notification for this event type.
+pub type MemberDeletedEvent<'a> = crate::events::Event<'a, MemberDeleted>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum MemberUpdated {}
+impl crate::events::EventSpec for MemberUpdated {
+    const EVENT_TYPE: &'static str = "members.updated";
+    const OBJECT_TYPE: &'static str = "member";
+    type FetchedObject = Member;
+}
+/// Event notification for this event type.
+pub type MemberUpdatedEvent<'a> = crate::events::Event<'a, MemberUpdated>;
 /// A member is user within specific resource identified by resource id, resource type, and associated roles.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Member {

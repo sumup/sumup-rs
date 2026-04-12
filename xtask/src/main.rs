@@ -47,13 +47,23 @@ fn workspace_root() -> Result<PathBuf, String> {
 }
 
 fn load_spec(root_path: &Path) -> Result<OpenAPI, String> {
+    let raw_spec = load_raw_spec(root_path)?;
+    parse_spec(raw_spec)
+}
+
+fn load_raw_spec(root_path: &Path) -> Result<serde_json::Value, String> {
     let spec_path = root_path.join("openapi.json");
     let file = File::open(&spec_path)
         .map_err(|error| format!("Failed to open {}: {error}", spec_path.display()))?;
-    let spec: OpenAPI = serde_json::from_reader(file)
-        .map_err(|error| format!("Failed to parse {}: {error}", spec_path.display()))?;
+    serde_json::from_reader(file)
+        .map_err(|error| format!("Failed to parse {}: {error}", spec_path.display()))
+}
+
+fn parse_spec(raw_spec: serde_json::Value) -> Result<OpenAPI, String> {
+    let spec: OpenAPI = serde_json::from_value(raw_spec)
+        .map_err(|error| format!("Failed to parse OpenAPI spec: {error}"))?;
     spec.validate_version()
-        .map_err(|error| format!("Failed to parse {}: {error}", spec_path.display()))?;
+        .map_err(|error| format!("Failed to parse OpenAPI spec: {error}"))?;
     Ok(spec)
 }
 
@@ -66,12 +76,13 @@ fn generate() -> Result<(), String> {
         .flush()
         .map_err(|e| format!("Failed to flush stdout: {e}"))?;
 
-    let spec = load_spec(&root_path)?;
+    let raw_spec = load_raw_spec(&root_path)?;
+    let spec = parse_spec(raw_spec.clone())?;
 
     let mut out_path = root_path.clone();
     out_path.push("sdk");
 
-    let generator = codegen::Generator::new(spec, out_path)?;
+    let generator = codegen::Generator::new(spec, raw_spec, out_path)?;
     generator.generate()?;
 
     let duration = Instant::now().duration_since(start).as_micros();

@@ -2,6 +2,26 @@
 
 //! A reader represents a device that accepts payments. You can use the SumUp Solo to accept in-person payments.
 use super::common::*;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum ReaderCreated {}
+impl crate::events::EventSpec for ReaderCreated {
+    const EVENT_TYPE: &'static str = "readers.created";
+    const OBJECT_TYPE: &'static str = "reader";
+    type FetchedObject = Reader;
+}
+/// Event notification for this event type.
+pub type ReaderCreatedEvent<'a> = crate::events::Event<'a, ReaderCreated>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum ReaderDeleted {}
+impl crate::events::EventSpec for ReaderDeleted {
+    const EVENT_TYPE: &'static str = "readers.deleted";
+    const OBJECT_TYPE: &'static str = "reader";
+    type FetchedObject = Reader;
+}
+/// Event notification for this event type.
+pub type ReaderDeletedEvent<'a> = crate::events::Event<'a, ReaderDeleted>;
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Affiliate {
     pub app_id: String,
