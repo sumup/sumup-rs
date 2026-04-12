@@ -83,6 +83,10 @@ impl Client {
     pub(crate) fn runtime_headers(&self) -> &[(&'static str, String)] {
         &self.runtime_info
     }
+    /// Creates an event helper bound to this client and signing secret.
+    pub fn events_handler(&self, secret: impl AsRef<[u8]>) -> crate::events::EventsHandler<'_> {
+        crate::events::EventsHandler::new(self, secret)
+    }
     /// Returns a client for the Checkouts API endpoints.
     pub fn checkouts(&self) -> crate::resources::checkouts::CheckoutsClient<'_> {
         crate::resources::checkouts::CheckoutsClient::new(self)

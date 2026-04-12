@@ -5,53 +5,53 @@ use super::common::*;
 /// A membership associates a user with a resource, memberships is defined by user, resource, resource type, and associated roles.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Membership {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attributes: Option<Attributes>,
+    /// The timestamp of when the membership was created.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
+    pub created_at: crate::datetime::DateTime,
     /// ID of the membership.
     ///
     /// Example: `mem_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
     pub id: String,
-    /// ID of the resource the membership is in.
-    ///
-    /// Example: `M2DDT39A`
-    pub resource_id: String,
-    #[serde(rename = "type")]
-    pub r#type: ResourceType,
-    /// User's roles.
-    pub roles: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invite: Option<Invite>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<Metadata>,
     /// User's permissions.
     #[deprecated(
         note = "Permissions include only legacy permissions, please use roles instead. Member access is based on their roles within a given resource and the permissions these roles grant."
     )]
     pub permissions: Vec<String>,
-    /// The timestamp of when the membership was created.
+    pub resource: MembershipResource,
+    /// ID of the resource the membership is in.
     ///
-    /// Example: `2023-01-20T15:16:17Z`
-    pub created_at: crate::datetime::DateTime,
+    /// Example: `M2DDT39A`
+    pub resource_id: String,
+    /// User's roles.
+    pub roles: Vec<String>,
+    pub status: MembershipStatus,
+    #[serde(rename = "type")]
+    pub r#type: ResourceType,
     /// The timestamp of when the membership was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
     pub updated_at: crate::datetime::DateTime,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub invite: Option<Invite>,
-    pub status: MembershipStatus,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<Metadata>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<Attributes>,
-    pub resource: MembershipResource,
 }
 /// Information about the resource the membership is in.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MembershipResource {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attributes: Option<Attributes>,
+    /// The timestamp of when the membership resource was created.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
+    pub created_at: crate::datetime::DateTime,
     /// ID of the resource the membership is in.
     ///
     /// Example: `M2DDT39A`
     pub id: String,
-    #[serde(rename = "type")]
-    pub r#type: ResourceType,
-    /// Display name of the resource.
-    ///
-    /// Example: `Acme Corp`
-    pub name: String,
     /// Logo fo the resource.
     ///
     /// Constraints:
@@ -61,16 +61,16 @@ pub struct MembershipResource {
     /// Example: `https://images.sumup.com/img_2x4y6z8a0b1c2d3e4f5g6h7j8k.png`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logo: Option<String>,
-    /// The timestamp of when the membership resource was created.
+    /// Display name of the resource.
     ///
-    /// Example: `2023-01-20T15:16:17Z`
-    pub created_at: crate::datetime::DateTime,
+    /// Example: `Acme Corp`
+    pub name: String,
+    #[serde(rename = "type")]
+    pub r#type: ResourceType,
     /// The timestamp of when the membership resource was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
     pub updated_at: crate::datetime::DateTime,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<Attributes>,
 }
 pub type ResourceType = String;
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]

@@ -45,13 +45,17 @@ fn generate() -> Result<(), String> {
         .map_err(|e| format!("Failed to flush stdout: {e}"))?;
 
     let file = File::open(&spec_path).map_err(|e| format!("Failed to open spec: {}", e))?;
-    let spec: OpenAPI = serde_json::from_reader(file)
+    let raw_spec: serde_json::Value = serde_json::from_reader(file)
+        .map_err(|e| format!("Failed to parse OpenAPI spec: {}", e))?;
+    let mut parser_spec = raw_spec.clone();
+    normalize_nullable_type_arrays(&mut parser_spec);
+    let spec: OpenAPI = serde_json::from_value(parser_spec)
         .map_err(|e| format!("Failed to parse OpenAPI spec: {}", e))?;
 
     let mut out_path = root_path.clone();
     out_path.push("sdk");
 
-    let generator = codegen::Generator::new(spec, out_path)?;
+    let generator = codegen::Generator::new(spec, raw_spec, out_path)?;
     generator.generate()?;
 
     let duration = Instant::now().duration_since(start).as_micros();
@@ -62,4 +66,40 @@ fn generate() -> Result<(), String> {
     );
 
     Ok(())
+}
+
+fn normalize_nullable_type_arrays(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Object(object) => {
+            if let Some(type_value) = object.get_mut("type") {
+                if let serde_json::Value::Array(types) = type_value {
+                    let non_null_types: Vec<_> = types
+                        .iter()
+                        .filter_map(serde_json::Value::as_str)
+                        .filter(|candidate| *candidate != "null")
+                        .map(str::to_owned)
+                        .collect();
+
+                    if non_null_types.len() == 1
+                        && types
+                            .iter()
+                            .any(|candidate| candidate.as_str() == Some("null"))
+                    {
+                        *type_value = serde_json::Value::String(non_null_types[0].clone());
+                        object.insert("nullable".to_string(), serde_json::Value::Bool(true));
+                    }
+                }
+            }
+
+            for child in object.values_mut() {
+                normalize_nullable_type_arrays(child);
+            }
+        }
+        serde_json::Value::Array(values) => {
+            for child in values {
+                normalize_nullable_type_arrays(child);
+            }
+        }
+        _ => {}
+    }
 }

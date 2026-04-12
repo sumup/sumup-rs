@@ -11,45 +11,57 @@ use super::common::*;
 /// - a deduction applied against merchant funds for a refund, chargeback, direct debit return, or balance adjustment
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FinancialPayout {
+    /// Amount of the payout or deduction in major units.
+    ///
+    /// Example: `132.45`
+    pub amount: f32,
+    /// Three-letter ISO 4217 currency code of the payout.
+    ///
+    /// Example: `EUR`
+    pub currency: String,
+    /// Payout date associated with the record, in `YYYY-MM-DD` format.
+    ///
+    /// Example: `2024-02-29`
+    pub date: crate::datetime::Date,
+    /// Fee amount associated with the payout record, in major units.
+    ///
+    /// Example: `3.12`
+    pub fee: f32,
     /// Unique identifier of the payout-related record.
     ///
     /// Example: `123456789`
     pub id: i64,
+    /// Processor or payout reference associated with the record.
+    ///
+    /// Example: `payout-2024-02-29`
+    pub reference: String,
+    /// Merchant-facing outcome of the payout record.
+    ///
+    /// Example: `SUCCESSFUL`
+    pub status: FinancialPayoutStatus,
+    /// Transaction code of the original sale associated with the payout or deduction.
+    ///
+    /// Example: `TEENSK4W2K`
+    pub transaction_code: String,
     /// High-level payout record category.
     ///
     /// Example: `PAYOUT`
     #[serde(rename = "type")]
     pub r#type: FinancialPayoutType,
-    /// Amount of the payout or deduction in major units.
-    ///
-    /// Example: `132.45`
-    pub amount: f32,
-    /// Payout date associated with the record, in `YYYY-MM-DD` format.
-    ///
-    /// Example: `2024-02-29`
-    pub date: crate::datetime::Date,
-    /// Three-letter ISO 4217 currency code of the payout.
-    ///
-    /// Example: `EUR`
-    pub currency: String,
-    /// Fee amount associated with the payout record, in major units.
-    ///
-    /// Example: `3.12`
-    pub fee: f32,
-    /// Merchant-facing outcome of the payout record.
-    ///
-    /// Example: `SUCCESSFUL`
-    pub status: FinancialPayoutStatus,
-    /// Processor or payout reference associated with the record.
-    ///
-    /// Example: `payout-2024-02-29`
-    pub reference: String,
-    /// Transaction code of the original sale associated with the payout or deduction.
-    ///
-    /// Example: `TEENSK4W2K`
-    pub transaction_code: String,
 }
 pub type FinancialPayouts = Vec<FinancialPayout>;
+/// Merchant-facing outcome of the payout record.
+///
+/// Example: `SUCCESSFUL`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum FinancialPayoutStatus {
+    #[serde(rename = "SUCCESSFUL")]
+    Successful,
+    #[serde(rename = "FAILED")]
+    Failed,
+    #[serde(untagged)]
+    Other(String),
+}
 /// High-level payout record category.
 ///
 /// Example: `PAYOUT`
@@ -65,18 +77,6 @@ pub enum FinancialPayoutType {
     DdReturnDeduction,
     #[serde(rename = "BALANCE_DEDUCTION")]
     BalanceDeduction,
-    #[serde(untagged)]
-    Other(String),
-}
-/// Merchant-facing outcome of the payout record.
-///
-/// Example: `SUCCESSFUL`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum FinancialPayoutStatus {
-    #[serde(rename = "SUCCESSFUL")]
-    Successful,
-    #[serde(rename = "FAILED")]
-    Failed,
     #[serde(untagged)]
     Other(String),
 }

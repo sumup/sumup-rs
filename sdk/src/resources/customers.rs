@@ -19,38 +19,30 @@ pub struct Customer {
 /// Payment Instrument Response
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PaymentInstrumentResponse {
-    /// Unique token identifying the saved payment card for a customer.
-    ///
-    /// Constraints:
-    /// - read-only
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub token: Option<String>,
     /// Indicates whether the payment instrument is active and can be used for payments. To deactivate it, send a `DELETE` request to the resource endpoint.
     ///
     /// Constraints:
     /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     pub active: Option<bool>,
+    /// Details of the payment card.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub card: Option<PaymentInstrumentResponseCard>,
+    /// Creation date of payment instrument. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<crate::datetime::DateTime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mandate: Option<MandateResponse>,
+    /// Unique token identifying the saved payment card for a customer.
+    ///
+    /// Constraints:
+    /// - read-only
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
     /// Type of the payment instrument.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<PaymentInstrumentResponseType>,
-    /// Details of the payment card.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub card: Option<PaymentInstrumentResponseCard>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mandate: Option<MandateResponse>,
-    /// Creation date of payment instrument. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<crate::datetime::DateTime>,
-}
-/// Type of the payment instrument.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum PaymentInstrumentResponseType {
-    #[serde(rename = "card")]
-    Card,
-    #[serde(untagged)]
-    Other(String),
 }
 /// Details of the payment card.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -68,6 +60,14 @@ pub struct PaymentInstrumentResponseCard {
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<CardType>,
+}
+/// Type of the payment instrument.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum PaymentInstrumentResponseType {
+    #[serde(rename = "card")]
+    Card,
+    #[serde(untagged)]
+    Other(String),
 }
 /// Customer fields to update.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
