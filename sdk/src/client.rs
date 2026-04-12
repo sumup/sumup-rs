@@ -83,6 +83,45 @@ impl Client {
     pub(crate) fn runtime_headers(&self) -> &[(&'static str, String)] {
         &self.runtime_info
     }
+    #[cfg(feature = "webhooks")]
+    /// Performs a GET request against an arbitrary absolute or relative URL and
+    /// deserializes the successful JSON response into `T`.
+    pub(crate) async fn get<T>(&self, url: &str) -> crate::error::SdkResult<T>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        let url = if reqwest::Url::parse(url).is_ok() {
+            url.to_owned()
+        } else {
+            format!("{}{}", self.base_url(), url)
+        };
+        let mut request = self
+            .http_client()
+            .get(&url)
+            .header("User-Agent", crate::version::user_agent())
+            .timeout(self.timeout());
+        if let Some(authorization) = self.authorization() {
+            request = request.header("Authorization", format!("Bearer {}", authorization));
+        }
+        for (header_name, header_value) in self.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
+        let response = request.send().await?;
+        let status = response.status();
+        match status {
+            reqwest::StatusCode::OK => response.json().await.map_err(Into::into),
+            _ => {
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
+            }
+        }
+    }
+    #[cfg(feature = "webhooks")]
+    /// Creates a webhook helper bound to this client and signing secret.
+    pub fn webhook_handler(&self, secret: impl AsRef<[u8]>) -> crate::webhooks::WebhookHandler<'_> {
+        crate::webhooks::WebhookHandler::new(self, secret)
+    }
     /// Returns a client for the Checkouts API endpoints.
     pub fn checkouts(&self) -> crate::resources::checkouts::CheckoutsClient<'_> {
         crate::resources::checkouts::CheckoutsClient::new(self)

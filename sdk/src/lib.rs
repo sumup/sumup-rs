@@ -155,6 +155,8 @@ pub mod error;
 pub mod nullable;
 pub mod secret;
 pub mod version;
+#[cfg(feature = "webhooks")]
+pub mod webhooks;
 
 #[allow(deprecated)]
 #[allow(clippy::large_enum_variant)]
