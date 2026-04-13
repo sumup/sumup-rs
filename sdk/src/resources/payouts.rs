@@ -47,10 +47,13 @@ pub struct ListDeprecatedParams {
     pub start_date: crate::datetime::Date,
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     pub end_date: crate::datetime::Date,
+    /// Response format for the payout list.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<ListDeprecatedParamsFormat>,
+    /// Maximum number of payout records to return.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
+    /// Sort direction for the returned payouts.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<ListDeprecatedParamsOrder>,
 }
@@ -60,10 +63,13 @@ pub struct ListParams {
     pub start_date: crate::datetime::Date,
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     pub end_date: crate::datetime::Date,
+    /// Response format for the payout list.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<ListParamsFormat>,
+    /// Maximum number of payout records to return.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
+    /// Sort direction for the returned payouts.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<ListParamsOrder>,
 }

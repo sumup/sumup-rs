@@ -357,15 +357,12 @@ pub struct CheckoutTransactionsItem {
 /// Parameters required to complete the next step. The exact keys depend on the payment provider and flow type.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutAcceptedNextStepPayload {
-    #[serde(rename = "PaReq")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub pareq: Option<serde_json::Value>,
-    #[serde(rename = "MD")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub md: Option<serde_json::Value>,
-    #[serde(rename = "TermUrl")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub termurl: Option<serde_json::Value>,
+    #[serde(
+        flatten,
+        default,
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    pub additional_properties: std::collections::HashMap<String, String>,
 }
 /// Instructions for the next action the payer or client must take.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -869,7 +866,7 @@ impl<'a> CheckoutsClient<'a> {
             }
         }
     }
-    /// Create an apple pay session.
+    /// Create an Apple Pay session
     ///
     /// Creates an Apple Pay merchant session for the specified checkout.
     ///
