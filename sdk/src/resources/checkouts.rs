@@ -480,6 +480,24 @@ pub struct ListAvailablePaymentMethodsResponse {
     pub available_payment_methods:
         Option<Vec<ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem>>,
 }
+/// The data needed to create an apple pay session for a checkout.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CreateApplePaySessionBody {
+    /// the context to create this apple pay session.
+    ///
+    /// Constraints:
+    /// - format: `hostname`
+    pub context: String,
+    /// The target url to create this apple pay session.
+    ///
+    /// Constraints:
+    /// - format: `uri`
+    pub target: String,
+}
+/// Successful request. Returns the Apple Pay merchant session object
+/// that should be forwarded to the Apple Pay JS SDK to complete merchant
+/// validation and continue the payment flow.
+pub type CreateApplePaySessionResponse = serde_json::Value;
 use crate::client::Client;
 #[derive(Debug)]
 pub enum ListErrorBody {
@@ -513,6 +531,11 @@ pub enum ProcessErrorBody {
 #[derive(Debug)]
 pub enum ListAvailablePaymentMethodsErrorBody {
     BadRequest(DetailsError),
+}
+#[derive(Debug)]
+pub enum CreateApplePaySessionErrorBody {
+    BadRequest,
+    NotFound(Error),
 }
 /// Client for the Checkouts API endpoints.
 #[derive(Debug)]
@@ -837,6 +860,60 @@ impl<'a> CheckoutsClient<'a> {
                 let body: DetailsError = response.json().await?;
                 Err(crate::error::SdkError::api(
                     ListAvailablePaymentMethodsErrorBody::BadRequest(body),
+                ))
+            }
+            _ => {
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
+            }
+        }
+    }
+    /// Create an apple pay session.
+    ///
+    /// Creates an Apple Pay merchant session for the specified checkout.
+    ///
+    /// Use this endpoint after the customer selects Apple Pay and before calling
+    /// `ApplePaySession.completeMerchantValidation(...)` in the browser.
+    /// SumUp validates the merchant session request and returns the Apple Pay
+    /// session object that your frontend should pass to Apple's JavaScript API.
+    pub async fn create_apple_pay_session(
+        &self,
+        id: impl Into<String>,
+        body: Option<CreateApplePaySessionBody>,
+    ) -> crate::error::SdkResult<CreateApplePaySessionResponse, CreateApplePaySessionErrorBody>
+    {
+        let path = format!("/v0.2/checkouts/{}/apple-pay-session", id.into());
+        let url = format!("{}{}", self.client.base_url(), path);
+        let mut request = self
+            .client
+            .http_client()
+            .put(&url)
+            .header("User-Agent", crate::version::user_agent())
+            .timeout(self.client.timeout());
+        if let Some(authorization) = self.client.authorization() {
+            request = request.header("Authorization", format!("Bearer {}", authorization));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
+        if let Some(body) = body {
+            request = request.json(&body);
+        }
+        let response = request.send().await?;
+        let status = response.status();
+        match status {
+            reqwest::StatusCode::OK => {
+                let data: CreateApplePaySessionResponse = response.json().await?;
+                Ok(data)
+            }
+            reqwest::StatusCode::BAD_REQUEST => Err(crate::error::SdkError::api(
+                CreateApplePaySessionErrorBody::BadRequest,
+            )),
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateApplePaySessionErrorBody::NotFound(body),
                 ))
             }
             _ => {
