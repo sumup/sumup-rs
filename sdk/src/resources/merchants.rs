@@ -536,12 +536,10 @@ pub enum GetErrorBody {
 #[derive(Debug)]
 pub enum ListPersonsErrorBody {
     NotFound(Problem),
-    InternalServerError(Problem),
 }
 #[derive(Debug)]
 pub enum GetPersonErrorBody {
     NotFound(Problem),
-    InternalServerError(Problem),
 }
 /// Client for the Merchants API endpoints.
 #[derive(Debug)]
@@ -637,12 +635,6 @@ impl<'a> MerchantsClient<'a> {
                     body,
                 )))
             }
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListPersonsErrorBody::InternalServerError(body),
-                ))
-            }
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
@@ -692,12 +684,6 @@ impl<'a> MerchantsClient<'a> {
                 Err(crate::error::SdkError::api(GetPersonErrorBody::NotFound(
                     body,
                 )))
-            }
-            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetPersonErrorBody::InternalServerError(body),
-                ))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
