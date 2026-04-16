@@ -176,7 +176,7 @@ impl Generator {
 
     fn generate_tag_modules(&self) -> Result<(), String> {
         let mut sorted_tags: Vec<_> = self.schemas_by_tag.tag_schemas.iter().collect();
-        sorted_tags.sort_by(|(a, _), (b, _)| a.cmp(b));
+        sorted_tags.sort_by_key(|(a, _)| *a);
 
         for (tag, tag_data) in sorted_tags {
             self.generate_tag_module(tag, tag_data)?;
