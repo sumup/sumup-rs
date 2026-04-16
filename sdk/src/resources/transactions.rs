@@ -251,9 +251,6 @@ pub struct TransactionFull {
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
-    /// Internal unique ID of the transaction on the SumUp platform.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub internal_id: Option<i64>,
     /// Short description of the payment. The value is taken from the `description` property of the related checkout resource.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub product_summary: Option<String>,
@@ -550,9 +547,6 @@ pub struct GetDeprecatedParams {
     /// Retrieves the transaction resource with the specified transaction ID (the `id` parameter in the transaction resource).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    /// Retrieves the transaction resource with the specified internal transaction ID (the `internal_id` parameter in the transaction resource).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub internal_id: Option<String>,
     /// Retrieves the transaction resource with the specified transaction code.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
@@ -610,9 +604,6 @@ pub struct GetParams {
     /// Retrieves the transaction resource with the specified transaction ID (the `id` parameter in the transaction resource).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    /// Retrieves the transaction resource with the specified internal transaction ID (the `internal_id` parameter in the transaction resource).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub internal_id: Option<String>,
     /// Retrieves the transaction resource with the specified transaction code.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
@@ -762,7 +753,6 @@ impl<'a> TransactionsClient<'a> {
     ///
     /// Retrieves the full details of an identified transaction. The transaction resource is identified by a query parameter and *one* of following parameters is required:
     /// - `id`
-    /// - `internal_id`
     /// - `transaction_code`
     /// - `foreign_transaction_id`
     /// - `client_transaction_id`
@@ -786,9 +776,6 @@ impl<'a> TransactionsClient<'a> {
         }
         if let Some(ref value) = params.id {
             request = request.query(&[("id", value)]);
-        }
-        if let Some(ref value) = params.internal_id {
-            request = request.query(&[("internal_id", value)]);
         }
         if let Some(ref value) = params.transaction_code {
             request = request.query(&[("transaction_code", value)]);
@@ -906,7 +893,6 @@ impl<'a> TransactionsClient<'a> {
     ///
     /// Retrieves the full details of an identified transaction. The transaction resource is identified by a query parameter and *one* of following parameters is required:
     /// - `id`
-    /// - `internal_id`
     /// - `transaction_code`
     /// - `foreign_transaction_id`
     /// - `client_transaction_id`
@@ -931,9 +917,6 @@ impl<'a> TransactionsClient<'a> {
         }
         if let Some(ref value) = params.id {
             request = request.query(&[("id", value)]);
-        }
-        if let Some(ref value) = params.internal_id {
-            request = request.query(&[("internal_id", value)]);
         }
         if let Some(ref value) = params.transaction_code {
             request = request.query(&[("transaction_code", value)]);

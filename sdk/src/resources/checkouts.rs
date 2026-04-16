@@ -350,9 +350,6 @@ pub struct CheckoutTransactionsItem {
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
-    /// Internal unique ID of the transaction on the SumUp platform.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub internal_id: Option<i64>,
 }
 /// Parameters required to complete the next step. The exact keys depend on the payment provider and flow type.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -424,9 +421,6 @@ pub struct CheckoutSuccessTransactionsItem {
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
-    /// Internal unique ID of the transaction on the SumUp platform.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub internal_id: Option<i64>,
 }
 /// Details of the saved payment instrument created or reused during checkout processing.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

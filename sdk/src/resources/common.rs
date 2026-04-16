@@ -476,8 +476,5 @@ pub struct TransactionCheckoutInfo {
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
-    /// Internal unique ID of the transaction on the SumUp platform.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub internal_id: Option<i64>,
 }
 pub type TransactionId = String;
