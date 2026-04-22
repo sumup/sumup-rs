@@ -10,6 +10,8 @@ use super::common::*;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Customer {
     /// Unique ID of the customer.
+    ///
+    /// Example: `831ff8d4cd5958ab5670`
     pub customer_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub personal_details: Option<PersonalDetails>,
@@ -32,7 +34,7 @@ pub struct PaymentInstrumentResponse {
     /// Type of the payment instrument.
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub r#type: Option<String>,
+    pub r#type: Option<PaymentInstrumentResponseType>,
     /// Details of the payment card.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub card: Option<PaymentInstrumentResponseCard>,
@@ -41,6 +43,14 @@ pub struct PaymentInstrumentResponse {
     /// Creation date of payment instrument. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<crate::datetime::DateTime>,
+}
+/// Type of the payment instrument.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum PaymentInstrumentResponseType {
+    #[serde(rename = "card")]
+    Card,
+    #[serde(untagged)]
+    Other(String),
 }
 /// Details of the payment card.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -51,6 +61,8 @@ pub struct PaymentInstrumentResponseCard {
     /// - read-only
     /// - min length: 4
     /// - max length: 4
+    ///
+    /// Example: `3456`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_4_digits: Option<String>,
     #[serde(rename = "type")]
@@ -68,7 +80,7 @@ pub type ListPaymentInstrumentsResponse = Vec<PaymentInstrumentResponse>;
 use crate::client::Client;
 #[derive(Debug)]
 pub enum CreateErrorBody {
-    BadRequest,
+    BadRequest(crate::error::UnknownApiBody),
     Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     Conflict(Error),
@@ -114,6 +126,13 @@ impl<'a> CustomersClient<'a> {
     /// Create a customer
     ///
     /// Creates a new saved customer resource which you can later manipulate and save payment instruments to.
+    ///
+    /// Responses:
+    /// - 201: Returns the customer resource.
+    /// - 400: The request body is invalid.
+    /// - 401: The request is not authorized.
+    /// - 403: The request is authenticated but not permitted for this operation.
+    /// - 409: A customer with the provided identifier already exists.
     pub async fn create(
         &self,
         body: Customer,
@@ -141,7 +160,11 @@ impl<'a> CustomersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                Err(crate::error::SdkError::api(CreateErrorBody::BadRequest))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::api(CreateErrorBody::BadRequest(
+                    body,
+                )))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Problem = response.json().await?;
@@ -169,6 +192,12 @@ impl<'a> CustomersClient<'a> {
     /// Retrieve a customer
     ///
     /// Retrieves an identified saved customer resource through the unique `customer_id` parameter, generated upon customer creation.
+    ///
+    /// Responses:
+    /// - 200: Returns the customer resource.
+    /// - 401: The request is not authorized.
+    /// - 403: The request is authenticated but not permitted for this operation.
+    /// - 404: The requested resource does not exist.
     pub async fn get(
         &self,
         customer_id: impl Into<String>,
@@ -220,6 +249,12 @@ impl<'a> CustomersClient<'a> {
     /// Updates an identified saved customer resource's personal details.
     ///
     /// The request only overwrites the parameters included in the request, all other parameters will remain with their initially assigned values.
+    ///
+    /// Responses:
+    /// - 200: Returns the customer resource.
+    /// - 401: The request is not authorized.
+    /// - 403: The request is authenticated but not permitted for this operation.
+    /// - 404: The requested resource does not exist.
     pub async fn update(
         &self,
         customer_id: impl Into<String>,
@@ -273,6 +308,12 @@ impl<'a> CustomersClient<'a> {
     /// List payment instruments
     ///
     /// Lists all payment instrument resources that are saved for an identified customer.
+    ///
+    /// Responses:
+    /// - 200: Returns the list of saved payment instruments for the customer.
+    /// - 401: The request is not authorized.
+    /// - 403: The request is authenticated but not permitted for this operation.
+    /// - 404: The requested resource does not exist.
     pub async fn list_payment_instruments(
         &self,
         customer_id: impl Into<String>,
@@ -327,6 +368,13 @@ impl<'a> CustomersClient<'a> {
     /// Deactivate a payment instrument
     ///
     /// Deactivates an identified card payment instrument resource for a customer.
+    ///
+    /// Responses:
+    /// - 204: Returns an empty response body when the operation succeeds.
+    /// - 400: The request is invalid.
+    /// - 401: The request is not authorized.
+    /// - 403: The request is authenticated but not permitted for this operation.
+    /// - 404: The requested resource does not exist.
     pub async fn deactivate_payment_instrument(
         &self,
         customer_id: impl Into<String>,

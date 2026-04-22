@@ -6,8 +6,12 @@ use super::common::*;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Membership {
     /// ID of the membership.
+    ///
+    /// Example: `mem_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
     pub id: String,
     /// ID of the resource the membership is in.
+    ///
+    /// Example: `M2DDT39A`
     pub resource_id: String,
     #[serde(rename = "type")]
     pub r#type: ResourceType,
@@ -19,8 +23,12 @@ pub struct Membership {
     )]
     pub permissions: Vec<String>,
     /// The timestamp of when the membership was created.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
     pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the membership was last updated.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
     pub updated_at: crate::datetime::DateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub invite: Option<Invite>,
@@ -35,21 +43,31 @@ pub struct Membership {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MembershipResource {
     /// ID of the resource the membership is in.
+    ///
+    /// Example: `M2DDT39A`
     pub id: String,
     #[serde(rename = "type")]
     pub r#type: ResourceType,
     /// Display name of the resource.
+    ///
+    /// Example: `Acme Corp`
     pub name: String,
     /// Logo fo the resource.
     ///
     /// Constraints:
     /// - format: `uri`
     /// - max length: 256
+    ///
+    /// Example: `https://images.sumup.com/img_2x4y6z8a0b1c2d3e4f5g6h7j8k.png`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logo: Option<String>,
     /// The timestamp of when the membership resource was created.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
     pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the membership resource was last updated.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
     pub updated_at: crate::datetime::DateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attributes: Option<Attributes>,
@@ -61,6 +79,8 @@ pub struct ListParams {
     ///
     /// Constraints:
     /// - value >= 0
+    ///
+    /// Example: `0`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<i64>,
     /// Maximum number of members to return.
@@ -68,6 +88,8 @@ pub struct ListParams {
     /// Constraints:
     /// - value >= 1
     /// - value <= 25
+    ///
+    /// Example: `10`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Filter memberships by resource kind.
@@ -138,6 +160,11 @@ impl<'a> MembershipsClient<'a> {
     /// List memberships
     ///
     /// List memberships of the current user.
+    ///
+    /// Responses:
+    /// - 200: Returns a list of Membership objects.
+    /// - 400: Invalid query parameter combination.
+    /// - 401: Authentication failed or missing required scope.
     pub async fn list(
         &self,
         params: ListParams,

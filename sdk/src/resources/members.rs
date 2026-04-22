@@ -6,6 +6,8 @@ use super::common::*;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Member {
     /// ID of the member.
+    ///
+    /// Example: `mem_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
     pub id: String,
     /// User's roles.
     pub roles: Vec<String>,
@@ -15,8 +17,12 @@ pub struct Member {
     )]
     pub permissions: Vec<String>,
     /// The timestamp of when the member was created.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
     pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the member was last updated.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
     pub updated_at: crate::datetime::DateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<MembershipUser>,
@@ -32,25 +38,39 @@ pub struct Member {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MembershipUser {
     /// Identifier for the End-User (also called Subject).
+    ///
+    /// Example: `44ca0f5b-813b-46e1-aee7-e6242010662e`
     pub id: String,
     /// End-User's preferred e-mail address. Its value MUST conform to the RFC 5322 [RFC5322] addr-spec syntax. The RP MUST NOT rely upon this value being unique, for unique identification use ID instead.
+    ///
+    /// Example: `example@sumup.com`
     pub email: String,
     /// True if the user has enabled MFA on login.
+    ///
+    /// Example: `true`
     pub mfa_on_login_enabled: bool,
     /// True if the user is a virtual user (operator).
+    ///
+    /// Example: `false`
     pub virtual_user: bool,
     /// True if the user is a service account.
+    ///
+    /// Example: `false`
     pub service_account_user: bool,
     /// Time when the user has been disabled. Applies only to virtual users (`virtual_user: true`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disabled_at: Option<crate::datetime::DateTime>,
     /// User's preferred name. Used for display purposes only.
+    ///
+    /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
     /// URL of the End-User's profile picture. This URL refers to an image file (for example, a PNG, JPEG, or GIF image file), rather than to a Web page containing an image.
     ///
     /// Constraints:
     /// - format: `uri`
+    ///
+    /// Example: `https://usercontent.sumup.com/44ca0f5b-813b-46e1-aee7-e6242010662e.png`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,6 +86,8 @@ pub struct MembershipUserClassic {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBodyUser {
     /// User's preferred name. Used for display purposes only.
+    ///
+    /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
     /// Password of the member to add. Only used if `is_managed_user` is true.
@@ -81,6 +103,8 @@ pub struct ListParams {
     ///
     /// Constraints:
     /// - value >= 0
+    ///
+    /// Example: `0`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<i64>,
     /// Maximum number of members to return.
@@ -88,18 +112,26 @@ pub struct ListParams {
     /// Constraints:
     /// - value >= 1
     /// - value <= 25
+    ///
+    /// Example: `10`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Indicates to skip count query.
+    ///
+    /// Example: `true`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scroll: Option<bool>,
     /// Filter the returned members by email address prefix.
+    ///
+    /// Example: `user`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
     /// Search for a member by user id.
     ///
     /// Constraints:
     /// - format: `uuid`
+    ///
+    /// Example: `245b2ead-85bf-45ff-856f-311a88a5d454`
     #[serde(rename = "user.id")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
@@ -134,6 +166,8 @@ pub struct CreateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<crate::secret::Secret>,
     /// Nickname of the member to add. Only used if `is_managed_user` is true. Used for display purposes only.
+    ///
+    /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
     /// List of roles to assign to the new member.
@@ -197,6 +231,10 @@ impl<'a> MembersClient<'a> {
     /// List members
     ///
     /// Lists merchant members.
+    ///
+    /// Responses:
+    /// - 200: Returns a list of Member objects.
+    /// - 404: Merchant not found.
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
@@ -258,6 +296,12 @@ impl<'a> MembersClient<'a> {
     /// Create a member
     ///
     /// Create a merchant member.
+    ///
+    /// Responses:
+    /// - 201: Returns the Member object if the creation succeeded.
+    /// - 400: Invalid request.
+    /// - 404: Merchant not found.
+    /// - 429: Too many invitations were sent to that user and the rate limit was exceeded. The Retry-After header indicates when the client can retry.
     pub async fn create(
         &self,
         merchant_code: impl Into<String>,
@@ -311,6 +355,10 @@ impl<'a> MembersClient<'a> {
     /// Delete a member
     ///
     /// Deletes a merchant member.
+    ///
+    /// Responses:
+    /// - 200: Returns an empty response if the deletion succeeded.
+    /// - 404: Merchant or member not found.
     pub async fn delete(
         &self,
         merchant_code: impl Into<String>,
@@ -352,6 +400,10 @@ impl<'a> MembersClient<'a> {
     /// Retrieve a member
     ///
     /// Retrieve a merchant member.
+    ///
+    /// Responses:
+    /// - 200: Returns the Member object for a valid identifier.
+    /// - 404: Merchant or member not found.
     pub async fn get(
         &self,
         merchant_code: impl Into<String>,
@@ -396,6 +448,13 @@ impl<'a> MembersClient<'a> {
     /// Update a member
     ///
     /// Update the merchant member.
+    ///
+    /// Responses:
+    /// - 200: Returns the updated Member object if the update succeeded.
+    /// - 400: Cannot set password or nickname for an invited user.
+    /// - 403: Cannot change password for managed user. Password was already used before.
+    /// - 404: Merchant or member not found.
+    /// - 409: Cannot update member as some data conflict with existing members.
     pub async fn update(
         &self,
         merchant_code: impl Into<String>,

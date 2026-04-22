@@ -6,10 +6,16 @@ use super::common::*;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Role {
     /// Unique identifier of the role.
+    ///
+    /// Example: `role_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
     pub id: String,
     /// User-defined name of the role.
+    ///
+    /// Example: `Senior Shop Manager II`
     pub name: String,
     /// User-defined description of the role.
+    ///
+    /// Example: `Manges the shop and the employees.`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// List of permission granted by this role.
@@ -18,12 +24,18 @@ pub struct Role {
     /// - max items: 100
     pub permissions: Vec<String>,
     /// True if the role is provided by SumUp.
+    ///
+    /// Example: `true`
     pub is_predefined: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
     /// The timestamp of when the role was created.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
     pub created_at: crate::datetime::DateTime,
     /// The timestamp of when the role was last updated.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
     pub updated_at: crate::datetime::DateTime,
 }
 /// Returns a list of Role objects.
@@ -34,6 +46,8 @@ pub struct ListResponse {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CreateBody {
     /// User-defined name of the role.
+    ///
+    /// Example: `Senior Shop Manager II`
     pub name: String,
     /// User's permissions.
     ///
@@ -43,12 +57,16 @@ pub struct CreateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
     /// User-defined description of the role.
+    ///
+    /// Example: `Manges the shop and the employees.`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBody {
     /// User-defined name of the role.
+    ///
+    /// Example: `Senior Shop Manager II`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// User's permissions.
@@ -58,6 +76,8 @@ pub struct UpdateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub permissions: Option<Vec<String>>,
     /// User-defined description of the role.
+    ///
+    /// Example: `Manges the shop and the employees.`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
@@ -101,6 +121,10 @@ impl<'a> RolesClient<'a> {
     /// List roles
     ///
     /// List merchant's custom roles.
+    ///
+    /// Responses:
+    /// - 200: Returns a list of Role objects.
+    /// - 404: Merchant not found.
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
@@ -140,6 +164,11 @@ impl<'a> RolesClient<'a> {
     /// Create a role
     ///
     /// Create a custom role for the merchant. Roles are defined by the set of permissions that they grant to the members that they are assigned to.
+    ///
+    /// Responses:
+    /// - 201: Returns the Role object after successful custom role creation.
+    /// - 400: Invalid request.
+    /// - 404: Merchant not found.
     pub async fn create(
         &self,
         merchant_code: impl Into<String>,
@@ -187,6 +216,11 @@ impl<'a> RolesClient<'a> {
     /// Delete a role
     ///
     /// Delete a custom role.
+    ///
+    /// Responses:
+    /// - 200: Returns an empty response if the role deletion succeeded.
+    /// - 400: Invalid request.
+    /// - 404: Merchant not found.
     pub async fn delete(
         &self,
         merchant_code: impl Into<String>,
@@ -234,6 +268,10 @@ impl<'a> RolesClient<'a> {
     /// Retrieve a role
     ///
     /// Retrieve a custom role by ID.
+    ///
+    /// Responses:
+    /// - 200: Returns the Role object for a valid identifier.
+    /// - 404: Merchant or role not found.
     pub async fn get(
         &self,
         merchant_code: impl Into<String>,
@@ -278,6 +316,11 @@ impl<'a> RolesClient<'a> {
     /// Update a role
     ///
     /// Update a custom role.
+    ///
+    /// Responses:
+    /// - 200: Returns the updated Role object if the update succeeded.
+    /// - 400: Invalid request.
+    /// - 404: Merchant not found.
     pub async fn update(
         &self,
         merchant_code: impl Into<String>,

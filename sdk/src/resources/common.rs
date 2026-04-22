@@ -4,21 +4,33 @@
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct AddressLegacy {
     /// City name from the address.
+    ///
+    /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub city: Option<String>,
     /// Two letter country code formatted according to [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
+    ///
+    /// Example: `DE`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<String>,
     /// First line of the address with details of the street name and number.
+    ///
+    /// Example: `Sample street`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub line_1: Option<String>,
     /// Second line of the address with details of the building, unit, apartment, and floor numbers.
+    ///
+    /// Example: `ap. 5`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub line_2: Option<String>,
     /// Postal code from the address.
+    ///
+    /// Example: `10115`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub postal_code: Option<String>,
     /// State name or abbreviation from the address.
+    ///
+    /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
 }
@@ -87,6 +99,8 @@ pub enum CardType {
     Other(String),
 }
 /// Three-letter [ISO4217](https://en.wikipedia.org/wiki/ISO_4217) code of the currency for the amount. Currently supported currency values are enumerated above.
+///
+/// Example: `EUR`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Currency {
     BGN,
@@ -171,9 +185,13 @@ pub enum EntryMode {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Error {
     /// Short description of the error.
+    ///
+    /// Example: `Resource not found`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     /// Platform code for the error.
+    ///
+    /// Example: `NOT_FOUND`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
 }
@@ -191,9 +209,13 @@ impl std::error::Error for Error {}
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ErrorExtended {
     /// Short description of the error.
+    ///
+    /// Example: `Resource not found`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     /// Platform code for the error.
+    ///
+    /// Example: `NOT_FOUND`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// Parameter name (with relative location) to which the error applies. Parameters from embedded resources are displayed using dot notation. For example, `card.name` refers to the `name` parameter embedded in the `card` object.
@@ -214,12 +236,18 @@ impl std::error::Error for ErrorExtended {}
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ErrorForbidden {
     /// Short description of the error.
+    ///
+    /// Example: `request_not_allowed`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_message: Option<String>,
     /// Platform code for the error.
+    ///
+    /// Example: `FORBIDDEN`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// HTTP status code for the error.
+    ///
+    /// Example: `403`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status_code: Option<String>,
 }
@@ -285,6 +313,8 @@ pub struct Invite {
     ///
     /// Constraints:
     /// - format: `email`
+    ///
+    /// Example: `boaty.mcboatface@sumup.com`
     pub email: String,
     pub expires_at: crate::datetime::DateTime,
 }
@@ -296,9 +326,13 @@ pub struct MandateResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
     /// Current lifecycle status of the mandate.
+    ///
+    /// Example: `active`
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
+    pub status: Option<MandateResponseStatus>,
     /// Merchant account for which the mandate is valid.
+    ///
+    /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_code: Option<String>,
 }
@@ -363,24 +397,36 @@ pub enum PaymentType {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct PersonalDetails {
     /// First name of the customer.
+    ///
+    /// Example: `John`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub first_name: Option<String>,
     /// Last name of the customer.
+    ///
+    /// Example: `Doe`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_name: Option<String>,
     /// Email address of the customer.
+    ///
+    /// Example: `user@example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
     /// Phone number of the customer.
+    ///
+    /// Example: `+491635559723`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phone: Option<String>,
     /// Date of birth of the customer.
+    ///
+    /// Example: `1993-12-31`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub birth_date: Option<crate::datetime::Date>,
     /// An identification number user for tax purposes (e.g. CPF)
     ///
     /// Constraints:
     /// - max length: 255
+    ///
+    /// Example: `423.378.593-47`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tax_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -395,15 +441,23 @@ pub struct Problem {
     ///
     /// Constraints:
     /// - format: `uri`
+    ///
+    /// Example: `https://developer.sumup.com/problem/not-found`
     #[serde(rename = "type")]
     pub r#type: String,
     /// A short, human-readable summary of the problem type.
+    ///
+    /// Example: `Requested resource couldn't be found.`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     /// The HTTP status code generated by the origin server for this occurrence of the problem.
+    ///
+    /// Example: `404`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<i64>,
     /// A human-readable explanation specific to this occurrence of the problem.
+    ///
+    /// Example: `The requested resource doesn't exist or does not belong to you.`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
     /// A URI reference that identifies the specific occurrence of the problem.
@@ -434,22 +488,30 @@ impl std::error::Error for Problem {}
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionBase {
     /// Unique ID of the transaction.
+    ///
+    /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// Transaction code returned by the acquirer/processing entity after processing the transaction.
+    ///
+    /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
     /// Total amount of the transaction.
+    ///
+    /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
     /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    ///
+    /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
     /// Current status of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
+    pub status: Option<TransactionBaseStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
@@ -463,18 +525,52 @@ pub struct TransactionBase {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionCheckoutInfo {
     /// Unique code of the registered merchant to whom the payment is made.
+    ///
+    /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_code: Option<String>,
     /// Amount of the applicable VAT (out of the total transaction amount).
+    ///
+    /// Example: `6`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vat_amount: Option<f32>,
     /// Amount of the tip (out of the total transaction amount).
+    ///
+    /// Example: `3`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entry_mode: Option<EntryMode>,
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
+    ///
+    /// Example: `053201`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
 }
 pub type TransactionId = String;
+/// Current lifecycle status of the mandate.
+///
+/// Example: `active`
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum MandateResponseStatus {
+    #[serde(rename = "active")]
+    Active,
+    #[serde(rename = "inactive")]
+    Inactive,
+    #[serde(untagged)]
+    Other(String),
+}
+/// Current status of the transaction.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum TransactionBaseStatus {
+    #[serde(rename = "SUCCESSFUL")]
+    Successful,
+    #[serde(rename = "CANCELLED")]
+    Cancelled,
+    #[serde(rename = "FAILED")]
+    Failed,
+    #[serde(rename = "PENDING")]
+    Pending,
+    #[serde(untagged)]
+    Other(String),
+}
