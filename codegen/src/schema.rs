@@ -57,7 +57,29 @@ pub fn generate_schema_doc_comment(
         lines.extend(constraints.into_iter().map(|line| format!("- {}", line)));
     }
 
+    if let Some(example) = format_schema_example(schema) {
+        if !lines.is_empty() {
+            lines.push(String::new());
+        }
+        lines.push(format!("Example: `{}`", example));
+    }
+
     generate_doc_comment_from_lines(lines)
+}
+
+fn format_schema_example(schema: &openapiv3::Schema) -> Option<String> {
+    let example = schema.schema_data.example.as_ref()?;
+    format_json_example(example)
+}
+
+pub(crate) fn format_json_example(example: &serde_json::Value) -> Option<String> {
+    match example {
+        serde_json::Value::Null => Some("null".to_string()),
+        serde_json::Value::Bool(value) => Some(value.to_string()),
+        serde_json::Value::Number(value) => Some(value.to_string()),
+        serde_json::Value::String(value) => Some(value.clone()),
+        serde_json::Value::Array(_) | serde_json::Value::Object(_) => None,
+    }
 }
 
 fn generate_doc_comment_from_lines(lines: Vec<String>) -> TokenStream {
@@ -740,6 +762,23 @@ impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
 
         Ok(())
     }
+
+    fn generate_for_string_enum(
+        &mut self,
+        parent_name: &str,
+        field_name: &str,
+        schema: &openapiv3::Schema,
+        enumeration: &[Option<String>],
+        fallback_suffix: &str,
+    ) -> Result<(), String> {
+        let type_name = nested_inline_type_name(parent_name, field_name, fallback_suffix);
+        let type_ident = Ident::new(&type_name, Span::call_site());
+        let description = schema.schema_data.description.as_deref();
+        let enum_tokens =
+            generate_inline_string_enum(&type_ident, enumeration, description, schema)?;
+        self.nested_schemas.push(enum_tokens);
+        Ok(())
+    }
 }
 
 fn collect_mixin_all_of_references(
@@ -805,6 +844,17 @@ pub fn collect_nested_schemas(
                     }
                     generator.generate_for_object(parent_name, field_name, schema, obj)?;
                 }
+                openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
+                    if !string_type.enumeration.is_empty() {
+                        generator.generate_for_string_enum(
+                            parent_name,
+                            field_name,
+                            schema,
+                            &string_type.enumeration,
+                            "",
+                        )?;
+                    }
+                }
                 openapiv3::SchemaKind::AllOf { all_of } => {
                     if let Some((
                         combined_properties,
@@ -831,6 +881,17 @@ pub fn collect_nested_schemas(
                 openapiv3::SchemaKind::Type(openapiv3::Type::Array(arr)) => {
                     if let Some(openapiv3::ReferenceOr::Item(item_schema)) = &arr.items {
                         match &item_schema.schema_kind {
+                            openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
+                                if !string_type.enumeration.is_empty() {
+                                    generator.generate_for_string_enum(
+                                        parent_name,
+                                        field_name,
+                                        item_schema,
+                                        &string_type.enumeration,
+                                        "Item",
+                                    )?;
+                                }
+                            }
                             openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
                                 if should_emit_free_form_object_alias(
                                     &obj.properties,
@@ -1222,7 +1283,15 @@ pub fn infer_rust_type(
 ) -> TokenStream {
     let base_type = match schema_kind {
         openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
-            if let Some(kind) = string_encoded_numeric_kind(&string_type.format) {
+            if !string_type.enumeration.is_empty() {
+                if let Some((parent_name, field_name)) = parent_field {
+                    let type_name = nested_inline_type_name(parent_name, field_name, "");
+                    let type_ident = Ident::new(&type_name, Span::call_site());
+                    quote! { #type_ident }
+                } else {
+                    quote! { String }
+                }
+            } else if let Some(kind) = string_encoded_numeric_kind(&string_type.format) {
                 numeric_kind_rust_type(kind)
             } else {
                 match &string_type.format {
@@ -1278,6 +1347,21 @@ pub fn infer_rust_type(
                         quote! { #type_ident }
                     }
                     openapiv3::ReferenceOr::Item(schema) => match &schema.schema_kind {
+                        openapiv3::SchemaKind::Type(openapiv3::Type::String(string_type)) => {
+                            if !string_type.enumeration.is_empty() {
+                                if let Some((parent_name, field_name)) = parent_field {
+                                    let type_name =
+                                        nested_inline_type_name(parent_name, field_name, "Item");
+                                    let type_ident = Ident::new(&type_name, Span::call_site());
+                                    quote! { #type_ident }
+                                } else {
+                                    quote! { String }
+                                }
+                            } else {
+                                let dummy_ref = openapiv3::ReferenceOr::Item(schema.clone());
+                                infer_rust_type(&schema.schema_kind, true, false, None, &dummy_ref)
+                            }
+                        }
                         openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
                             if should_emit_free_form_object_alias(
                                 &obj.properties,
@@ -1480,6 +1564,65 @@ pub fn sanitize_enum_variant(variant: &str) -> String {
     } else {
         pascal
     }
+}
+
+fn nested_inline_type_name(parent_name: &str, field_name: &str, suffix: &str) -> String {
+    format!(
+        "{}{}{}",
+        parent_name.to_upper_camel_case(),
+        field_name.to_upper_camel_case(),
+        suffix
+    )
+}
+
+fn generate_inline_string_enum(
+    type_ident: &Ident,
+    enumeration: &[Option<String>],
+    description: Option<&str>,
+    schema: &openapiv3::Schema,
+) -> Result<TokenStream, String> {
+    let mut variant_names: HashSet<String> = HashSet::new();
+    let mut variants_tokens = Vec::new();
+
+    for variant in enumeration.iter().filter_map(|value| value.as_deref()) {
+        let variant_name = sanitize_enum_variant(variant);
+        if !variant_names.insert(variant_name.clone()) {
+            return Err(format!(
+                "Duplicate enum variant name generated for inline enum type: {variant_name}"
+            ));
+        }
+
+        let variant_ident = Ident::new(&variant_name, Span::call_site());
+        if variant != variant_name {
+            variants_tokens.push(quote! {
+                #[serde(rename = #variant)]
+                #variant_ident
+            });
+        } else {
+            variants_tokens.push(quote! { #variant_ident });
+        }
+    }
+
+    if variants_tokens.is_empty() {
+        return Ok(quote! { pub type #type_ident = String; });
+    }
+
+    let other_variant_ident = if variant_names.contains("Other") {
+        Ident::new("OtherValue", Span::call_site())
+    } else {
+        Ident::new("Other", Span::call_site())
+    };
+    let description = generate_schema_doc_comment(description, schema);
+
+    Ok(quote! {
+        #description
+        #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+        pub enum #type_ident {
+            #(#variants_tokens,)*
+            #[serde(untagged)]
+            #other_variant_ident(String),
+        }
+    })
 }
 
 /// Generates a `std::error::Error` implementation for schemas marked as error types.

@@ -20,6 +20,7 @@ struct ErrorGeneration {
 #[derive(Clone)]
 enum BodyKind {
     Schema(Ident),
+    Unknown,
     Empty,
 }
 
@@ -271,23 +272,7 @@ fn generate_operation_method(
         error_definition,
     } = generate_response_handling(&operation_name, operation, spec)?;
 
-    // Add doc comment if available - combine summary and description
-    let doc_comment = match (&operation.summary, &operation.description) {
-        (Some(summary), Some(description)) if summary != description => {
-            // Both available and different - combine them
-            let combined = format!("{}\n\n{}", summary.trim(), description.trim());
-            Some(crate::schema::generate_doc_comment(&combined))
-        }
-        (Some(summary), _) => {
-            // Only summary, or both are the same
-            Some(crate::schema::generate_doc_comment(summary))
-        }
-        (None, Some(description)) => {
-            // Only description
-            Some(crate::schema::generate_doc_comment(description))
-        }
-        (None, None) => None,
-    };
+    let doc_comment = build_operation_doc_comment(operation);
 
     // Build query parameter additions
     let query_additions = if has_query_params {
@@ -523,6 +508,65 @@ fn get_response_type_for_single(
     }
 }
 
+fn build_operation_doc_comment(operation: &openapiv3::Operation) -> Option<TokenStream> {
+    let mut lines = Vec::new();
+
+    match (&operation.summary, &operation.description) {
+        (Some(summary), Some(description)) if summary != description => {
+            lines.extend(summary.trim().lines().map(|line| line.trim().to_string()));
+            lines.push(String::new());
+            lines.extend(
+                description
+                    .trim()
+                    .lines()
+                    .map(|line| line.trim().to_string()),
+            );
+        }
+        (Some(summary), _) => {
+            lines.extend(summary.trim().lines().map(|line| line.trim().to_string()));
+        }
+        (None, Some(description)) => {
+            lines.extend(
+                description
+                    .trim()
+                    .lines()
+                    .map(|line| line.trim().to_string()),
+            );
+        }
+        (None, None) => {}
+    }
+
+    let mut response_lines = Vec::new();
+    for (status_code, response_ref) in &operation.responses.responses {
+        let openapiv3::StatusCode::Code(code) = status_code else {
+            continue;
+        };
+        let response = match response_ref {
+            openapiv3::ReferenceOr::Item(response) => response,
+            openapiv3::ReferenceOr::Reference { .. } => continue,
+        };
+        let description = response.description.trim();
+        if description.is_empty() {
+            continue;
+        }
+        response_lines.push(format!("- {}: {}", code, description));
+    }
+
+    if !response_lines.is_empty() {
+        if !lines.is_empty() {
+            lines.push(String::new());
+        }
+        lines.push("Responses:".to_string());
+        lines.extend(response_lines);
+    }
+
+    if lines.is_empty() {
+        None
+    } else {
+        Some(crate::schema::generate_doc_comment(&lines.join("\n")))
+    }
+}
+
 /// Converts a numeric status code to an equivalent `reqwest::StatusCode` token when available.
 fn status_code_to_constant(status: u16) -> TokenStream {
     match status {
@@ -651,6 +695,7 @@ fn generate_error_handling(
         let status_const = status_code_to_constant(*status_code);
         let body_kind = match extract_error_schema_ident(response_ref, spec) {
             Some(ident) => BodyKind::Schema(ident),
+            None if response_has_content(response_ref, spec) => BodyKind::Unknown,
             None => BodyKind::Empty,
         };
         entries.push(ErrorEntry {
@@ -686,6 +731,9 @@ fn generate_error_handling(
                 BodyKind::Schema(ident) => {
                     variant_defs.push(quote! { #variant_ident(#ident), });
                 }
+                BodyKind::Unknown => {
+                    variant_defs.push(quote! { #variant_ident(crate::error::UnknownApiBody), });
+                }
                 BodyKind::Empty => {
                     variant_defs.push(quote! { #variant_ident, });
                 }
@@ -698,6 +746,15 @@ fn generate_error_handling(
                 match_arms.push(quote! {
                     #status_const => {
                         let body: #ident = response.json().await?;
+                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident(body)))
+                    }
+                });
+            }
+            BodyKind::Unknown => {
+                match_arms.push(quote! {
+                    #status_const => {
+                        let body_bytes = response.bytes().await?;
+                        let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
                         Err(crate::error::SdkError::api(#enum_ident::#variant_ident(body)))
                     }
                 });
@@ -765,6 +822,27 @@ fn extract_schema_from_response(response: &openapiv3::Response) -> Option<Ident>
             Some(Ident::new(schema_name, Span::call_site()))
         }
         openapiv3::ReferenceOr::Item(_) => None,
+    }
+}
+
+fn response_has_content(
+    response_ref: &openapiv3::ReferenceOr<openapiv3::Response>,
+    spec: &openapiv3::OpenAPI,
+) -> bool {
+    match response_ref {
+        openapiv3::ReferenceOr::Item(response) => !response.content.is_empty(),
+        openapiv3::ReferenceOr::Reference { reference } => {
+            let Some(response_name) = reference.strip_prefix("#/components/responses/") else {
+                return false;
+            };
+            let Some(components) = &spec.components else {
+                return false;
+            };
+            let Some(response_ref) = components.responses.get(response_name) else {
+                return false;
+            };
+            response_has_content(response_ref, spec)
+        }
     }
 }
 

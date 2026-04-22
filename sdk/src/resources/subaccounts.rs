@@ -19,7 +19,7 @@ pub struct Operator {
     /// The timestamp of when the operator was last updated.
     pub updated_at: crate::datetime::DateTime,
     pub permissions: Permissions,
-    pub account_type: String,
+    pub account_type: OperatorAccountType,
 }
 /// Permissions assigned to an operator or user.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -29,6 +29,15 @@ pub struct Permissions {
     pub full_transaction_history_view: bool,
     pub refund_transactions: bool,
     pub admin: bool,
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum OperatorAccountType {
+    #[serde(rename = "operator")]
+    Operator,
+    #[serde(rename = "normal")]
+    Normal,
+    #[serde(untagged)]
+    Other(String),
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CreateSubAccountBodyPermissions {
@@ -121,6 +130,10 @@ impl<'a> SubaccountsClient<'a> {
     /// List operators
     ///
     /// Returns list of operators for currently authorized user's merchant.
+    ///
+    /// Responses:
+    /// - 200: List of operators.
+    /// - 401: Authentication failed or missing required scope.
     pub async fn list_sub_accounts(
         &self,
         params: ListSubAccountsParams,
@@ -168,6 +181,10 @@ impl<'a> SubaccountsClient<'a> {
     /// Create an operator
     ///
     /// Creates new operator for currently authorized users' merchant.
+    ///
+    /// Responses:
+    /// - 200: Newly created operator.
+    /// - 403: Operator creation was forbidden.
     pub async fn create_sub_account(
         &self,
         body: CreateSubAccountBody,
@@ -210,6 +227,10 @@ impl<'a> SubaccountsClient<'a> {
     /// Retrieve an operator
     ///
     /// Returns specific operator.
+    ///
+    /// Responses:
+    /// - 200: Information about the requested operator.
+    /// - 401: Authentication failed or missing required scope.
     pub async fn compat_get_operator(
         &self,
         operator_id: impl Into<String>,
@@ -251,6 +272,10 @@ impl<'a> SubaccountsClient<'a> {
     /// Update an operator
     ///
     /// Updates operator. If the operator was disabled and their password is updated they will be unblocked.
+    ///
+    /// Responses:
+    /// - 200: Updated operator.
+    /// - 400: Invalid Operators' email or password was already used.
     pub async fn update_sub_account(
         &self,
         operator_id: impl Into<String>,

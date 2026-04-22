@@ -123,8 +123,10 @@ pub struct ReceiptTransaction {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Debit/Credit.
+    ///
+    /// Example: `CREDIT`
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub process_as: Option<String>,
+    pub process_as: Option<ReceiptTransactionProcessAs>,
     /// Products
     #[serde(skip_serializing_if = "Option::is_none")]
     pub products: Option<Vec<ReceiptTransactionProductsItem>>,
@@ -191,9 +193,23 @@ pub struct ReceiptMerchantDataMerchantProfile {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<ReceiptMerchantDataMerchantProfileAddress>,
 }
+/// Debit/Credit.
+///
+/// Example: `CREDIT`
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum ReceiptTransactionProcessAs {
+    #[serde(rename = "CREDIT")]
+    Credit,
+    #[serde(rename = "DEBIT")]
+    Debit,
+    #[serde(untagged)]
+    Other(String),
+}
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptTransactionProductsItem {
     /// Product name
+    ///
+    /// Example: `Coffee`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// Product description
@@ -203,6 +219,8 @@ pub struct ReceiptTransactionProductsItem {
     ///
     /// Constraints:
     /// - format: `double`
+    ///
+    /// Example: `150.0`
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -213,6 +231,8 @@ pub struct ReceiptTransactionProductsItem {
     ///
     /// Constraints:
     /// - format: `double`
+    ///
+    /// Example: `0.0`
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -223,6 +243,8 @@ pub struct ReceiptTransactionProductsItem {
     ///
     /// Constraints:
     /// - format: `double`
+    ///
+    /// Example: `0.0`
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -233,6 +255,8 @@ pub struct ReceiptTransactionProductsItem {
     ///
     /// Constraints:
     /// - format: `double`
+    ///
+    /// Example: `150.0`
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -243,6 +267,8 @@ pub struct ReceiptTransactionProductsItem {
     ///
     /// Constraints:
     /// - format: `double`
+    ///
+    /// Example: `0.0`
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -250,12 +276,16 @@ pub struct ReceiptTransactionProductsItem {
     )]
     pub vat_amount: Option<f64>,
     /// Product quantity
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
     /// Quantity x product price
     ///
     /// Constraints:
     /// - format: `double`
+    ///
+    /// Example: `150.0`
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -266,6 +296,8 @@ pub struct ReceiptTransactionProductsItem {
     ///
     /// Constraints:
     /// - format: `double`
+    ///
+    /// Example: `150.0`
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -319,6 +351,12 @@ impl<'a> ReceiptsClient<'a> {
     /// Retrieve receipt details
     ///
     /// Retrieves receipt specific data for a transaction.
+    ///
+    /// Responses:
+    /// - 200: Returns receipt details for the requested transaction.
+    /// - 400: The request is invalid for the submitted parameters.
+    /// - 401: The request is not authorized.
+    /// - 404: The requested transaction event does not exist for the provided transaction.
     pub async fn get(
         &self,
         id: impl Into<String>,

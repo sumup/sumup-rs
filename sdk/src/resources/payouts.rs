@@ -48,12 +48,18 @@ pub struct ListDeprecatedParams {
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     pub end_date: crate::datetime::Date,
     /// Response format for the payout list.
+    ///
+    /// Example: `json`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<ListDeprecatedParamsFormat>,
     /// Maximum number of payout records to return.
+    ///
+    /// Example: `10`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Sort direction for the returned payouts.
+    ///
+    /// Example: `desc`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<ListDeprecatedParamsOrder>,
 }
@@ -64,24 +70,30 @@ pub struct ListParams {
     /// End date (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
     pub end_date: crate::datetime::Date,
     /// Response format for the payout list.
+    ///
+    /// Example: `json`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<ListParamsFormat>,
     /// Maximum number of payout records to return.
+    ///
+    /// Example: `10`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Sort direction for the returned payouts.
+    ///
+    /// Example: `desc`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<ListParamsOrder>,
 }
 use crate::client::Client;
 #[derive(Debug)]
 pub enum ListDeprecatedErrorBody {
-    BadRequest,
+    BadRequest(crate::error::UnknownApiBody),
     Unauthorized(Problem),
 }
 #[derive(Debug)]
 pub enum ListErrorBody {
-    BadRequest,
+    BadRequest(crate::error::UnknownApiBody),
     Unauthorized(Problem),
 }
 /// Client for the Payouts API endpoints.
@@ -100,6 +112,11 @@ impl<'a> PayoutsClient<'a> {
     /// List payouts
     ///
     /// Lists ordered payouts for the merchant account.
+    ///
+    /// Responses:
+    /// - 200: Returns the list of payouts for the requested period.
+    /// - 400: The request is invalid for the submitted query parameters.
+    /// - 401: The request is not authorized.
     pub async fn list_deprecated(
         &self,
         params: ListDeprecatedParams,
@@ -136,9 +153,13 @@ impl<'a> PayoutsClient<'a> {
                 let data: FinancialPayouts = response.json().await?;
                 Ok(data)
             }
-            reqwest::StatusCode::BAD_REQUEST => Err(crate::error::SdkError::api(
-                ListDeprecatedErrorBody::BadRequest,
-            )),
+            reqwest::StatusCode::BAD_REQUEST => {
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::api(
+                    ListDeprecatedErrorBody::BadRequest(body),
+                ))
+            }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
@@ -155,6 +176,11 @@ impl<'a> PayoutsClient<'a> {
     /// List payouts
     ///
     /// Lists ordered payouts for the merchant account.
+    ///
+    /// Responses:
+    /// - 200: Returns the list of payouts for the requested period.
+    /// - 400: The request is invalid for the submitted query parameters.
+    /// - 401: The request is not authorized.
     pub async fn list(
         &self,
         merchant_code: impl Into<String>,
@@ -193,7 +219,9 @@ impl<'a> PayoutsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                Err(crate::error::SdkError::api(ListErrorBody::BadRequest))
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::api(ListErrorBody::BadRequest(body)))
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 let body: Problem = response.json().await?;
