@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.9](https://github.com/sumup/sumup-rs/compare/v0.5.8...v0.5.9) - 2026-04-24
+
+### Added
+
+- *(sdk)* generate richer typed API surfaces from OpenAPI metadata ([#167](https://github.com/sumup/sumup-rs/pull/167))
+
+### Other
+
+- synced file(s) with sumup/apis ([#169](https://github.com/sumup/sumup-rs/pull/169))
+- synced file(s) with sumup/apis ([#165](https://github.com/sumup/sumup-rs/pull/165))
+- synced file(s) with sumup/apis ([#164](https://github.com/sumup/sumup-rs/pull/164))
+- synced file(s) with sumup/apis ([#162](https://github.com/sumup/sumup-rs/pull/162))
+
 ## [0.5.8](https://github.com/sumup/sumup-rs/compare/v0.5.7...v0.5.8) - 2026-04-08
 
 ### Fixed
