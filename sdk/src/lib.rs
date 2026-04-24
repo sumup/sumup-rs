@@ -68,6 +68,7 @@
 //!     purpose: None,
 //!     valid_until: None,
 //!     redirect_url: None,
+//!     hosted_checkout: None,
 //! })
 //! .await
 //! .expect("create checkout");

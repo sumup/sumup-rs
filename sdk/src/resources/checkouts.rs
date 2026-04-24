@@ -138,6 +138,15 @@ pub struct Checkout {
     pub customer_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mandate: Option<MandateResponse>,
+    /// URL of the SumUp-hosted payment page that handles the payment flow. Returned when Hosted Checkout is enabled for the checkout.
+    ///
+    /// Constraints:
+    /// - read-only
+    /// - format: `uri`
+    ///
+    /// Example: `https://checkout.sumup.com/pay/8f9316a3-cda9-42a9-9771-54d534315676`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hosted_checkout_url: Option<String>,
     /// Payment attempts and resulting transaction records linked to this checkout. Use the Transactions endpoints when you need the authoritative payment result and event history.
     ///
     /// Constraints:
@@ -206,6 +215,8 @@ pub struct CheckoutCreateRequest {
     /// Example: `https://mysite.com/completed_purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hosted_checkout: Option<HostedCheckout>,
 }
 /// Checkout resource returned after a synchronous processing attempt. In addition to the base checkout fields, it can include the resulting transaction identifiers and any newly created payment instrument token.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -277,6 +288,15 @@ pub struct CheckoutSuccess {
     pub customer_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mandate: Option<MandateResponse>,
+    /// URL of the SumUp-hosted payment page that handles the payment flow. Returned when Hosted Checkout is enabled for the checkout.
+    ///
+    /// Constraints:
+    /// - read-only
+    /// - format: `uri`
+    ///
+    /// Example: `https://checkout.sumup.com/pay/8f9316a3-cda9-42a9-9771-54d534315676`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hosted_checkout_url: Option<String>,
     /// Payment attempts and resulting transaction records linked to this checkout. Use the Transactions endpoints when you need the authoritative payment result and event history.
     ///
     /// Constraints:
@@ -346,6 +366,14 @@ impl std::fmt::Display for DetailsError {
     }
 }
 impl std::error::Error for DetailsError {}
+/// Hosted Checkout configuration. Enable it to receive a SumUp-hosted payment page URL in the checkout response.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct HostedCheckout {
+    /// Whether the checkout should include a SumUp-hosted payment page.
+    ///
+    /// Example: `true`
+    pub enabled: bool,
+}
 /// Mandate details used when a checkout should create a reusable card token for future recurring or merchant-initiated payments.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MandatePayload {
@@ -882,6 +910,7 @@ impl<'a> CheckoutsClient<'a> {
     /// Creates a new payment checkout resource. The unique `checkout_reference` created by this request, is used for further manipulation of the checkout.
     ///
     /// For 3DS checkouts, add the `redirect_url` parameter to your request body schema.
+    /// To use the [Hosted Checkout](https://developer.sumup.com/online-payments/checkouts/hosted-checkout/) page, set the `hosted_checkout.enabled` to `true`.
     ///
     /// Follow by processing a checkout to charge the provided payment instrument.
     ///
