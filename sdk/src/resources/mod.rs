@@ -10,6 +10,5 @@ pub mod payouts;
 pub mod readers;
 pub mod receipts;
 pub mod roles;
-pub mod subaccounts;
 pub mod transactions;
 pub use common::*;
