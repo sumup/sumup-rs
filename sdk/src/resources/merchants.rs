@@ -11,7 +11,7 @@ pub struct Address {
     /// The postal code (aka. zip code) of the address.
     ///
     /// Constraints:
-    /// - max length: 32
+    /// - max length: 10
     ///
     /// Example: `10999`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -20,7 +20,7 @@ pub struct Address {
     /// The city of the address.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
     /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,31 +28,31 @@ pub struct Address {
     /// The province where the address is located. This may not be relevant in some countries.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
-    /// Example: `Berlin`
+    /// Example: `Ontario`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub province: Option<String>,
     /// The region where the address is located. This may not be relevant in some countries.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
-    /// Example: `Baden Wuerttemberg`
+    /// Example: `Baden-Wuerttemberg`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub region: Option<String>,
     /// A county is a geographic region of a country used for administrative or other purposes in some nations. Used in countries such as Ireland, Romania, etc.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
-    /// Example: `Dublin County`
+    /// Example: `Dublin`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub county: Option<String>,
     /// In Spain, an autonomous community is the first sub-national level of political and administrative division.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
     /// Example: `Catalonia`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -60,7 +60,7 @@ pub struct Address {
     /// A post town is a required part of all postal addresses in the United Kingdom and Ireland, and a basic unit of the postal delivery system.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
     /// Example: `London`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -68,7 +68,7 @@ pub struct Address {
     /// Most often, a country has a single state, with various administrative divisions. The term "state" is sometimes used to refer to the federated polities that make up the federation. Used in countries such as the United States and Brazil.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
     /// Example: `California`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -76,7 +76,7 @@ pub struct Address {
     /// Locality level of the address. Used in countries such as Brazil or Chile.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
     /// Example: `Copacabana`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -84,7 +84,7 @@ pub struct Address {
     /// In many countries, terms cognate with "commune" are used, referring to the community living in the area and the common interest. Used in countries such as Chile.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
     /// Example: `Providencia`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -92,7 +92,7 @@ pub struct Address {
     /// A department (French: département, Spanish: departamento) is an administrative or political division in several countries. Used in countries such as Colombia.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
     /// Example: `Antioquia`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -100,23 +100,23 @@ pub struct Address {
     /// A municipality is usually a single administrative division having corporate status and powers of self-government or jurisdiction as granted by national and regional laws to which it is subordinate. Used in countries such as Colombia.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
-    /// Example: `Medellín`
+    /// Example: `Medellin`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub municipality: Option<String>,
     /// A district is a type of administrative division that in some countries is managed by the local government. Used in countries such as Portugal.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 60
     ///
-    /// Example: `Lisbon District`
+    /// Example: `Lisbon`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub district: Option<String>,
     /// A US system of postal codes used by the United States Postal Service (USPS).
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 10
     ///
     /// Example: `94103`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -124,7 +124,7 @@ pub struct Address {
     /// A postal address in Ireland.
     ///
     /// Constraints:
-    /// - max length: 512
+    /// - max length: 10
     ///
     /// Example: `D02 X285`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -555,20 +555,13 @@ pub struct Person {
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PersonalIdentifier {
-    /// The unique reference for the personal identifier type.
-    ///
-    /// Constraints:
-    /// - max length: 32
-    ///
-    /// Example: `br.cpf`
+    /// The unique reference for the personal identifier type as defined in the country SDK.
     #[serde(rename = "ref")]
     pub r#ref: String,
     /// The company identifier value.
     ///
     /// Constraints:
-    /// - max length: 128
-    ///
-    /// Example: `847.060.136-90`
+    /// - max length: 30
     pub value: String,
 }
 pub type PhoneNumber = String;

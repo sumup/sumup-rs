@@ -119,11 +119,6 @@ impl Client {
     pub fn roles(&self) -> crate::resources::roles::RolesClient<'_> {
         crate::resources::roles::RolesClient::new(self)
     }
-    /// Returns a client for the Subaccounts API endpoints.
-    #[deprecated = "Subaccounts API is deprecated, please use [Members](https://developer.sumup.com/api/members) API instead to manage your account members."]
-    pub fn subaccounts(&self) -> crate::resources::subaccounts::SubaccountsClient<'_> {
-        crate::resources::subaccounts::SubaccountsClient::new(self)
-    }
     /// Returns a client for the Transactions API endpoints.
     pub fn transactions(&self) -> crate::resources::transactions::TransactionsClient<'_> {
         crate::resources::transactions::TransactionsClient::new(self)

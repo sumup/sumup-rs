@@ -745,41 +745,6 @@ pub enum TransactionHistoryPayoutType {
     Other(String),
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum ListDeprecatedParamsOrder {
-    #[serde(rename = "ascending")]
-    Ascending,
-    #[serde(rename = "descending")]
-    Descending,
-    #[serde(untagged)]
-    Other(String),
-}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum ListDeprecatedParamsStatusesItem {
-    #[serde(rename = "SUCCESSFUL")]
-    Successful,
-    #[serde(rename = "CANCELLED")]
-    Cancelled,
-    #[serde(rename = "FAILED")]
-    Failed,
-    #[serde(rename = "REFUNDED")]
-    Refunded,
-    #[serde(rename = "CHARGE_BACK")]
-    ChargeBack,
-    #[serde(untagged)]
-    Other(String),
-}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum ListDeprecatedParamsTypesItem {
-    #[serde(rename = "PAYMENT")]
-    Payment,
-    #[serde(rename = "REFUND")]
-    Refund,
-    #[serde(rename = "CHARGE_BACK")]
-    ChargeBack,
-    #[serde(untagged)]
-    Other(String),
-}
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ListParamsOrder {
     #[serde(rename = "ascending")]
     Ascending,
@@ -822,63 +787,6 @@ pub struct RefundBody {
     /// Example: `5`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f32>,
-}
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct GetDeprecatedParams {
-    /// Retrieves the transaction resource with the specified transaction ID (the `id` parameter in the transaction resource).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    /// Retrieves the transaction resource with the specified transaction code.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transaction_code: Option<String>,
-}
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListDeprecatedParams {
-    /// Retrieves the transaction resource with the specified transaction code.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transaction_code: Option<String>,
-    /// Specifies the order in which the returned results are displayed.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub order: Option<ListDeprecatedParamsOrder>,
-    /// Specifies the maximum number of results per page. Value must be a positive integer and if not specified, will return 10 results.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<i64>,
-    /// Filters the returned results by user email.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub users: Option<Vec<String>>,
-    /// Filters the returned results by the specified list of final statuses of the transactions.
-    #[serde(rename = "statuses[]")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub statuses: Option<Vec<ListDeprecatedParamsStatusesItem>>,
-    /// Filters the returned results by the specified list of payment types used for the transactions.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payment_types: Option<Vec<PaymentType>>,
-    /// Filters the returned results by the specified list of transaction types.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub types: Option<Vec<ListDeprecatedParamsTypesItem>>,
-    /// Filters the results by the latest modification time of resources and returns only transactions that are modified *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub changes_since: Option<crate::datetime::DateTime>,
-    /// Filters the results by the creation time of resources and returns only transactions that are created *before* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub newest_time: Option<crate::datetime::DateTime>,
-    /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *smaller* than the specified value. This parameters supersedes the `newest_time` parameter (if both are provided in the request).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub newest_ref: Option<String>,
-    /// Filters the results by the creation time of resources and returns only transactions that are created *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub oldest_time: Option<crate::datetime::DateTime>,
-    /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *greater* than the specified value. This parameters supersedes the `oldest_time` parameter (if both are provided in the request).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub oldest_ref: Option<String>,
-}
-/// Returns a page of transaction history items.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ListDeprecatedResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Vec<TransactionHistory>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub links: Option<Vec<TransactionsHistoryLink>>,
 }
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct GetParams {
@@ -954,16 +862,6 @@ pub enum RefundErrorBody {
     Conflict(Error),
 }
 #[derive(Debug)]
-pub enum GetDeprecatedErrorBody {
-    Unauthorized(Problem),
-    NotFound(Error),
-}
-#[derive(Debug)]
-pub enum ListDeprecatedErrorBody {
-    BadRequest(Error),
-    Unauthorized(Problem),
-}
-#[derive(Debug)]
 pub enum GetErrorBody {
     Unauthorized(Problem),
     NotFound(Error),
@@ -996,10 +894,15 @@ impl<'a> TransactionsClient<'a> {
     /// - 409: The transaction cannot be refunded due to business constraints.
     pub async fn refund(
         &self,
-        txn_id: impl Into<String>,
+        merchant_code: impl Into<String>,
+        id: impl Into<String>,
         body: Option<RefundBody>,
     ) -> crate::error::SdkResult<(), RefundErrorBody> {
-        let path = format!("/v0.1/me/refund/{}", txn_id.into());
+        let path = format!(
+            "/v1.0/merchants/{}/payments/{}/refunds",
+            merchant_code.into(),
+            id.into()
+        );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1027,156 +930,6 @@ impl<'a> TransactionsClient<'a> {
             reqwest::StatusCode::CONFLICT => {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(RefundErrorBody::Conflict(body)))
-            }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
-        }
-    }
-    /// Retrieve a transaction
-    ///
-    /// Retrieves the full details of an identified transaction. The transaction resource is identified by a query parameter and *one* of following parameters is required:
-    /// - `id`
-    /// - `transaction_code`
-    /// - `foreign_transaction_id`
-    /// - `client_transaction_id`
-    ///
-    /// Responses:
-    /// - 200: Returns the requested transaction resource.
-    /// - 401: The request is not authorized.
-    /// - 404: The requested resource does not exist.
-    pub async fn get_deprecated(
-        &self,
-        params: GetDeprecatedParams,
-    ) -> crate::error::SdkResult<TransactionFull, GetDeprecatedErrorBody> {
-        let path = "/v0.1/me/transactions";
-        let url = format!("{}{}", self.client.base_url(), path);
-        let mut request = self
-            .client
-            .http_client()
-            .get(&url)
-            .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
-        if let Some(authorization) = self.client.authorization() {
-            request = request.header("Authorization", format!("Bearer {}", authorization));
-        }
-        for (header_name, header_value) in self.client.runtime_headers() {
-            request = request.header(*header_name, header_value);
-        }
-        if let Some(ref value) = params.id {
-            request = request.query(&[("id", value)]);
-        }
-        if let Some(ref value) = params.transaction_code {
-            request = request.query(&[("transaction_code", value)]);
-        }
-        let response = request.send().await?;
-        let status = response.status();
-        match status {
-            reqwest::StatusCode::OK => {
-                let data: TransactionFull = response.json().await?;
-                Ok(data)
-            }
-            reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetDeprecatedErrorBody::Unauthorized(body),
-                ))
-            }
-            reqwest::StatusCode::NOT_FOUND => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetDeprecatedErrorBody::NotFound(body),
-                ))
-            }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
-        }
-    }
-    /// List transactions
-    ///
-    /// Lists detailed history of all transactions associated with the merchant profile.
-    ///
-    /// Responses:
-    /// - 200: Returns a page of transaction history items.
-    /// - 400: The request is invalid for the submitted query parameters.
-    /// - 401: The request is not authorized.
-    pub async fn list_deprecated(
-        &self,
-        params: ListDeprecatedParams,
-    ) -> crate::error::SdkResult<ListDeprecatedResponse, ListDeprecatedErrorBody> {
-        let path = "/v0.1/me/transactions/history";
-        let url = format!("{}{}", self.client.base_url(), path);
-        let mut request = self
-            .client
-            .http_client()
-            .get(&url)
-            .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout());
-        if let Some(authorization) = self.client.authorization() {
-            request = request.header("Authorization", format!("Bearer {}", authorization));
-        }
-        for (header_name, header_value) in self.client.runtime_headers() {
-            request = request.header(*header_name, header_value);
-        }
-        if let Some(ref value) = params.transaction_code {
-            request = request.query(&[("transaction_code", value)]);
-        }
-        if let Some(ref value) = params.order {
-            request = request.query(&[("order", value)]);
-        }
-        if let Some(ref value) = params.limit {
-            request = request.query(&[("limit", value)]);
-        }
-        if let Some(ref value) = params.users {
-            request = request.query(&[("users", value)]);
-        }
-        if let Some(ref value) = params.statuses {
-            request = request.query(&[("statuses[]", value)]);
-        }
-        if let Some(ref value) = params.payment_types {
-            request = request.query(&[("payment_types", value)]);
-        }
-        if let Some(ref value) = params.types {
-            request = request.query(&[("types", value)]);
-        }
-        if let Some(ref value) = params.changes_since {
-            request = request.query(&[("changes_since", value)]);
-        }
-        if let Some(ref value) = params.newest_time {
-            request = request.query(&[("newest_time", value)]);
-        }
-        if let Some(ref value) = params.newest_ref {
-            request = request.query(&[("newest_ref", value)]);
-        }
-        if let Some(ref value) = params.oldest_time {
-            request = request.query(&[("oldest_time", value)]);
-        }
-        if let Some(ref value) = params.oldest_ref {
-            request = request.query(&[("oldest_ref", value)]);
-        }
-        let response = request.send().await?;
-        let status = response.status();
-        match status {
-            reqwest::StatusCode::OK => {
-                let data: ListDeprecatedResponse = response.json().await?;
-                Ok(data)
-            }
-            reqwest::StatusCode::BAD_REQUEST => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListDeprecatedErrorBody::BadRequest(body),
-                ))
-            }
-            reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListDeprecatedErrorBody::Unauthorized(body),
-                ))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
