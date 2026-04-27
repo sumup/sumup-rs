@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.10](https://github.com/sumup/sumup-rs/compare/v0.5.9...v0.5.10) - 2026-04-27
+
+### Other
+
+- synced file(s) with sumup/apis ([#178](https://github.com/sumup/sumup-rs/pull/178))
+- *(deps)* bump axum from 0.8.8 to 0.8.9 ([#176](https://github.com/sumup/sumup-rs/pull/176))
+
 ## [0.5.9](https://github.com/sumup/sumup-rs/compare/v0.5.8...v0.5.9) - 2026-04-24
 
 ### Added
