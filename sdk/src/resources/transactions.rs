@@ -272,9 +272,8 @@ pub struct TransactionFull {
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
-    /// Current status of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<TransactionFullStatus>,
+    pub status: Option<TransactionStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
@@ -441,9 +440,8 @@ pub struct TransactionHistory {
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
-    /// Current status of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<TransactionHistoryStatus>,
+    pub status: Option<TransactionStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
@@ -511,20 +509,6 @@ pub struct TransactionsHistoryLink {
     ///
     /// Example: `limit=10&oldest_ref=090df9bf-93b7-40f1-8181-fbdb236568a1&order=ascending`
     pub href: String,
-}
-/// Current status of the transaction.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum TransactionFullStatus {
-    #[serde(rename = "SUCCESSFUL")]
-    Successful,
-    #[serde(rename = "CANCELLED")]
-    Cancelled,
-    #[serde(rename = "FAILED")]
-    Failed,
-    #[serde(rename = "PENDING")]
-    Pending,
-    #[serde(untagged)]
-    Other(String),
 }
 /// Payout plan of the registered user at the time when the transaction was made.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -693,20 +677,6 @@ pub struct TransactionFullLocation {
     pub lon: Option<Lon>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub horizontal_accuracy: Option<HorizontalAccuracy>,
-}
-/// Current status of the transaction.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum TransactionHistoryStatus {
-    #[serde(rename = "SUCCESSFUL")]
-    Successful,
-    #[serde(rename = "CANCELLED")]
-    Cancelled,
-    #[serde(rename = "FAILED")]
-    Failed,
-    #[serde(rename = "PENDING")]
-    Pending,
-    #[serde(untagged)]
-    Other(String),
 }
 /// Payout plan of the registered user at the time when the transaction was made.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

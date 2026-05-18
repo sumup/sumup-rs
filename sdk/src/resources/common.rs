@@ -509,9 +509,8 @@ pub struct TransactionBase {
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
-    /// Current status of the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<TransactionBaseStatus>,
+    pub status: Option<TransactionStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
     /// Current number of the installment for deferred payments.
@@ -548,6 +547,28 @@ pub struct TransactionCheckoutInfo {
     pub auth_code: Option<String>,
 }
 pub type TransactionId = String;
+/// Current status of the transaction.
+///
+/// - `PENDING`: The transaction has been created but its final outcome is not known yet.
+/// - `SUCCESSFUL`: The transaction completed successfully.
+/// - `CANCELLED`: The transaction was cancelled or otherwise reversed before completion.
+/// - `FAILED`: The transaction attempt did not complete successfully.
+/// - `REFUNDED`: The transaction was refunded in full or in part.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum TransactionStatus {
+    #[serde(rename = "SUCCESSFUL")]
+    Successful,
+    #[serde(rename = "CANCELLED")]
+    Cancelled,
+    #[serde(rename = "FAILED")]
+    Failed,
+    #[serde(rename = "PENDING")]
+    Pending,
+    #[serde(rename = "REFUNDED")]
+    Refunded,
+    #[serde(untagged)]
+    Other(String),
+}
 /// Current lifecycle status of the mandate.
 ///
 /// Example: `active`
@@ -557,20 +578,6 @@ pub enum MandateResponseStatus {
     Active,
     #[serde(rename = "inactive")]
     Inactive,
-    #[serde(untagged)]
-    Other(String),
-}
-/// Current status of the transaction.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum TransactionBaseStatus {
-    #[serde(rename = "SUCCESSFUL")]
-    Successful,
-    #[serde(rename = "CANCELLED")]
-    Cancelled,
-    #[serde(rename = "FAILED")]
-    Failed,
-    #[serde(rename = "PENDING")]
-    Pending,
     #[serde(untagged)]
     Other(String),
 }
