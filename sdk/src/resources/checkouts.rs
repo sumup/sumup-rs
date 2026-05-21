@@ -956,9 +956,9 @@ impl<'a> CheckoutsClient<'a> {
     /// - 409: The request conflicts with the current state of the resource.
     pub async fn deactivate(
         &self,
-        id: impl Into<String>,
+        checkout_id: impl Into<String>,
     ) -> crate::error::SdkResult<Checkout, DeactivateErrorBody> {
-        let path = format!("/v0.1/checkouts/{}", id.into());
+        let path = format!("/v0.1/checkouts/{}", checkout_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1014,9 +1014,9 @@ impl<'a> CheckoutsClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn get(
         &self,
-        id: impl Into<String>,
+        checkout_id: impl Into<String>,
     ) -> crate::error::SdkResult<CheckoutSuccess, GetErrorBody> {
-        let path = format!("/v0.1/checkouts/{}", id.into());
+        let path = format!("/v0.1/checkouts/{}", checkout_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1069,10 +1069,10 @@ impl<'a> CheckoutsClient<'a> {
     /// - 409: The request conflicts with the current state of the resource.
     pub async fn process(
         &self,
-        id: impl Into<String>,
+        checkout_id: impl Into<String>,
         body: ProcessCheckout,
     ) -> crate::error::SdkResult<ProcessResponse, ProcessErrorBody> {
-        let path = format!("/v0.1/checkouts/{}", id.into());
+        let path = format!("/v0.1/checkouts/{}", checkout_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1202,11 +1202,11 @@ impl<'a> CheckoutsClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn create_apple_pay_session(
         &self,
-        id: impl Into<String>,
+        checkout_id: impl Into<String>,
         body: Option<CreateApplePaySessionBody>,
     ) -> crate::error::SdkResult<CreateApplePaySessionResponse, CreateApplePaySessionErrorBody>
     {
-        let path = format!("/v0.2/checkouts/{}/apple-pay-session", id.into());
+        let path = format!("/v0.2/checkouts/{}/apple-pay-session", checkout_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client

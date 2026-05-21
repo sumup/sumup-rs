@@ -359,10 +359,10 @@ impl<'a> ReceiptsClient<'a> {
     /// - 404: The requested transaction event does not exist for the provided transaction.
     pub async fn get(
         &self,
-        id: impl Into<String>,
+        transaction_id: impl Into<String>,
         params: GetParams,
     ) -> crate::error::SdkResult<Receipt, GetErrorBody> {
-        let path = format!("/v1.1/receipts/{}", id.into());
+        let path = format!("/v1.1/receipts/{}", transaction_id.into());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
