@@ -865,13 +865,13 @@ impl<'a> TransactionsClient<'a> {
     pub async fn refund(
         &self,
         merchant_code: impl Into<String>,
-        id: impl Into<String>,
+        transaction_id: impl Into<String>,
         body: Option<RefundBody>,
     ) -> crate::error::SdkResult<(), RefundErrorBody> {
         let path = format!(
             "/v1.0/merchants/{}/payments/{}/refunds",
             merchant_code.into(),
-            id.into()
+            transaction_id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self

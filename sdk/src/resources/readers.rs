@@ -548,12 +548,12 @@ impl<'a> ReadersClient<'a> {
     pub async fn delete(
         &self,
         merchant_code: impl Into<String>,
-        id: impl Into<String>,
+        reader_id: impl Into<String>,
     ) -> crate::error::SdkResult<(), DeleteErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
-            id.into()
+            reader_id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -593,12 +593,12 @@ impl<'a> ReadersClient<'a> {
     pub async fn get(
         &self,
         merchant_code: impl Into<String>,
-        id: impl Into<String>,
+        reader_id: impl Into<String>,
     ) -> crate::error::SdkResult<Reader, GetErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
-            id.into()
+            reader_id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -642,13 +642,13 @@ impl<'a> ReadersClient<'a> {
     pub async fn update(
         &self,
         merchant_code: impl Into<String>,
-        id: impl Into<String>,
+        reader_id: impl Into<String>,
         body: UpdateBody,
     ) -> crate::error::SdkResult<Reader, UpdateErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
             merchant_code.into(),
-            id.into()
+            reader_id.into()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
