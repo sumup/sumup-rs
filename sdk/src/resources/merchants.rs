@@ -183,12 +183,8 @@ pub struct BasePerson {
     pub ownership: Option<Ownership>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<Address>,
-    /// A list of country-specific personal identifiers.
-    ///
-    /// Constraints:
-    /// - max items: 5
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub identifiers: Option<Vec<PersonalIdentifier>>,
+    pub identifiers: Option<PersonalIdentifiers>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub citizenship: Option<CountryCode>,
     /// The persons nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
@@ -277,7 +273,6 @@ pub struct BusinessProfile {
     /// The business's publicly available website.
     ///
     /// Constraints:
-    /// - format: `uri`
     /// - max length: 255
     ///
     /// Example: `https://example.com`
@@ -340,14 +335,9 @@ pub struct Company {
     /// HTTP(S) URL of the company's website.
     ///
     /// Constraints:
-    /// - format: `uri`
     /// - max length: 255
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "crate::nullable::deserialize"
-    )]
-    pub website: Option<crate::Nullable<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub website: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attributes: Option<Attributes>,
 }
@@ -522,12 +512,8 @@ pub struct Person {
     pub ownership: Option<Ownership>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<Address>,
-    /// A list of country-specific personal identifiers.
-    ///
-    /// Constraints:
-    /// - max items: 5
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub identifiers: Option<Vec<PersonalIdentifier>>,
+    pub identifiers: Option<PersonalIdentifiers>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub citizenship: Option<CountryCode>,
     /// The persons nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
@@ -558,12 +544,13 @@ pub struct PersonalIdentifier {
     /// The unique reference for the personal identifier type as defined in the country SDK.
     #[serde(rename = "ref")]
     pub r#ref: String,
-    /// The company identifier value.
+    /// The value of the personal identifier.
     ///
     /// Constraints:
     /// - max length: 30
     pub value: String,
 }
+pub type PersonalIdentifiers = Vec<PersonalIdentifier>;
 pub type PhoneNumber = String;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Timestamps {

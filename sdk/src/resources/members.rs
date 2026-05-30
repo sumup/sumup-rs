@@ -60,7 +60,7 @@ pub struct MembershipUser {
     /// Time when the user has been disabled. Applies only to virtual users (`virtual_user: true`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disabled_at: Option<crate::datetime::DateTime>,
-    /// User's preferred name. Used for display purposes only.
+    /// User's nickname. Used for display purposes only.
     ///
     /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -85,7 +85,7 @@ pub struct MembershipUserClassic {
 /// Allows you to update user data of managed users.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBodyUser {
-    /// User's preferred name. Used for display purposes only.
+    /// User's nickname. Used for display purposes only.
     ///
     /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
