@@ -785,6 +785,7 @@ pub struct ListParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Filters the returned results by user email.
+    #[serde(rename = "users[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<String>>,
     /// Filters the returned results by the specified list of final statuses of the transactions.
@@ -792,6 +793,7 @@ pub struct ListParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub statuses: Option<Vec<ListParamsStatusesItem>>,
     /// Filters the returned results by the specified list of payment types used for the transactions.
+    #[serde(rename = "payment_types[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_types: Option<Vec<PaymentType>>,
     /// Filters the returned results by the specified list of entry modes.
@@ -799,6 +801,7 @@ pub struct ListParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entry_modes: Option<Vec<EntryMode>>,
     /// Filters the returned results by the specified list of transaction types.
+    #[serde(rename = "types[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub types: Option<Vec<ListParamsTypesItem>>,
     /// Filters the results by the latest modification time of resources and returns only transactions that are modified *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
@@ -1015,19 +1018,19 @@ impl<'a> TransactionsClient<'a> {
             request = request.query(&[("limit", value)]);
         }
         if let Some(ref value) = params.users {
-            request = request.query(&[("users", value)]);
+            request = request.query(&[("users[]", value)]);
         }
         if let Some(ref value) = params.statuses {
             request = request.query(&[("statuses[]", value)]);
         }
         if let Some(ref value) = params.payment_types {
-            request = request.query(&[("payment_types", value)]);
+            request = request.query(&[("payment_types[]", value)]);
         }
         if let Some(ref value) = params.entry_modes {
             request = request.query(&[("entry_modes[]", value)]);
         }
         if let Some(ref value) = params.types {
-            request = request.query(&[("types", value)]);
+            request = request.query(&[("types[]", value)]);
         }
         if let Some(ref value) = params.changes_since {
             request = request.query(&[("changes_since", value)]);
