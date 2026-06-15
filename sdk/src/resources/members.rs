@@ -80,7 +80,7 @@ pub struct MembershipUser {
 #[deprecated]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MembershipUserClassic {
-    pub user_id: i32,
+    pub user_id: i64,
 }
 /// Allows you to update user data of managed users.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
