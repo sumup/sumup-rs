@@ -30,7 +30,7 @@ pub struct Address {
     /// Constraints:
     /// - max length: 60
     ///
-    /// Example: `Ontario`
+    /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub province: Option<String>,
     /// The region where the address is located. This may not be relevant in some countries.
@@ -38,7 +38,7 @@ pub struct Address {
     /// Constraints:
     /// - max length: 60
     ///
-    /// Example: `Baden-Wuerttemberg`
+    /// Example: `Baden Wuerttemberg`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub region: Option<String>,
     /// A county is a geographic region of a country used for administrative or other purposes in some nations. Used in countries such as Ireland, Romania, etc.
@@ -46,7 +46,7 @@ pub struct Address {
     /// Constraints:
     /// - max length: 60
     ///
-    /// Example: `Dublin`
+    /// Example: `Dublin County`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub county: Option<String>,
     /// In Spain, an autonomous community is the first sub-national level of political and administrative division.
@@ -102,7 +102,7 @@ pub struct Address {
     /// Constraints:
     /// - max length: 60
     ///
-    /// Example: `Medellin`
+    /// Example: `Medellín`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub municipality: Option<String>,
     /// A district is a type of administrative division that in some countries is managed by the local government. Used in countries such as Portugal.
@@ -110,7 +110,7 @@ pub struct Address {
     /// Constraints:
     /// - max length: 60
     ///
-    /// Example: `Lisbon`
+    /// Example: `Lisbon District`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub district: Option<String>,
     /// A US system of postal codes used by the United States Postal Service (USPS).
@@ -541,13 +541,20 @@ pub struct Person {
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PersonalIdentifier {
-    /// The unique reference for the personal identifier type as defined in the country SDK.
-    #[serde(rename = "ref")]
-    pub r#ref: String,
-    /// The value of the personal identifier.
+    /// The unique reference for the personal identifier type.
     ///
     /// Constraints:
-    /// - max length: 30
+    /// - max length: 32
+    ///
+    /// Example: `br.cpf`
+    #[serde(rename = "ref")]
+    pub r#ref: String,
+    /// The company identifier value.
+    ///
+    /// Constraints:
+    /// - max length: 128
+    ///
+    /// Example: `847.060.136-90`
     pub value: String,
 }
 pub type PersonalIdentifiers = Vec<PersonalIdentifier>;
