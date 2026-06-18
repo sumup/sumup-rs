@@ -41,6 +41,8 @@ pub struct MembershipUser {
     ///
     /// Example: `44ca0f5b-813b-46e1-aee7-e6242010662e`
     pub id: String,
+    #[serde(rename = "type")]
+    pub r#type: UserType,
     /// End-User's preferred e-mail address. Its value MUST conform to the RFC 5322 [RFC5322] addr-spec syntax. The RP MUST NOT rely upon this value being unique, for unique identification use ID instead.
     ///
     /// Example: `example@sumup.com`
@@ -52,10 +54,12 @@ pub struct MembershipUser {
     /// True if the user is a virtual user (operator).
     ///
     /// Example: `false`
+    #[deprecated(note = "Rely on `type` instead.")]
     pub virtual_user: bool,
     /// True if the user is a service account.
     ///
     /// Example: `false`
+    #[deprecated(note = "Rely on `type` instead.")]
     pub service_account_user: bool,
     /// Time when the user has been disabled. Applies only to virtual users (`virtual_user: true`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -81,6 +85,22 @@ pub struct MembershipUser {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MembershipUserClassic {
     pub user_id: i64,
+}
+/// Type of the user account.
+///
+/// Example: `user`
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum UserType {
+    #[serde(rename = "user")]
+    User,
+    #[serde(rename = "managed_user")]
+    ManagedUser,
+    #[serde(rename = "service_account")]
+    ServiceAccount,
+    #[serde(rename = "system_account")]
+    SystemAccount,
+    #[serde(untagged)]
+    Other(String),
 }
 /// Allows you to update user data of managed users.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -202,6 +222,7 @@ pub enum CreateErrorBody {
 }
 #[derive(Debug)]
 pub enum DeleteErrorBody {
+    Forbidden(Problem),
     NotFound(Problem),
 }
 #[derive(Debug)]
@@ -358,6 +379,7 @@ impl<'a> MembersClient<'a> {
     ///
     /// Responses:
     /// - 200: Returns an empty response if the deletion succeeded.
+    /// - 403: Member deletion was forbidden.
     /// - 404: Merchant or member not found.
     pub async fn delete(
         &self,
@@ -386,6 +408,12 @@ impl<'a> MembersClient<'a> {
         let status = response.status();
         match status {
             reqwest::StatusCode::OK => Ok(()),
+            reqwest::StatusCode::FORBIDDEN => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(DeleteErrorBody::Forbidden(
+                    body,
+                )))
+            }
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(DeleteErrorBody::NotFound(body)))
