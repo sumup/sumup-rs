@@ -4,7 +4,7 @@
 use super::common::*;
 /// An address somewhere in the world. The address fields used depend on the country conventions. For example, in Great Britain, `city` is `post_town`. In the United States, the top-level administrative unit used in addresses is `state`, whereas in Chile it's `region`.
 /// Whether an address is valid or not depends on whether the locally required fields are present. Fields not supported in a country will be ignored.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Address {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub street_address: Option<Vec<String>>,
@@ -131,7 +131,7 @@ pub struct Address {
     pub eircode: Option<String>,
 }
 /// Base schema for a person associated with a merchant. This can be a legal representative, business owner (ultimate beneficial owner), or an officer. A legal representative is the person who registered the merchant with SumUp. They should always have a `user_id`.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct BasePerson {
     /// The unique identifier for the person. This is a [typeid](https://github.com/sumup/typeid).
     ///
@@ -211,7 +211,7 @@ pub struct BasePerson {
     pub change_status: Option<ChangeStatus>,
 }
 /// Settings used to apply the Merchant's branding to email receipts, invoices, checkouts, and other products.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Branding {
     /// An icon for the merchant. Must be square.
     ///
@@ -248,7 +248,7 @@ pub struct Branding {
     pub background_color: Option<String>,
 }
 /// Business information about the merchant. This information will be visible to the merchant's customers.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct BusinessProfile {
     /// The customer-facing business name.
     ///
@@ -294,7 +294,7 @@ pub struct BusinessProfile {
     pub branding: Option<Branding>,
 }
 pub type ChangeStatus = String;
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ClassicMerchantIdentifiers {
     /// Classic (serial) merchant ID.
     ///
@@ -303,7 +303,7 @@ pub struct ClassicMerchantIdentifiers {
     pub id: i64,
 }
 /// Information about the company or business. This is legal information that is used for verification.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Company {
     /// The company's legal name.
     ///
@@ -341,7 +341,7 @@ pub struct Company {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attributes: Option<Attributes>,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CompanyIdentifier {
     /// The unique reference for the company identifier type as defined in the country SDK.
     #[serde(rename = "ref")]
@@ -355,11 +355,11 @@ pub struct CompanyIdentifier {
 pub type CompanyIdentifiers = Vec<CompanyIdentifier>;
 pub type CountryCode = String;
 pub type LegalType = String;
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListPersonsResponseBody {
     pub items: Vec<Person>,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Merchant {
     /// Short unique identifier for the merchant.
     ///
@@ -440,7 +440,7 @@ pub struct Merchant {
 /// A set of key-value pairs that you can attach to an object. This can be useful for storing additional information about the object in a structured format.
 ///
 /// **Warning**: Updating Meta will overwrite the existing data. Make sure to always include the complete JSON object.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Meta {
     #[serde(
         flatten,
@@ -449,7 +449,7 @@ pub struct Meta {
     )]
     pub additional_properties: std::collections::HashMap<String, String>,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Ownership {
     /// The percent of ownership shares held by the person expressed in percent mille (1/100000). Only persons with the relationship `owner` can have ownership.
     ///
@@ -460,7 +460,7 @@ pub struct Ownership {
     /// Example: `50000`
     pub share: i32,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Person {
     /// The unique identifier for the person. This is a [typeid](https://github.com/sumup/typeid).
     ///
@@ -539,7 +539,7 @@ pub struct Person {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub change_status: Option<ChangeStatus>,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PersonalIdentifier {
     /// The unique reference for the personal identifier type.
     ///
@@ -559,7 +559,7 @@ pub struct PersonalIdentifier {
 }
 pub type PersonalIdentifiers = Vec<PersonalIdentifier>;
 pub type PhoneNumber = String;
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Timestamps {
     /// The date and time when the resource was created. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
     ///
@@ -573,34 +573,34 @@ pub struct Timestamps {
     pub updated_at: crate::datetime::DateTime,
 }
 pub type Version = String;
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GetParams {
     /// The version of the resource. At the moment, the only supported value is `latest`. When provided and the requested resource's `change_status` is pending, the resource will be returned with all pending changes applied. When no changes are pending the resource is returned as is. The `change_status` in the response body will reflect the current state of the resource.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListPersonsParams {
     /// The version of the resource. At the moment, the only supported value is `latest`. When provided and the requested resource's `change_status` is pending, the resource will be returned with all pending changes applied. When no changes are pending the resource is returned as is. The `change_status` in the response body will reflect the current state of the resource.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GetPersonParams {
     /// The version of the resource. At the moment, the only supported value is `latest`. When provided and the requested resource's `change_status` is pending, the resource will be returned with all pending changes applied. When no changes are pending the resource is returned as is. The `change_status` in the response body will reflect the current state of the resource.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
 }
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListPersonsErrorBody {
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetPersonErrorBody {
     NotFound(Problem),
 }

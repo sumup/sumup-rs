@@ -1,7 +1,7 @@
 // The contents of this file are generated; do not modify them.
 
 /// Profile's personal address information.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AddressLegacy {
     /// City name from the address.
     ///
@@ -35,7 +35,7 @@ pub struct AddressLegacy {
     pub state: Option<String>,
 }
 /// Object attributes that are modifiable only by SumUp applications.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Attributes {
     #[serde(
         flatten,
@@ -45,7 +45,7 @@ pub struct Attributes {
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
 /// Issuing card network of the payment card used for the transaction.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CardType {
     #[serde(rename = "ALELO")]
     Alelo,
@@ -101,7 +101,7 @@ pub enum CardType {
 /// Three-letter [ISO4217](https://en.wikipedia.org/wiki/ISO_4217) code of the currency for the amount. Currently supported currency values are enumerated above.
 ///
 /// Example: `EUR`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Currency {
     BGN,
     BRL,
@@ -123,7 +123,7 @@ pub enum Currency {
     Other(String),
 }
 /// Entry mode of the payment details.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum EntryMode {
     #[serde(rename = "BOLETO")]
     Boleto,
@@ -182,7 +182,7 @@ pub enum EntryMode {
     Other(String),
 }
 /// Error message structure.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Error {
     /// Short description of the error.
     ///
@@ -206,7 +206,7 @@ impl std::fmt::Display for Error {
 }
 impl std::error::Error for Error {}
 /// Error payload with the invalid parameter reference.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ErrorExtended {
     /// Short description of the error.
     ///
@@ -233,7 +233,7 @@ impl std::fmt::Display for ErrorExtended {
 }
 impl std::error::Error for ErrorExtended {}
 /// Error message for forbidden requests.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ErrorForbidden {
     /// Short description of the error.
     ///
@@ -273,7 +273,7 @@ pub type EventId = i64;
 /// - `REFUNDED`: A refund event has been accepted and recorded in the refund flow. This is the status returned for refund events once the transaction amount is being or has been returned to the payer.
 /// - `SUCCESSFUL`: The event completed successfully. Use this as the generic terminal success status for event types that do not expose a more specific business outcome such as `PAID_OUT` or `REFUNDED`.
 /// - `FAILED`: The event could not be completed. Typical examples are a payout that could not be executed or an event that was rejected during processing.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum EventStatus {
     #[serde(rename = "FAILED")]
     Failed,
@@ -293,7 +293,7 @@ pub enum EventStatus {
     Other(String),
 }
 /// Type of the transaction event.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum EventType {
     #[serde(rename = "PAYOUT")]
     Payout,
@@ -307,7 +307,7 @@ pub enum EventType {
     Other(String),
 }
 /// Pending invitation for membership.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Invite {
     /// Email address of the invited user.
     ///
@@ -319,7 +319,7 @@ pub struct Invite {
     pub expires_at: crate::datetime::DateTime,
 }
 /// Details of the mandate linked to the saved payment instrument.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MandateResponse {
     /// Type of mandate stored for the checkout or payment instrument.
     #[serde(rename = "type")]
@@ -337,7 +337,7 @@ pub struct MandateResponse {
     pub merchant_code: Option<String>,
 }
 /// The status of the membership.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum MembershipStatus {
     #[serde(rename = "accepted")]
     Accepted,
@@ -356,7 +356,7 @@ pub enum MembershipStatus {
 ///
 /// Constraints:
 /// - max properties: 64
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Metadata {
     #[serde(
         flatten,
@@ -366,7 +366,7 @@ pub struct Metadata {
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
 /// Payment type used for the transaction.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum PaymentType {
     #[serde(rename = "CASH")]
     Cash,
@@ -394,7 +394,7 @@ pub enum PaymentType {
     Other(String),
 }
 /// Personal details for the customer.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PersonalDetails {
     /// First name of the customer.
     ///
@@ -435,7 +435,7 @@ pub struct PersonalDetails {
 /// A RFC 9457 problem details object.
 ///
 /// Additional properties specific to the problem type may be present.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Problem {
     /// A URI reference that identifies the problem type.
     ///
@@ -485,7 +485,7 @@ impl std::fmt::Display for Problem {
 }
 impl std::error::Error for Problem {}
 /// Details of the transaction.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionBase {
     /// Unique ID of the transaction.
     ///
@@ -521,7 +521,7 @@ pub struct TransactionBase {
     pub installments_count: Option<i64>,
 }
 /// Checkout-specific fields associated with a transaction.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionCheckoutInfo {
     /// Unique code of the registered merchant to whom the payment is made.
     ///
@@ -554,7 +554,7 @@ pub type TransactionId = String;
 /// - `CANCELLED`: The transaction was cancelled or otherwise reversed before completion.
 /// - `FAILED`: The transaction attempt did not complete successfully.
 /// - `REFUNDED`: The transaction was refunded in full or in part.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionStatus {
     #[serde(rename = "SUCCESSFUL")]
     Successful,
@@ -572,7 +572,7 @@ pub enum TransactionStatus {
 /// Current lifecycle status of the mandate.
 ///
 /// Example: `active`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum MandateResponseStatus {
     #[serde(rename = "active")]
     Active,

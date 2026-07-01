@@ -20,7 +20,7 @@
 //! - use the returned statuses and events to update your own order, accounting, or support systems
 use super::common::*;
 /// Details of the payment card.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CardResponse {
     /// Last 4 digits of the payment card number.
     ///
@@ -37,7 +37,7 @@ pub struct CardResponse {
     pub r#type: Option<CardType>,
 }
 /// Details of the device used to create the transaction.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Device {
     /// Device name.
     ///
@@ -66,7 +66,7 @@ pub struct Device {
     pub uuid: Option<String>,
 }
 /// Details of the ELV card account associated with the transaction.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ElvCardAccount {
     /// ELV card sort code.
     ///
@@ -90,7 +90,7 @@ pub struct ElvCardAccount {
     pub iban: Option<String>,
 }
 /// High-level transaction event details.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Event {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<EventId>,
@@ -123,7 +123,7 @@ pub struct Event {
 pub type HorizontalAccuracy = f32;
 pub type Lat = f32;
 /// Details of a link to a related resource.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Link {
     /// Specifies the relation to the current resource.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -147,7 +147,7 @@ pub struct Link {
 }
 pub type Lon = f32;
 /// Purchase product.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Product {
     /// Product name.
     ///
@@ -210,7 +210,7 @@ pub struct Product {
     pub total_with_vat: Option<f64>,
 }
 /// Detailed information about a transaction event.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<EventId>,
@@ -248,7 +248,7 @@ pub struct TransactionEvent {
     pub timestamp: Option<crate::datetime::DateTime>,
 }
 /// Full transaction resource with checkout, payout, and event details.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFull {
     /// Unique ID of the transaction.
     ///
@@ -416,7 +416,7 @@ pub struct TransactionFull {
     pub tax_enabled: Option<bool>,
 }
 /// Transaction entry returned in history listing responses.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionHistory {
     /// Unique ID of the transaction.
     ///
@@ -499,7 +499,7 @@ pub struct TransactionHistory {
     pub refunded_amount: Option<f64>,
 }
 /// Hypermedia link used for transaction history pagination.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionsHistoryLink {
     /// Relation.
     ///
@@ -511,7 +511,7 @@ pub struct TransactionsHistoryLink {
     pub href: String,
 }
 /// Payout plan of the registered user at the time when the transaction was made.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullPayoutPlan {
     #[serde(rename = "SINGLE_PAYMENT")]
     SinglePayment,
@@ -523,7 +523,7 @@ pub enum TransactionFullPayoutPlan {
     Other(String),
 }
 /// Simple name of the payment type.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullSimplePaymentType {
     #[serde(rename = "CASH")]
     Cash,
@@ -557,7 +557,7 @@ pub enum TransactionFullSimplePaymentType {
     Other(String),
 }
 /// Verification method used for the transaction.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullVerificationMethod {
     #[serde(rename = "none")]
     None,
@@ -575,7 +575,7 @@ pub enum TransactionFullVerificationMethod {
     Other(String),
 }
 /// Payout type for the transaction.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullPayoutType {
     #[serde(rename = "BANK_ACCOUNT")]
     BankAccount,
@@ -587,7 +587,7 @@ pub enum TransactionFullPayoutType {
 /// Debit/Credit.
 ///
 /// Example: `CREDIT`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullProcessAs {
     #[serde(rename = "CREDIT")]
     Credit,
@@ -596,7 +596,7 @@ pub enum TransactionFullProcessAs {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFullVatRatesItem {
     /// VAT rate.
     ///
@@ -643,7 +643,7 @@ pub struct TransactionFullVatRatesItem {
 /// - `REFUND_FAILED`: An attempt to refund the payment was not completed successfully.
 /// - `CHARGEBACK`: The payment was subject to a chargeback.
 /// - `NON_COLLECTION`: The amount could not be collected from the merchant after a chargeback or related adjustment.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullSimpleStatus {
     #[serde(rename = "SUCCESSFUL")]
     Successful,
@@ -669,7 +669,7 @@ pub enum TransactionFullSimpleStatus {
     Other(String),
 }
 /// Details of the payment location as received from the payment terminal.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFullLocation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lat: Option<Lat>,
@@ -679,7 +679,7 @@ pub struct TransactionFullLocation {
     pub horizontal_accuracy: Option<HorizontalAccuracy>,
 }
 /// Payout plan of the registered user at the time when the transaction was made.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionHistoryPayoutPlan {
     #[serde(rename = "SINGLE_PAYMENT")]
     SinglePayment,
@@ -691,7 +691,7 @@ pub enum TransactionHistoryPayoutPlan {
     Other(String),
 }
 /// Type of the transaction for the registered user specified in the `user` property.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionHistoryType {
     #[serde(rename = "PAYMENT")]
     Payment,
@@ -705,7 +705,7 @@ pub enum TransactionHistoryType {
 /// Payout type.
 ///
 /// Example: `BANK_ACCOUNT`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionHistoryPayoutType {
     #[serde(rename = "BANK_ACCOUNT")]
     BankAccount,
@@ -714,7 +714,7 @@ pub enum TransactionHistoryPayoutType {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ListParamsOrder {
     #[serde(rename = "ascending")]
     Ascending,
@@ -723,7 +723,7 @@ pub enum ListParamsOrder {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ListParamsStatusesItem {
     #[serde(rename = "SUCCESSFUL")]
     Successful,
@@ -738,7 +738,7 @@ pub enum ListParamsStatusesItem {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ListParamsTypesItem {
     #[serde(rename = "PAYMENT")]
     Payment,
@@ -750,7 +750,7 @@ pub enum ListParamsTypesItem {
     Other(String),
 }
 /// Optional amount for partial refunds.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RefundBody {
     /// Amount to be refunded. Eligible amount can't exceed the amount of the transaction and varies based on country and currency. If you do not specify a value, the system performs a full refund of the transaction.
     ///
@@ -758,7 +758,7 @@ pub struct RefundBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f32>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GetParams {
     /// Retrieves the transaction resource with the specified transaction ID (the `id` parameter in the transaction resource).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -773,7 +773,7 @@ pub struct GetParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_transaction_id: Option<String>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
     /// Retrieves the transaction resource with the specified transaction code.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -821,7 +821,7 @@ pub struct ListParams {
     pub oldest_ref: Option<String>,
 }
 /// Returns a page of transaction history items.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<TransactionHistory>>,
@@ -829,17 +829,17 @@ pub struct ListResponse {
     pub links: Option<Vec<TransactionsHistoryLink>>,
 }
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum RefundErrorBody {
     NotFound(Error),
     Conflict(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     Unauthorized(Problem),
     NotFound(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
     BadRequest(Error),
     Unauthorized(Problem),

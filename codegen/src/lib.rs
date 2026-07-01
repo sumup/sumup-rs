@@ -202,7 +202,7 @@ impl Generator {
         let client_tokens = generate_tag_client(&self.spec, tag)?;
         let module_doc_comment = tag_description(&self.spec, tag)
             .map(generate_module_doc_comment)
-            .unwrap_or_else(TokenStream::new);
+            .unwrap_or_default();
 
         let use_common = if self.should_import_common(tag, tag_data) {
             quote! {
@@ -753,8 +753,10 @@ mod tests {
 
     #[test]
     fn operation_name_falls_back_to_operation_id_and_unknown() {
-        let mut with_operation_id = openapiv3::Operation::default();
-        with_operation_id.operation_id = Some("listDemo".to_string());
+        let with_operation_id = openapiv3::Operation {
+            operation_id: Some("listDemo".to_string()),
+            ..Default::default()
+        };
         assert_eq!(operation_name(&with_operation_id), "listDemo");
 
         let without_name = openapiv3::Operation::default();

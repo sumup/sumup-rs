@@ -9,7 +9,7 @@ use super::common::*;
 /// A record can represent either:
 /// - an actual payout sent to the merchant (`type = PAYOUT`)
 /// - a deduction applied against merchant funds for a refund, chargeback, direct debit return, or balance adjustment
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FinancialPayout {
     /// Unique identifier of the payout-related record.
     ///
@@ -53,7 +53,7 @@ pub type FinancialPayouts = Vec<FinancialPayout>;
 /// High-level payout record category.
 ///
 /// Example: `PAYOUT`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FinancialPayoutType {
     #[serde(rename = "PAYOUT")]
     Payout,
@@ -71,7 +71,7 @@ pub enum FinancialPayoutType {
 /// Merchant-facing outcome of the payout record.
 ///
 /// Example: `SUCCESSFUL`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FinancialPayoutStatus {
     #[serde(rename = "SUCCESSFUL")]
     Successful,
@@ -80,7 +80,7 @@ pub enum FinancialPayoutStatus {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ListParamsFormat {
     #[serde(rename = "json")]
     Json,
@@ -89,7 +89,7 @@ pub enum ListParamsFormat {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ListParamsOrder {
     #[serde(rename = "asc")]
     Asc,
@@ -98,7 +98,7 @@ pub enum ListParamsOrder {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
     /// Start date of the payout period filter, inclusive, in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) `date` format (`YYYY-MM-DD`).
     ///
@@ -129,7 +129,7 @@ pub struct ListParams {
     pub order: Option<ListParamsOrder>,
 }
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
     BadRequest(crate::error::UnknownApiBody),
     Unauthorized(Problem),

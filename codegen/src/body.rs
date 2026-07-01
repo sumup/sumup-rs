@@ -174,7 +174,7 @@ fn generate_query_params_struct(
     }
 
     Some(quote! {
-        #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+        #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
         pub struct #struct_name {
             #(#fields,)*
         }
@@ -426,7 +426,7 @@ fn build_string_enum(
 
     Ok(quote! {
         #description
-        #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+        #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
         pub enum #type_ident {
             #(#variants_tokens,)*
             #[serde(untagged)]
@@ -684,7 +684,7 @@ fn generate_response_body_structs(
             if !variants.is_empty() {
                 response_structs.extend(variant_structs);
                 response_structs.push(quote! {
-                    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+                    #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
                     #[serde(untagged)]
                     pub enum #enum_name {
                         #(#variants,)*
@@ -742,9 +742,9 @@ fn generate_schema_struct(
                 crate::schema::can_fields_derive_default(&obj.properties, &obj.required);
 
             let derives = if can_derive_default {
-                quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
+                quote! { #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)] }
             } else {
-                quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
+                quote! { #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)] }
             };
 
             Ok(quote! {
@@ -781,9 +781,9 @@ fn generate_schema_struct(
                 );
 
                 let derives = if can_derive_default {
-                    quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
+                    quote! { #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)] }
                 } else {
-                    quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
+                    quote! { #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)] }
                 };
 
                 Ok(quote! {

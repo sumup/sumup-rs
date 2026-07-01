@@ -82,7 +82,7 @@ pub(crate) fn format_json_example(example: &serde_json::Value) -> Option<String>
     }
 }
 
-fn generate_doc_comment_from_lines(lines: Vec<String>) -> TokenStream {
+pub(crate) fn generate_doc_comment_from_lines(lines: Vec<String>) -> TokenStream {
     if lines.is_empty() {
         return quote! {};
     }
@@ -477,9 +477,9 @@ pub fn generate_structs_for_schemas(
                 let deprecation = generate_deprecation_attribute(&schema.schema_data);
 
                 let derives = if can_derive_default {
-                    quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
+                    quote! { #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)] }
                 } else {
-                    quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
+                    quote! { #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)] }
                 };
 
                 let struct_def = quote! {
@@ -538,9 +538,9 @@ pub fn generate_structs_for_schemas(
                     let deprecation = generate_deprecation_attribute(&schema.schema_data);
 
                     let derives = if can_derive_default {
-                        quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
+                        quote! { #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)] }
                     } else {
-                        quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
+                        quote! { #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)] }
                     };
 
                     let struct_def = quote! {
@@ -611,7 +611,7 @@ pub fn generate_structs_for_schemas(
                         items.push(quote! {
                             #description
                             #deprecation
-                            #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+                            #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
                             pub enum #struct_name {
                                 #(#variants_tokens,)*
                                 #[serde(untagged)]
@@ -747,9 +747,9 @@ impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
             .map(|d| generate_schema_doc_comment(Some(d), schema));
 
         let derives = if can_derive_default {
-            quote! { #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)] }
+            quote! { #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)] }
         } else {
-            quote! { #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)] }
+            quote! { #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)] }
         };
 
         self.nested_schemas.push(quote! {
@@ -1616,7 +1616,7 @@ fn generate_inline_string_enum(
 
     Ok(quote! {
         #description
-        #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+        #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
         pub enum #type_ident {
             #(#variants_tokens,)*
             #[serde(untagged)]

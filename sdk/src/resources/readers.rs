@@ -3,7 +3,7 @@
 //! A reader represents a device that accepts payments. You can use the SumUp Solo to accept in-person payments.
 use super::common::*;
 /// Reader Checkout
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequest {
     /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
     /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
@@ -78,12 +78,12 @@ pub struct CreateReaderCheckoutRequest {
     /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
     pub total_amount: Money,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutResponse {
     pub data: CreateReaderCheckoutResponseData,
 }
 /// A physical card reader device that can accept in-person payments.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Reader {
     pub id: ReaderId,
     pub name: ReaderName,
@@ -109,7 +109,7 @@ pub struct Reader {
     pub updated_at: crate::datetime::DateTime,
 }
 /// Information about the underlying physical device.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReaderDevice {
     /// A unique identifier of the physical device (e.g. serial number).
     ///
@@ -133,7 +133,7 @@ pub type ReaderPairingCode = String;
 /// - `expired` - The pairing is expired and no longer usable with the account. The resource needs to get recreated.
 ///
 /// Example: `paired`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ReaderStatus {
     #[serde(rename = "unknown")]
     Unknown,
@@ -147,13 +147,13 @@ pub enum ReaderStatus {
     Other(String),
 }
 /// Status of a device
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct StatusResponse {
     pub data: StatusResponseData,
 }
 /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
 /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequestAade {
     /// The identifier of the AADE signature provider.
     ///
@@ -170,7 +170,7 @@ pub struct CreateReaderCheckoutRequestAade {
 }
 /// Additional metadata for the transaction.
 /// It is key-value object that can be associated with the transaction.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AffiliateTags {
     #[serde(
         flatten,
@@ -181,7 +181,7 @@ pub struct AffiliateTags {
 }
 /// Affiliate metadata for the transaction.
 /// It is a field that allow for integrators to track the source of the transaction.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Affiliate {
     /// Application ID of the affiliate.
     /// It is a unique identifier for the application and should be set by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
@@ -208,7 +208,7 @@ pub struct Affiliate {
 /// Is is required only for some countries (e.g: Brazil).
 ///
 /// Example: `credit`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CreateReaderCheckoutRequestCardType {
     #[serde(rename = "credit")]
     Credit,
@@ -222,7 +222,7 @@ pub enum CreateReaderCheckoutRequestCardType {
 /// The amount is represented as an integer value altogether with the currency and the minor unit.
 ///
 /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Money {
     /// Currency ISO 4217 code
     ///
@@ -244,7 +244,7 @@ pub struct Money {
     /// Example: `1000`
     pub value: i64,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutResponseData {
     /// The client transaction ID is a unique identifier for the transaction that is generated for the client.
     ///
@@ -256,7 +256,7 @@ pub struct CreateReaderCheckoutResponseData {
 /// Identifier of the model of the device.
 ///
 /// Example: `solo`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ReaderDeviceModel {
     #[serde(rename = "solo")]
     Solo,
@@ -268,7 +268,7 @@ pub enum ReaderDeviceModel {
 /// Type of connection used by the device
 ///
 /// Example: `Wi-Fi`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StatusResponseDataConnectionType {
     #[serde(rename = "btle")]
     Btle,
@@ -290,7 +290,7 @@ pub enum StatusResponseDataConnectionType {
 /// Latest state of the device
 ///
 /// Example: `IDLE`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StatusResponseDataState {
     #[serde(rename = "IDLE")]
     Idle,
@@ -310,7 +310,7 @@ pub enum StatusResponseDataState {
 /// Status of a device
 ///
 /// Example: `ONLINE`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StatusResponseDataStatus {
     #[serde(rename = "ONLINE")]
     Online,
@@ -319,7 +319,7 @@ pub enum StatusResponseDataStatus {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct StatusResponseData {
     /// Battery level percentage
     ///
@@ -361,18 +361,18 @@ pub struct StatusResponseData {
     pub status: StatusResponseDataStatus,
 }
 /// Returns a list Reader objects.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListResponse {
     pub items: Vec<Reader>,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateBody {
     pub pairing_code: ReaderPairingCode,
     pub name: ReaderName,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<ReaderName>,
@@ -380,43 +380,43 @@ pub struct UpdateBody {
     pub metadata: Option<Metadata>,
 }
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
     Unauthorized(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CreateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
     Conflict(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DeleteErrorBody {
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum UpdateErrorBody {
     Forbidden(Problem),
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CreateCheckoutErrorBody {
     BadRequest(Problem),
     Unauthorized(Problem),
     NotFound(Problem),
     UnprocessableEntity(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetStatusErrorBody {
     BadRequest(Problem),
     Unauthorized(Problem),
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TerminateCheckoutErrorBody {
     BadRequest(Problem),
     Unauthorized(Problem),

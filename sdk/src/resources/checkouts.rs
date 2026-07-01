@@ -16,7 +16,7 @@
 //! Checkouts are used to initiate and orchestrate online payments. Transactions remain the authoritative record of the resulting payment outcome.
 use super::common::*;
 /// __Required when payment type is `card`.__ Details of the payment card.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Card {
     /// Name of the cardholder as it appears on the payment card.
     ///
@@ -69,7 +69,7 @@ pub struct Card {
     pub r#type: CardType,
 }
 /// Core checkout resource returned by the Checkouts API. A checkout is created before payment processing and then updated as payment attempts, redirects, and resulting transactions are attached to it.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Checkout {
     /// Merchant-defined reference for the checkout. Use it to correlate the SumUp checkout with your own order, cart, subscription, or payment attempt in your systems.
     ///
@@ -155,14 +155,14 @@ pub struct Checkout {
     pub transactions: Option<Vec<CheckoutTransactionsItem>>,
 }
 /// Response returned when checkout processing requires an additional payer action, such as a 3DS challenge or a redirect to an external payment method page.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutAccepted {
     /// Instructions for the next action the payer or client must take.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<CheckoutAcceptedNextStep>,
 }
 /// Request body for creating a checkout before processing payment. Define the payment amount, currency, merchant, and optional customer or redirect behavior here.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutCreateRequest {
     /// Merchant-defined reference for the new checkout. It should be unique enough for you to identify the payment attempt in your own systems.
     ///
@@ -219,7 +219,7 @@ pub struct CheckoutCreateRequest {
     pub hosted_checkout: Option<HostedCheckout>,
 }
 /// Checkout resource returned after a synchronous processing attempt. In addition to the base checkout fields, it can include the resulting transaction identifiers and any newly created payment instrument token.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccess {
     /// Merchant-defined reference for the checkout. Use it to correlate the SumUp checkout with your own order, cart, subscription, or payment attempt in your systems.
     ///
@@ -334,7 +334,7 @@ pub struct CheckoutSuccess {
     pub payment_instrument: Option<CheckoutSuccessPaymentInstrument>,
 }
 /// Error message structure.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DetailsError {
     /// Short title of the error.
     ///
@@ -367,7 +367,7 @@ impl std::fmt::Display for DetailsError {
 }
 impl std::error::Error for DetailsError {}
 /// Hosted Checkout configuration. Enable it to receive a SumUp-hosted payment page URL in the checkout response.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct HostedCheckout {
     /// Whether the checkout should include a SumUp-hosted payment page.
     ///
@@ -375,7 +375,7 @@ pub struct HostedCheckout {
     pub enabled: bool,
 }
 /// Mandate details used when a checkout should create a reusable card token for future recurring or merchant-initiated payments.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MandatePayload {
     /// Type of mandate to create for the saved payment instrument.
     ///
@@ -393,7 +393,7 @@ pub struct MandatePayload {
     pub user_ip: Option<String>,
 }
 /// Request body for attempting payment on an existing checkout. The required companion fields depend on the selected `payment_type`, for example card details, saved-card data, or payer information required by a specific payment method.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ProcessCheckout {
     /// Payment method used for this processing attempt. It determines which additional request fields are required.
     ///
@@ -435,7 +435,7 @@ pub struct ProcessCheckout {
 ///
 /// Constraints:
 /// - write-only
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CardExpiryMonth {
     #[serde(rename = "01")]
     _01,
@@ -467,7 +467,7 @@ pub enum CardExpiryMonth {
 /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
 ///
 /// Example: `PENDING`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CheckoutStatus {
     #[serde(rename = "PENDING")]
     Pending,
@@ -480,7 +480,7 @@ pub enum CheckoutStatus {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutTransactionsItem {
     /// Unique ID of the transaction.
     ///
@@ -537,7 +537,7 @@ pub struct CheckoutTransactionsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CheckoutAcceptedNextStepMechanismItem {
     #[serde(rename = "iframe")]
     Iframe,
@@ -547,7 +547,7 @@ pub enum CheckoutAcceptedNextStepMechanismItem {
     Other(String),
 }
 /// Parameters required to complete the next step. The exact keys depend on the payment provider and flow type.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutAcceptedNextStepPayload {
     #[serde(
         flatten,
@@ -557,7 +557,7 @@ pub struct CheckoutAcceptedNextStepPayload {
     pub additional_properties: std::collections::HashMap<String, String>,
 }
 /// Instructions for the next action the payer or client must take.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutAcceptedNextStep {
     /// URL to open or submit in order to continue processing.
     ///
@@ -582,7 +582,7 @@ pub struct CheckoutAcceptedNextStep {
     pub payload: Option<CheckoutAcceptedNextStepPayload>,
 }
 /// Business purpose of the checkout. Use `CHECKOUT` for a standard payment and `SETUP_RECURRING_PAYMENT` when collecting consent and payment details for future recurring charges.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CheckoutCreateRequestPurpose {
     #[serde(rename = "CHECKOUT")]
     Checkout,
@@ -594,7 +594,7 @@ pub enum CheckoutCreateRequestPurpose {
 /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
 ///
 /// Example: `PENDING`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CheckoutSuccessStatus {
     #[serde(rename = "PENDING")]
     Pending,
@@ -607,7 +607,7 @@ pub enum CheckoutSuccessStatus {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccessTransactionsItem {
     /// Unique ID of the transaction.
     ///
@@ -665,7 +665,7 @@ pub struct CheckoutSuccessTransactionsItem {
     pub auth_code: Option<String>,
 }
 /// Details of the saved payment instrument created or reused during checkout processing.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccessPaymentInstrument {
     /// Token value
     ///
@@ -673,7 +673,7 @@ pub struct CheckoutSuccessPaymentInstrument {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DetailsErrorFailedConstraintsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
@@ -683,7 +683,7 @@ pub struct DetailsErrorFailedConstraintsItem {
 /// Type of mandate to create for the saved payment instrument.
 ///
 /// Example: `recurrent`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum MandatePayloadType {
     #[serde(rename = "recurrent")]
     Recurrent,
@@ -693,7 +693,7 @@ pub enum MandatePayloadType {
 /// Payment method used for this processing attempt. It determines which additional request fields are required.
 ///
 /// Example: `card`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ProcessCheckoutPaymentType {
     #[serde(rename = "card")]
     Card,
@@ -712,14 +712,14 @@ pub enum ProcessCheckoutPaymentType {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem {
     /// The ID of the payment method.
     ///
     /// Example: `qr_code_pix`
     pub id: String,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
     /// Filters the list of checkout resources by the unique ID of the checkout.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -727,13 +727,13 @@ pub struct ListParams {
 }
 /// Returns a list of checkout resources.
 pub type ListResponse = Vec<CheckoutSuccess>;
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum ProcessResponse {
     Status200(CheckoutSuccess),
     Status202(CheckoutAccepted),
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListAvailablePaymentMethodsParams {
     /// The amount for which the payment methods should be eligible, in major units.
     ///
@@ -747,14 +747,14 @@ pub struct ListAvailablePaymentMethodsParams {
     pub currency: Option<String>,
 }
 /// Available payment methods
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListAvailablePaymentMethodsResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub available_payment_methods:
         Option<Vec<ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem>>,
 }
 /// The data needed to create an apple pay session for a checkout.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateApplePaySessionBody {
     /// the context to create this apple pay session.
     ///
@@ -776,40 +776,40 @@ pub struct CreateApplePaySessionBody {
 /// validation and continue the payment flow.
 pub type CreateApplePaySessionResponse = serde_json::Value;
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
     Unauthorized(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CreateErrorBody {
     BadRequest(ErrorExtended),
     Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     Conflict(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DeactivateErrorBody {
     Unauthorized(Problem),
     NotFound(Error),
     Conflict(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     Unauthorized(Problem),
     NotFound(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ProcessErrorBody {
     BadRequest(crate::error::UnknownApiBody),
     Unauthorized(Problem),
     NotFound(Error),
     Conflict(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListAvailablePaymentMethodsErrorBody {
     BadRequest(DetailsError),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CreateApplePaySessionErrorBody {
     BadRequest(crate::error::UnknownApiBody),
     NotFound(Error),
@@ -1196,8 +1196,8 @@ impl<'a> CheckoutsClient<'a> {
     ///
     /// Responses:
     /// - 200: Successful request. Returns the Apple Pay merchant session object
-    /// that should be forwarded to the Apple Pay JS SDK to complete merchant
-    /// validation and continue the payment flow.
+    ///   that should be forwarded to the Apple Pay JS SDK to complete merchant
+    ///   validation and continue the payment flow.
     /// - 400: Bad Request
     /// - 404: The requested resource does not exist.
     pub async fn create_apple_pay_session(

@@ -3,7 +3,7 @@
 //! The Receipts model obtains receipt-like details for specific transactions.
 use super::common::*;
 /// Receipt details for a transaction.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Receipt {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_data: Option<ReceiptTransaction>,
@@ -17,7 +17,7 @@ pub struct Receipt {
     pub acquirer_data: Option<ReceiptAcquirerData>,
 }
 /// Payment card details displayed on the receipt.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptCard {
     /// Card last 4 digits.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,7 +28,7 @@ pub struct ReceiptCard {
     pub r#type: Option<String>,
 }
 /// Transaction event details as rendered on the receipt.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<EventId>,
@@ -57,7 +57,7 @@ pub struct ReceiptEvent {
     pub receipt_no: Option<String>,
 }
 /// Receipt merchant data
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptMerchantData {
     /// Merchant profile details displayed on the receipt.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -67,7 +67,7 @@ pub struct ReceiptMerchantData {
     pub locale: Option<String>,
 }
 /// Card reader details displayed on the receipt.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptReader {
     /// Reader serial number.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -78,7 +78,7 @@ pub struct ReceiptReader {
     pub r#type: Option<String>,
 }
 /// Transaction information.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptTransaction {
     /// Transaction code.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -141,7 +141,7 @@ pub struct ReceiptTransaction {
     pub receipt_no: Option<String>,
 }
 /// Acquirer-specific metadata related to the card authorization.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptAcquirerData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tid: Option<String>,
@@ -152,7 +152,7 @@ pub struct ReceiptAcquirerData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub local_time: Option<String>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptMerchantDataMerchantProfileAddress {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address_line1: Option<String>,
@@ -174,7 +174,7 @@ pub struct ReceiptMerchantDataMerchantProfileAddress {
     pub landline: Option<String>,
 }
 /// Merchant profile details displayed on the receipt.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptMerchantDataMerchantProfile {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_code: Option<String>,
@@ -196,7 +196,7 @@ pub struct ReceiptMerchantDataMerchantProfile {
 /// Debit/Credit.
 ///
 /// Example: `CREDIT`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ReceiptTransactionProcessAs {
     #[serde(rename = "CREDIT")]
     Credit,
@@ -205,7 +205,7 @@ pub enum ReceiptTransactionProcessAs {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptTransactionProductsItem {
     /// Product name
     ///
@@ -305,7 +305,7 @@ pub struct ReceiptTransactionProductsItem {
     )]
     pub total_with_vat: Option<f64>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptTransactionVatRatesItem {
     /// Gross
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -320,7 +320,7 @@ pub struct ReceiptTransactionVatRatesItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vat: Option<f32>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GetParams {
     /// Merchant code.
     pub mid: String,
@@ -329,7 +329,7 @@ pub struct GetParams {
     pub tx_event_id: Option<i64>,
 }
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     BadRequest(Error),
     Unauthorized(Problem),
