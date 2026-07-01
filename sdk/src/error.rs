@@ -99,7 +99,7 @@ where
 }
 
 /// Describes an unexpected SumUp API error payload.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum UnknownApiBody {
     /// JSON payload when the body was valid JSON but schema is unknown.

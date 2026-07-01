@@ -3,7 +3,7 @@
 //! Endpoints to manage custom roles. Custom roles allow you to tailor roles from individual permissions to match your needs. Once created, you can assign your custom roles to your merchant account members using the memberships.
 use super::common::*;
 /// A custom role that can be used to assign set of permissions to members.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Role {
     /// Unique identifier of the role.
     ///
@@ -39,11 +39,11 @@ pub struct Role {
     pub updated_at: crate::datetime::DateTime,
 }
 /// Returns a list of Role objects.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListResponse {
     pub items: Vec<Role>,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateBody {
     /// User-defined name of the role.
     ///
@@ -62,7 +62,7 @@ pub struct CreateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBody {
     /// User-defined name of the role.
     ///
@@ -82,25 +82,25 @@ pub struct UpdateBody {
     pub description: Option<String>,
 }
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CreateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DeleteErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum UpdateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),

@@ -549,7 +549,7 @@ fn build_operation_doc_comment(operation: &openapiv3::Operation) -> Option<Token
         if description.is_empty() {
             continue;
         }
-        response_lines.push(format!("- {}: {}", code, description));
+        response_lines.extend(format_response_doc_lines(*code, description));
     }
 
     if !response_lines.is_empty() {
@@ -563,8 +563,59 @@ fn build_operation_doc_comment(operation: &openapiv3::Operation) -> Option<Token
     if lines.is_empty() {
         None
     } else {
-        Some(crate::schema::generate_doc_comment(&lines.join("\n")))
+        Some(crate::schema::generate_doc_comment_from_lines(lines))
     }
+}
+
+fn format_response_doc_lines(code: u16, description: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut description_lines = description
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty());
+
+    let Some(first_line) = description_lines.next() else {
+        return lines;
+    };
+
+    lines.extend(wrap_doc_line(&format!("- {}: ", code), first_line));
+
+    for line in description_lines {
+        lines.extend(wrap_doc_line("  ", line));
+    }
+
+    lines
+}
+
+fn wrap_doc_line(prefix: &str, line: &str) -> Vec<String> {
+    const MAX_DOC_LINE_LEN: usize = 88;
+
+    let continuation_prefix = "  ";
+    let mut wrapped = Vec::new();
+    let mut current = prefix.to_string();
+    let mut current_prefix_len = prefix.len();
+
+    for word in line.split_whitespace() {
+        let separator_len = usize::from(current.len() > current_prefix_len);
+        if current.len() + separator_len + word.len() > MAX_DOC_LINE_LEN
+            && current.len() > current_prefix_len
+        {
+            wrapped.push(current);
+            current = continuation_prefix.to_string();
+            current_prefix_len = continuation_prefix.len();
+        }
+
+        if current.len() > current_prefix_len {
+            current.push(' ');
+        }
+        current.push_str(word);
+    }
+
+    if current.len() > current_prefix_len || wrapped.is_empty() {
+        wrapped.push(current);
+    }
+
+    wrapped
 }
 
 /// Converts a numeric status code to an equivalent `reqwest::StatusCode` token when available.
@@ -770,7 +821,7 @@ fn generate_error_handling(
     }
 
     let body_definition = Some(quote! {
-        #[derive(Debug)]
+        #[derive(Debug, PartialEq)]
         pub enum #enum_ident {
             #(#variant_defs)*
         }

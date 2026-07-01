@@ -7,7 +7,7 @@
 //! Depending on the needs you can allow, creating, listing or deactivating payment instruments & creating, retrieving and updating customers.
 use super::common::*;
 /// Saved customer details.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Customer {
     /// Unique ID of the customer.
     ///
@@ -17,7 +17,7 @@ pub struct Customer {
     pub personal_details: Option<PersonalDetails>,
 }
 /// Payment Instrument Response
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PaymentInstrumentResponse {
     /// Unique token identifying the saved payment card for a customer.
     ///
@@ -45,7 +45,7 @@ pub struct PaymentInstrumentResponse {
     pub created_at: Option<crate::datetime::DateTime>,
 }
 /// Type of the payment instrument.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum PaymentInstrumentResponseType {
     #[serde(rename = "card")]
     Card,
@@ -53,7 +53,7 @@ pub enum PaymentInstrumentResponseType {
     Other(String),
 }
 /// Details of the payment card.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PaymentInstrumentResponseCard {
     /// Last 4 digits of the payment card number.
     ///
@@ -70,7 +70,7 @@ pub struct PaymentInstrumentResponseCard {
     pub r#type: Option<CardType>,
 }
 /// Customer fields to update.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub personal_details: Option<PersonalDetails>,
@@ -78,32 +78,32 @@ pub struct UpdateBody {
 /// Returns the list of saved payment instruments for the customer.
 pub type ListPaymentInstrumentsResponse = Vec<PaymentInstrumentResponse>;
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CreateErrorBody {
     BadRequest(crate::error::UnknownApiBody),
     Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     Conflict(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum UpdateErrorBody {
     Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListPaymentInstrumentsErrorBody {
     Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DeactivatePaymentInstrumentErrorBody {
     BadRequest(Error),
     Unauthorized(Problem),

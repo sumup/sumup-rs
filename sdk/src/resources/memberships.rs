@@ -3,7 +3,7 @@
 //! Endpoints to manage user's memberships. Memberships are used to connect the user to merchant accounts and to grant them access to the merchant's resources via roles.
 use super::common::*;
 /// A membership associates a user with a resource, memberships is defined by user, resource, resource type, and associated roles.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Membership {
     /// ID of the membership.
     ///
@@ -40,7 +40,7 @@ pub struct Membership {
     pub resource: MembershipResource,
 }
 /// Information about the resource the membership is in.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MembershipResource {
     /// ID of the resource the membership is in.
     ///
@@ -73,7 +73,7 @@ pub struct MembershipResource {
     pub attributes: Option<Attributes>,
 }
 pub type ResourceType = String;
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
     /// Offset of the first member to return.
     ///
@@ -133,13 +133,13 @@ pub struct ListParams {
     pub roles: Option<Vec<String>>,
 }
 /// Returns a list of Membership objects.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListResponse {
     pub items: Vec<Membership>,
     pub total_count: i64,
 }
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
     BadRequest(Problem),
     Unauthorized(Problem),

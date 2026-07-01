@@ -3,7 +3,7 @@
 //! Endpoints to manage account members. Members are users that have membership within merchant accounts.
 use super::common::*;
 /// A member is user within specific resource identified by resource id, resource type, and associated roles.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Member {
     /// ID of the member.
     ///
@@ -35,7 +35,7 @@ pub struct Member {
     pub attributes: Option<Attributes>,
 }
 /// Information about the user associated with the membership.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MembershipUser {
     /// Identifier for the End-User (also called Subject).
     ///
@@ -82,14 +82,14 @@ pub struct MembershipUser {
 }
 /// Classic identifiers of the user.
 #[deprecated]
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MembershipUserClassic {
     pub user_id: i64,
 }
 /// Type of the user account.
 ///
 /// Example: `user`
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum UserType {
     #[serde(rename = "user")]
     User,
@@ -103,7 +103,7 @@ pub enum UserType {
     Other(String),
 }
 /// Allows you to update user data of managed users.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBodyUser {
     /// User's nickname. Used for display purposes only.
     ///
@@ -117,7 +117,7 @@ pub struct UpdateBodyUser {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<crate::secret::Secret>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
     /// Offset of the first member to return.
     ///
@@ -163,13 +163,13 @@ pub struct ListParams {
     pub roles: Option<Vec<String>>,
 }
 /// Returns a list of Member objects.
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListResponse {
     pub items: Vec<Member>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_count: Option<i64>,
 }
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateBody {
     /// True if the user is managed by the merchant. In this case, we'll created a virtual user with the provided password and nickname.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -197,7 +197,7 @@ pub struct CreateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attributes: Option<Attributes>,
 }
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub roles: Option<Vec<String>>,
@@ -210,26 +210,26 @@ pub struct UpdateBody {
     pub user: Option<UpdateBodyUser>,
 }
 use crate::client::Client;
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CreateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
     TooManyRequests(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DeleteErrorBody {
     Forbidden(Problem),
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     NotFound(Problem),
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum UpdateErrorBody {
     BadRequest(Problem),
     Forbidden(Problem),
@@ -322,7 +322,8 @@ impl<'a> MembersClient<'a> {
     /// - 201: Returns the Member object if the creation succeeded.
     /// - 400: Invalid request.
     /// - 404: Merchant not found.
-    /// - 429: Too many invitations were sent to that user and the rate limit was exceeded. The Retry-After header indicates when the client can retry.
+    /// - 429: Too many invitations were sent to that user and the rate limit was exceeded. The
+    ///   Retry-After header indicates when the client can retry.
     pub async fn create(
         &self,
         merchant_code: impl Into<String>,
