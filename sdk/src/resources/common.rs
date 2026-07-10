@@ -261,51 +261,6 @@ impl std::fmt::Display for ErrorForbidden {
     }
 }
 impl std::error::Error for ErrorForbidden {}
-pub type EventId = i64;
-/// Status of the transaction event.
-///
-/// Not every value is used for every event type.
-///
-/// - `PENDING`: The event has been created but is not final yet. Used for events that are still being processed and whose final outcome is not known yet.
-/// - `SCHEDULED`: The event is planned for a future payout cycle but has not been executed yet. This applies to payout events before money is actually sent out.
-/// - `RECONCILED`: The underlying payment has been matched with settlement data and is ready to continue through payout processing, but the funds have not been paid out yet. This applies to payout events.
-/// - `PAID_OUT`: The payout event has been completed and the funds were included in a merchant payout.
-/// - `REFUNDED`: A refund event has been accepted and recorded in the refund flow. This is the status returned for refund events once the transaction amount is being or has been returned to the payer.
-/// - `SUCCESSFUL`: The event completed successfully. Use this as the generic terminal success status for event types that do not expose a more specific business outcome such as `PAID_OUT` or `REFUNDED`.
-/// - `FAILED`: The event could not be completed. Typical examples are a payout that could not be executed or an event that was rejected during processing.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum EventStatus {
-    #[serde(rename = "FAILED")]
-    Failed,
-    #[serde(rename = "PAID_OUT")]
-    PaidOut,
-    #[serde(rename = "PENDING")]
-    Pending,
-    #[serde(rename = "RECONCILED")]
-    Reconciled,
-    #[serde(rename = "REFUNDED")]
-    Refunded,
-    #[serde(rename = "SCHEDULED")]
-    Scheduled,
-    #[serde(rename = "SUCCESSFUL")]
-    Successful,
-    #[serde(untagged)]
-    Other(String),
-}
-/// Type of the transaction event.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum EventType {
-    #[serde(rename = "PAYOUT")]
-    Payout,
-    #[serde(rename = "CHARGE_BACK")]
-    ChargeBack,
-    #[serde(rename = "REFUND")]
-    Refund,
-    #[serde(rename = "PAYOUT_DEDUCTION")]
-    PayoutDeduction,
-    #[serde(untagged)]
-    Other(String),
-}
 /// Pending invitation for membership.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Invite {
@@ -545,6 +500,51 @@ pub struct TransactionCheckoutInfo {
     /// Example: `053201`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
+}
+pub type TransactionEventId = i64;
+/// Status of the transaction event.
+///
+/// Not every value is used for every event type.
+///
+/// - `PENDING`: The event has been created but is not final yet. Used for events that are still being processed and whose final outcome is not known yet.
+/// - `SCHEDULED`: The event is planned for a future payout cycle but has not been executed yet. This applies to payout events before money is actually sent out.
+/// - `RECONCILED`: The underlying payment has been matched with settlement data and is ready to continue through payout processing, but the funds have not been paid out yet. This applies to payout events.
+/// - `PAID_OUT`: The payout event has been completed and the funds were included in a merchant payout.
+/// - `REFUNDED`: A refund event has been accepted and recorded in the refund flow. This is the status returned for refund events once the transaction amount is being or has been returned to the payer.
+/// - `SUCCESSFUL`: The event completed successfully. Use this as the generic terminal success status for event types that do not expose a more specific business outcome such as `PAID_OUT` or `REFUNDED`.
+/// - `FAILED`: The event could not be completed. Typical examples are a payout that could not be executed or an event that was rejected during processing.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum TransactionEventStatus {
+    #[serde(rename = "FAILED")]
+    Failed,
+    #[serde(rename = "PAID_OUT")]
+    PaidOut,
+    #[serde(rename = "PENDING")]
+    Pending,
+    #[serde(rename = "RECONCILED")]
+    Reconciled,
+    #[serde(rename = "REFUNDED")]
+    Refunded,
+    #[serde(rename = "SCHEDULED")]
+    Scheduled,
+    #[serde(rename = "SUCCESSFUL")]
+    Successful,
+    #[serde(untagged)]
+    Other(String),
+}
+/// Type of the transaction event.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum TransactionEventType {
+    #[serde(rename = "PAYOUT")]
+    Payout,
+    #[serde(rename = "CHARGE_BACK")]
+    ChargeBack,
+    #[serde(rename = "REFUND")]
+    Refund,
+    #[serde(rename = "PAYOUT_DEDUCTION")]
+    PayoutDeduction,
+    #[serde(untagged)]
+    Other(String),
 }
 pub type TransactionId = String;
 /// Current status of the transaction.

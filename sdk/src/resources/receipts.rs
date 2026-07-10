@@ -31,14 +31,14 @@ pub struct ReceiptCard {
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReceiptEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<EventId>,
+    pub id: Option<TransactionEventId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<TransactionId>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub r#type: Option<EventType>,
+    pub r#type: Option<TransactionEventType>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<EventStatus>,
+    pub status: Option<TransactionEventStatus>,
     /// Amount of the event.
     ///
     /// Constraints:

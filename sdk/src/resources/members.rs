@@ -107,6 +107,9 @@ pub enum UserType {
 pub struct UpdateBodyUser {
     /// User's nickname. Used for display purposes only.
     ///
+    /// Constraints:
+    /// - max length: 64
+    ///
     /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
@@ -178,6 +181,7 @@ pub struct CreateBody {
     ///
     /// Constraints:
     /// - format: `email`
+    /// - max length: 256
     pub email: String,
     /// Password of the member to add. Only used if `is_managed_user` is true. In the case of service accounts, the password is not used and can not be defined by the caller.
     ///
@@ -187,10 +191,16 @@ pub struct CreateBody {
     pub password: Option<crate::secret::Secret>,
     /// Nickname of the member to add. Only used if `is_managed_user` is true. Used for display purposes only.
     ///
+    /// Constraints:
+    /// - max length: 64
+    ///
     /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
     /// List of roles to assign to the new member.
+    ///
+    /// Constraints:
+    /// - max items: 124
     pub roles: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
