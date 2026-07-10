@@ -333,6 +333,44 @@ pub struct CheckoutSuccess {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_instrument: Option<CheckoutSuccessPaymentInstrument>,
 }
+/// Request body for updating an existing checkout. Include only the fields that should be changed.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CheckoutUpdateRequest {
+    /// Updated amount to be charged to the payer, expressed in major units.
+    ///
+    /// Example: `12.5`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub amount: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub currency: Option<Currency>,
+    /// Updated short merchant-defined description shown in SumUp tools and reporting.
+    ///
+    /// Example: `Updated purchase`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Updated merchant-defined reference for the checkout.
+    ///
+    /// Constraints:
+    /// - max length: 90
+    ///
+    /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub checkout_reference: Option<String>,
+    /// Updated expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable.
+    ///
+    /// Example: `2020-02-29T10:56:56+00:00`
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
+    /// Updated merchant-scoped customer identifier associated with the checkout.
+    ///
+    /// Example: `831ff8d4cd5958ab5670`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub customer_id: Option<String>,
+}
 /// Error message structure.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DetailsError {
@@ -799,6 +837,11 @@ pub enum GetErrorBody {
     NotFound(Error),
 }
 #[derive(Debug, PartialEq)]
+pub enum UpdateErrorBody {
+    Unauthorized(Problem),
+    NotFound(Error),
+}
+#[derive(Debug, PartialEq)]
 pub enum ProcessErrorBody {
     BadRequest(crate::error::UnknownApiBody),
     Unauthorized(Problem),
@@ -1046,6 +1089,58 @@ impl<'a> CheckoutsClient<'a> {
             reqwest::StatusCode::NOT_FOUND => {
                 let body: Error = response.json().await?;
                 Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
+            }
+            _ => {
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
+            }
+        }
+    }
+    /// Update a checkout
+    ///
+    /// Updates an identified checkout resource.
+    ///
+    /// Responses:
+    /// - 200: Returns the updated checkout resource.
+    /// - 401: The request is not authorized.
+    /// - 404: The requested resource does not exist.
+    pub async fn update(
+        &self,
+        checkout_id: impl Into<String>,
+        body: CheckoutUpdateRequest,
+    ) -> crate::error::SdkResult<Checkout, UpdateErrorBody> {
+        let path = format!("/v0.1/checkouts/{}", checkout_id.into());
+        let url = format!("{}{}", self.client.base_url(), path);
+        let mut request = self
+            .client
+            .http_client()
+            .patch(&url)
+            .header("User-Agent", crate::version::user_agent())
+            .timeout(self.client.timeout())
+            .json(&body);
+        if let Some(authorization) = self.client.authorization() {
+            request = request.header("Authorization", format!("Bearer {}", authorization));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
+        let response = request.send().await?;
+        let status = response.status();
+        match status {
+            reqwest::StatusCode::OK => {
+                let data: Checkout = response.json().await?;
+                Ok(data)
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(UpdateErrorBody::Unauthorized(
+                    body,
+                )))
+            }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Error = response.json().await?;
+                Err(crate::error::SdkError::api(UpdateErrorBody::NotFound(body)))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
