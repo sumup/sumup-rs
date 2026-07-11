@@ -49,6 +49,22 @@
 //!     .with_timeout(Duration::from_secs(30));
 //! ```
 //!
+//! To customize reqwest directly, build a configured `reqwest::Client` and pass
+//! it to [`Client::with_client`]. Start from [`Client::http_client_builder`] to
+//! keep the SDK's default headers:
+//!
+//! ```no_run
+//! # use sumup::Client;
+//! # fn build_client() -> Result<Client, reqwest::Error> {
+//! let http_client = Client::http_client_builder()
+//!     .pool_max_idle_per_host(8)
+//!     .build()?;
+//!
+//! let client = Client::default().with_client(http_client);
+//! # Ok(client)
+//! # }
+//! ```
+//!
 //! ## Making API Calls
 //!
 //! The SDK organizes endpoints by tags:
@@ -100,11 +116,15 @@
 //! ```toml
 //! # Use chrono (default)
 //! [dependencies]
-//! sumup = "0.0.1"
+//! sumup = "0.5"
 //!
 //! # Use jiff instead
 //! [dependencies]
-//! sumup = { version = "0.0.1", default-features = false, features = ["jiff"] }
+//! sumup = { version = "0.5", default-features = false, features = ["jiff", "reqwest-default-tls"] }
+//!
+//! # Use rustls instead of reqwest's default TLS backend
+//! [dependencies]
+//! sumup = { version = "0.5", default-features = false, features = ["chrono", "reqwest-rustls-tls"] }
 //! ```
 //!
 //! ## Error Handling
@@ -138,6 +158,8 @@
 //!
 //! - **chrono** (default): Use chrono for datetime types
 //! - **jiff**: Use jiff for datetime types (mutually exclusive with chrono)
+//! - **reqwest-default-tls** (default): Use reqwest's default TLS backend
+//! - **reqwest-rustls-tls**: Use reqwest's rustls TLS backend
 //!
 //! ## Resources
 //!
