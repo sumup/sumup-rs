@@ -59,6 +59,49 @@ let client = Client::default()
     .with_authorization(Authorization::api_key("your_api_key"));
 ```
 
+## HTTP Configuration
+
+The SDK uses `reqwest` as its HTTP transport. You can provide a configured
+`reqwest::Client` for settings such as proxies, custom TLS roots, connection
+pooling, redirect policy, or request timeouts.
+
+Start from `Client::http_client_builder()` to keep the SDK's default headers:
+
+```rust
+use sumup::Client;
+
+let http_client = Client::http_client_builder()
+    .pool_max_idle_per_host(8)
+    .build()
+    .expect("build reqwest client");
+
+let client = Client::default().with_client(http_client);
+```
+
+## Features
+
+By default the SDK enables `chrono` datetime support and reqwest's default TLS
+backend:
+
+```toml
+[dependencies]
+sumup = "0.5"
+```
+
+Use `jiff` for datetime types:
+
+```toml
+[dependencies]
+sumup = { version = "0.5", default-features = false, features = ["jiff", "reqwest-default-tls"] }
+```
+
+Use rustls instead of reqwest's default TLS backend:
+
+```toml
+[dependencies]
+sumup = { version = "0.5", default-features = false, features = ["chrono", "reqwest-rustls-tls"] }
+```
+
 ## Examples
 
 You can find all examples under [examples/](/examples/). To run an example, use:

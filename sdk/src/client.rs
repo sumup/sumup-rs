@@ -13,14 +13,21 @@ pub struct Client {
     runtime_info: Vec<(&'static str, String)>,
 }
 impl Client {
-    fn build_http_client() -> reqwest::Client {
+    /// Returns a `reqwest::ClientBuilder` configured with the SDK's default headers.
+    ///
+    /// Use this when you need custom reqwest settings such as proxies, custom TLS
+    /// roots, connection pooling, or redirect policies, then pass the built client
+    /// to [`Client::with_client`].
+    pub fn http_client_builder() -> reqwest::ClientBuilder {
         let mut default_headers = reqwest::header::HeaderMap::new();
         default_headers.insert(
             reqwest::header::ACCEPT,
             reqwest::header::HeaderValue::from_static("application/problem+json, application/json"),
         );
-        reqwest::Client::builder()
-            .default_headers(default_headers)
+        reqwest::Client::builder().default_headers(default_headers)
+    }
+    fn build_http_client() -> reqwest::Client {
+        Self::http_client_builder()
             .build()
             .expect("failed to build reqwest client with default headers")
     }

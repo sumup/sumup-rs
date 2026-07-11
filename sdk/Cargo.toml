@@ -12,9 +12,11 @@ license = "Apache-2.0"
 repository = "https://github.com/sumup/sumup-rs"
 
 [features]
-default = ["chrono"]
+default = ["chrono", "reqwest-default-tls"]
 chrono = ["dep:chrono"]
 jiff = ["dep:jiff"]
+reqwest-default-tls = ["reqwest/default-tls"]
+reqwest-rustls-tls = ["reqwest/rustls"]
 
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = [
@@ -26,7 +28,6 @@ jiff = { version = "0.2", default-features = false, features = [
 reqwest = { version = "0.13", default-features = false, features = [
   "json",
   "query",
-  "default-tls",
 ] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
