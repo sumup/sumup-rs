@@ -5,34 +5,34 @@ use super::common::*;
 /// A custom role that can be used to assign set of permissions to members.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Role {
-    /// Unique identifier of the role.
+    /// The timestamp of when the role was created.
     ///
-    /// Example: `role_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
-    pub id: String,
-    /// User-defined name of the role.
-    ///
-    /// Example: `Senior Shop Manager II`
-    pub name: String,
+    /// Example: `2023-01-20T15:16:17Z`
+    pub created_at: crate::datetime::DateTime,
     /// User-defined description of the role.
     ///
     /// Example: `Manges the shop and the employees.`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// List of permission granted by this role.
+    /// Unique identifier of the role.
     ///
-    /// Constraints:
-    /// - max items: 100
-    pub permissions: Vec<String>,
+    /// Example: `role_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
+    pub id: String,
     /// True if the role is provided by SumUp.
     ///
     /// Example: `true`
     pub is_predefined: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
-    /// The timestamp of when the role was created.
+    /// User-defined name of the role.
     ///
-    /// Example: `2023-01-20T15:16:17Z`
-    pub created_at: crate::datetime::DateTime,
+    /// Example: `Senior Shop Manager II`
+    pub name: String,
+    /// List of permission granted by this role.
+    ///
+    /// Constraints:
+    /// - max items: 100
+    pub permissions: Vec<String>,
     /// The timestamp of when the role was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
@@ -45,6 +45,13 @@ pub struct ListResponse {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateBody {
+    /// User-defined description of the role.
+    ///
+    /// Example: `Manges the shop and the employees.`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<Metadata>,
     /// User-defined name of the role.
     ///
     /// Example: `Senior Shop Manager II`
@@ -54,16 +61,14 @@ pub struct CreateBody {
     /// Constraints:
     /// - max items: 100
     pub permissions: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<Metadata>,
+}
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct UpdateBody {
     /// User-defined description of the role.
     ///
     /// Example: `Manges the shop and the employees.`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-}
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct UpdateBody {
     /// User-defined name of the role.
     ///
     /// Example: `Senior Shop Manager II`
@@ -75,11 +80,6 @@ pub struct UpdateBody {
     /// - max items: 100
     #[serde(skip_serializing_if = "Option::is_none")]
     pub permissions: Option<Vec<String>>,
-    /// User-defined description of the role.
-    ///
-    /// Example: `Manges the shop and the employees.`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
 }
 use crate::client::Client;
 #[derive(Debug, PartialEq)]

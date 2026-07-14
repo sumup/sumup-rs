@@ -168,6 +168,14 @@ pub fn generate_client_file(
                 &self.runtime_info
             }
 
+            /// Creates an event helper bound to this client and signing secret.
+            pub fn events_handler(
+                &self,
+                secret: impl AsRef<[u8]>,
+            ) -> crate::events::EventsHandler<'_> {
+                crate::events::EventsHandler::new(self, secret)
+            }
+
             #(#tag_methods)*
         }
 

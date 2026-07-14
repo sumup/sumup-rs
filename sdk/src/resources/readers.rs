@@ -2,6 +2,26 @@
 
 //! A reader represents a device that accepts payments. You can use the SumUp Solo to accept in-person payments.
 use super::common::*;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum ReaderCreated {}
+impl crate::events::EventSpec for ReaderCreated {
+    const EVENT_TYPE: &'static str = "readers.created";
+    const OBJECT_TYPE: &'static str = "reader";
+    type FetchedObject = Reader;
+}
+/// Event notification for this event type.
+pub type ReaderCreatedEvent<'a> = crate::events::Event<'a, ReaderCreated>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum ReaderDeleted {}
+impl crate::events::EventSpec for ReaderDeleted {
+    const EVENT_TYPE: &'static str = "readers.deleted";
+    const OBJECT_TYPE: &'static str = "reader";
+    type FetchedObject = Reader;
+}
+/// Event notification for this event type.
+pub type ReaderDeletedEvent<'a> = crate::events::Event<'a, ReaderDeleted>;
 /// Reader Checkout
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequest {
@@ -85,12 +105,15 @@ pub struct CreateReaderCheckoutResponse {
 /// A physical card reader device that can accept in-person payments.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Reader {
-    pub id: ReaderId,
-    pub name: ReaderName,
-    pub status: ReaderStatus,
+    /// The timestamp of when the reader was created.
+    ///
+    /// Example: `2023-01-18T15:16:17Z`
+    pub created_at: crate::datetime::DateTime,
     pub device: ReaderDevice,
+    pub id: ReaderId,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
+    pub name: ReaderName,
     /// Identifier of the system-managed service account associated with this reader.
     /// Present only for readers that are already paired.
     /// This field is currently in beta and may change.
@@ -99,10 +122,7 @@ pub struct Reader {
     /// - format: `uuid`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service_account_id: Option<String>,
-    /// The timestamp of when the reader was created.
-    ///
-    /// Example: `2023-01-18T15:16:17Z`
-    pub created_at: crate::datetime::DateTime,
+    pub status: ReaderStatus,
     /// The timestamp of when the reader was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
@@ -252,6 +272,13 @@ pub struct CreateReaderCheckoutResponseData {
     ///
     /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
     pub client_transaction_id: String,
+    /// The sale ID is an identifier of the sale created in the Sales API (only returned when sale creation is enabled for the merchant/country).
+    ///
+    /// It can be used later to fetch the sale details via the [Sales API](https://developer.sumup.com/api/sales/get).
+    ///
+    /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sale_id: Option<String>,
 }
 /// Identifier of the model of the device.
 ///
@@ -367,17 +394,17 @@ pub struct ListResponse {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateBody {
-    pub pairing_code: ReaderPairingCode,
-    pub name: ReaderName,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
+    pub name: ReaderName,
+    pub pairing_code: ReaderPairingCode,
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<ReaderName>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<ReaderName>,
 }
 use crate::client::Client;
 #[derive(Debug, PartialEq)]

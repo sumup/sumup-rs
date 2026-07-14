@@ -2,68 +2,88 @@
 
 //! Endpoints to manage account members. Members are users that have membership within merchant accounts.
 use super::common::*;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum MemberCreated {}
+impl crate::events::EventSpec for MemberCreated {
+    const EVENT_TYPE: &'static str = "members.created";
+    const OBJECT_TYPE: &'static str = "member";
+    type FetchedObject = Member;
+}
+/// Event notification for this event type.
+pub type MemberCreatedEvent<'a> = crate::events::Event<'a, MemberCreated>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum MemberDeleted {}
+impl crate::events::EventSpec for MemberDeleted {
+    const EVENT_TYPE: &'static str = "members.deleted";
+    const OBJECT_TYPE: &'static str = "member";
+    type FetchedObject = Member;
+}
+/// Event notification for this event type.
+pub type MemberDeletedEvent<'a> = crate::events::Event<'a, MemberDeleted>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum MemberUpdated {}
+impl crate::events::EventSpec for MemberUpdated {
+    const EVENT_TYPE: &'static str = "members.updated";
+    const OBJECT_TYPE: &'static str = "member";
+    type FetchedObject = Member;
+}
+/// Event notification for this event type.
+pub type MemberUpdatedEvent<'a> = crate::events::Event<'a, MemberUpdated>;
 /// A member is user within specific resource identified by resource id, resource type, and associated roles.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Member {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attributes: Option<Attributes>,
+    /// The timestamp of when the member was created.
+    ///
+    /// Example: `2023-01-20T15:16:17Z`
+    pub created_at: crate::datetime::DateTime,
     /// ID of the member.
     ///
     /// Example: `mem_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
     pub id: String,
-    /// User's roles.
-    pub roles: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invite: Option<Invite>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<Metadata>,
     /// User's permissions.
     #[deprecated(
         note = "Permissions include only legacy permissions, please use roles instead. Member access is based on roles within a given resource and the permissions these roles grant."
     )]
     pub permissions: Vec<String>,
-    /// The timestamp of when the member was created.
-    ///
-    /// Example: `2023-01-20T15:16:17Z`
-    pub created_at: crate::datetime::DateTime,
+    /// User's roles.
+    pub roles: Vec<String>,
+    pub status: MembershipStatus,
     /// The timestamp of when the member was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
     pub updated_at: crate::datetime::DateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<MembershipUser>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub invite: Option<Invite>,
-    pub status: MembershipStatus,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<Metadata>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<Attributes>,
 }
 /// Information about the user associated with the membership.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MembershipUser {
-    /// Identifier for the End-User (also called Subject).
-    ///
-    /// Example: `44ca0f5b-813b-46e1-aee7-e6242010662e`
-    pub id: String,
-    #[serde(rename = "type")]
-    pub r#type: UserType,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub classic: Option<MembershipUserClassic>,
+    /// Time when the user has been disabled. Applies only to virtual users (`virtual_user: true`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disabled_at: Option<crate::datetime::DateTime>,
     /// End-User's preferred e-mail address. Its value MUST conform to the RFC 5322 [RFC5322] addr-spec syntax. The RP MUST NOT rely upon this value being unique, for unique identification use ID instead.
     ///
     /// Example: `example@sumup.com`
     pub email: String,
+    /// Identifier for the End-User (also called Subject).
+    ///
+    /// Example: `44ca0f5b-813b-46e1-aee7-e6242010662e`
+    pub id: String,
     /// True if the user has enabled MFA on login.
     ///
     /// Example: `true`
     pub mfa_on_login_enabled: bool,
-    /// True if the user is a virtual user (operator).
-    ///
-    /// Example: `false`
-    #[deprecated(note = "Rely on `type` instead.")]
-    pub virtual_user: bool,
-    /// True if the user is a service account.
-    ///
-    /// Example: `false`
-    #[deprecated(note = "Rely on `type` instead.")]
-    pub service_account_user: bool,
-    /// Time when the user has been disabled. Applies only to virtual users (`virtual_user: true`).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub disabled_at: Option<crate::datetime::DateTime>,
     /// User's nickname. Used for display purposes only.
     ///
     /// Example: `Test User`
@@ -77,8 +97,18 @@ pub struct MembershipUser {
     /// Example: `https://usercontent.sumup.com/44ca0f5b-813b-46e1-aee7-e6242010662e.png`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub classic: Option<MembershipUserClassic>,
+    /// True if the user is a service account.
+    ///
+    /// Example: `false`
+    #[deprecated(note = "Rely on `type` instead.")]
+    pub service_account_user: bool,
+    #[serde(rename = "type")]
+    pub r#type: UserType,
+    /// True if the user is a virtual user (operator).
+    ///
+    /// Example: `false`
+    #[deprecated(note = "Rely on `type` instead.")]
+    pub virtual_user: bool,
 }
 /// Classic identifiers of the user.
 #[deprecated]
@@ -174,21 +204,19 @@ pub struct ListResponse {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateBody {
-    /// True if the user is managed by the merchant. In this case, we'll created a virtual user with the provided password and nickname.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_managed_user: Option<bool>,
+    pub attributes: Option<Attributes>,
     /// Email address of the member to add.
     ///
     /// Constraints:
     /// - format: `email`
     /// - max length: 256
     pub email: String,
-    /// Password of the member to add. Only used if `is_managed_user` is true. In the case of service accounts, the password is not used and can not be defined by the caller.
-    ///
-    /// Constraints:
-    /// - min length: 8
+    /// True if the user is managed by the merchant. In this case, we'll created a virtual user with the provided password and nickname.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub password: Option<crate::secret::Secret>,
+    pub is_managed_user: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<Metadata>,
     /// Nickname of the member to add. Only used if `is_managed_user` is true. Used for display purposes only.
     ///
     /// Constraints:
@@ -197,24 +225,26 @@ pub struct CreateBody {
     /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
+    /// Password of the member to add. Only used if `is_managed_user` is true. In the case of service accounts, the password is not used and can not be defined by the caller.
+    ///
+    /// Constraints:
+    /// - min length: 8
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<crate::secret::Secret>,
     /// List of roles to assign to the new member.
     ///
     /// Constraints:
     /// - max items: 124
     pub roles: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<Metadata>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<Attributes>,
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UpdateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub roles: Option<Vec<String>>,
+    pub attributes: Option<Attributes>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<Attributes>,
+    pub roles: Option<Vec<String>>,
     /// Allows you to update user data of managed users.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<UpdateBodyUser>,

@@ -22,6 +22,8 @@ reqwest-rustls-tls = ["reqwest/rustls"]
 chrono = { version = "0.4", default-features = false, features = [
   "serde",
 ], optional = true }
+hex = "0.4"
+hmac = "0.12"
 jiff = { version = "0.2", default-features = false, features = [
   "serde",
 ], optional = true }
@@ -31,6 +33,7 @@ reqwest = { version = "0.13", default-features = false, features = [
 ] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.10"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -51,3 +54,7 @@ path = "../examples/card_reader_checkout.rs"
 [[example]]
 name = "oauth2"
 path = "../examples/oauth2.rs"
+
+[[example]]
+name = "events"
+path = "../examples/events.rs"
