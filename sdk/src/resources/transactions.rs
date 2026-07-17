@@ -758,6 +758,8 @@ pub struct RefundBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f32>,
 }
+/// The transaction was refunded in full or partially based on the request.
+pub type RefundResponse = serde_json::Value;
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GetParams {
     /// Retrieves the transaction resource with the specified transaction ID (the `id` parameter in the transaction resource).
@@ -831,8 +833,11 @@ pub struct ListResponse {
 use crate::client::Client;
 #[derive(Debug, PartialEq)]
 pub enum RefundErrorBody {
-    NotFound(Error),
-    Conflict(Error),
+    BadRequest(Problem),
+    Forbidden(Problem),
+    NotFound(Problem),
+    Conflict(Problem),
+    UnprocessableEntity(Problem),
 }
 #[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
@@ -862,15 +867,18 @@ impl<'a> TransactionsClient<'a> {
     /// Refunds an identified transaction either in full or partially.
     ///
     /// Responses:
-    /// - 204: Returns an empty response body when the operation succeeds.
-    /// - 404: The requested resource does not exist.
+    /// - 201: The transaction was refunded in full or partially based on the request.
+    /// - 400: The refund request is invalid.
+    /// - 403: The request is authenticated but not permitted for this operation.
+    /// - 404: The requested transaction does not exist or does not belong to the merchant.
     /// - 409: The transaction cannot be refunded due to business constraints.
+    /// - 422: The refund could not be processed by the payment processor.
     pub async fn refund(
         &self,
         merchant_code: impl Into<String>,
         transaction_id: impl Into<String>,
         body: Option<RefundBody>,
-    ) -> crate::error::SdkResult<(), RefundErrorBody> {
+    ) -> crate::error::SdkResult<RefundResponse, RefundErrorBody> {
         let path = format!(
             "/v1.0/merchants/{}/payments/{}/refunds",
             merchant_code.into(),
@@ -895,14 +903,35 @@ impl<'a> TransactionsClient<'a> {
         let response = request.send().await?;
         let status = response.status();
         match status {
-            reqwest::StatusCode::NO_CONTENT => Ok(()),
+            reqwest::StatusCode::CREATED => {
+                let data: RefundResponse = response.json().await?;
+                Ok(data)
+            }
+            reqwest::StatusCode::BAD_REQUEST => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(RefundErrorBody::BadRequest(
+                    body,
+                )))
+            }
+            reqwest::StatusCode::FORBIDDEN => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(RefundErrorBody::Forbidden(
+                    body,
+                )))
+            }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(RefundErrorBody::NotFound(body)))
             }
             reqwest::StatusCode::CONFLICT => {
-                let body: Error = response.json().await?;
+                let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(RefundErrorBody::Conflict(body)))
+            }
+            reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    RefundErrorBody::UnprocessableEntity(body),
+                ))
             }
             _ => {
                 let body_bytes = response.bytes().await?;
