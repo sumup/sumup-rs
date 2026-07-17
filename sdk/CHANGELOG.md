@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.11](https://github.com/sumup/sumup-rs/compare/v0.5.10...v0.5.11) - 2026-07-17
+
+### Added
+
+- make HTTP client configurable ([#211](https://github.com/sumup/sumup-rs/pull/211))
+- *(sdk)* add equality to enums and structs ([#206](https://github.com/sumup/sumup-rs/pull/206))
+
+### Fixed
+
+- refund response types ([#213](https://github.com/sumup/sumup-rs/pull/213))
+
+### Other
+
+- remove unused subaccounts API
+- synced file(s) with sumup/apis ([#210](https://github.com/sumup/sumup-rs/pull/210))
+- synced file(s) with sumup/apis ([#200](https://github.com/sumup/sumup-rs/pull/200))
+- synced file(s) with sumup/apis ([#197](https://github.com/sumup/sumup-rs/pull/197))
+- *(deps)* bump serial_test from 3.4.0 to 3.5.0 ([#193](https://github.com/sumup/sumup-rs/pull/193))
+- synced file(s) with sumup/apis ([#191](https://github.com/sumup/sumup-rs/pull/191))
+- synced file(s) with sumup/apis ([#188](https://github.com/sumup/sumup-rs/pull/188))
+
 ## [0.5.10](https://github.com/sumup/sumup-rs/compare/v0.5.9...v0.5.10) - 2026-05-21
 
 ### Other
