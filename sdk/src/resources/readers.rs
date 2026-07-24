@@ -1,7 +1,22 @@
 // The contents of this file are generated; do not modify them.
 
-//! A reader represents a device that accepts payments. You can use the SumUp Solo to accept in-person payments.
 use super::common::*;
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Affiliate {
+    pub app_id: String,
+    pub key: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Amount {
+    /// Currency ISO 4217 code
+    ///
+    /// Example: `MXN`
+    pub currency: String,
+    /// Amount in minor units (e.g. cents).
+    ///
+    /// Example: `1000`
+    pub value: i64,
+}
 /// Reader Checkout
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequest {
@@ -82,6 +97,10 @@ pub struct CreateReaderCheckoutRequest {
 pub struct CreateReaderCheckoutResponse {
     pub data: CreateReaderCheckoutResponseData,
 }
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct GetReaderCheckoutResponse {
+    pub data: GetReaderCheckoutResponseData,
+}
 /// A physical card reader device that can accept in-person payments.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Reader {
@@ -123,6 +142,39 @@ pub struct ReaderDevice {
 pub type ReaderId = String;
 pub type ReaderName = String;
 pub type ReaderPairingCode = String;
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ReaderPaymentRequestParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub affiliate: Option<Affiliate>,
+    /// Caller-supplied correlation identifier, used as the idempotency key.
+    ///
+    /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
+    pub client_transaction_id: String,
+    /// Optional tip amount in minor units, added on top of total_amount.
+    ///
+    /// Example: `100`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tip_amount: Option<i64>,
+    pub total_amount: Amount,
+}
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ReaderPaymentResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<ReaderPaymentResponseData>,
+}
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ReaderPaymentResponseData {
+    /// Caller-supplied correlation identifier that was provided in the request.
+    ///
+    /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_transaction_id: Option<String>,
+    /// Transaction code returned by the acquirer/processing entity after processing the transaction.
+    ///
+    /// Example: `TEENSK4W2K`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transaction_code: Option<String>,
+}
 /// The status of the reader object gives information about the current state of the reader.
 ///
 /// Possible values:
@@ -246,12 +298,121 @@ pub struct Money {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutResponseData {
+    /// The checkout ID is a unique identifier for the checkout.
+    ///
+    /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub checkout_id: Option<String>,
     /// The client transaction ID is a unique identifier for the transaction that is generated for the client.
     ///
     /// It can be used later to fetch the transaction details via the [Transactions API](https://developer.sumup.com/api/transactions/get).
     ///
     /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
     pub client_transaction_id: String,
+}
+/// Type of the card. Required for some countries
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum GetReaderCheckoutResponseDataCardType {
+    #[serde(rename = "credit")]
+    Credit,
+    #[serde(rename = "debit")]
+    Debit,
+    #[serde(untagged)]
+    Other(String),
+}
+/// Type of the payment. Required for some countries
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum GetReaderCheckoutResponseDataPaymentType {
+    #[serde(rename = "card")]
+    Card,
+    #[serde(rename = "pix")]
+    Pix,
+    #[serde(untagged)]
+    Other(String),
+}
+/// Current status of the checkout
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum GetReaderCheckoutResponseDataStatus {
+    #[serde(rename = "pending")]
+    Pending,
+    #[serde(rename = "successful")]
+    Successful,
+    #[serde(rename = "failed")]
+    Failed,
+    #[serde(rename = "cancelled")]
+    Cancelled,
+    #[serde(untagged)]
+    Other(String),
+}
+/// Amount structure.
+///
+/// The amount is represented as an integer value altogether with the currency and the minor unit.
+///
+/// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Money {
+    /// Currency ISO 4217 code
+    ///
+    /// Example: `EUR`
+    pub currency: String,
+    /// The minor units of the currency.
+    /// It represents the number of decimals of the currency. For the currencies CLP, COP and HUF, the minor unit is 0.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `2`
+    pub minor_unit: i64,
+    /// Integer value of the amount.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `1000`
+    pub value: i64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct GetReaderCheckoutResponseData {
+    /// Type of the card. Required for some countries
+    pub card_type: GetReaderCheckoutResponseDataCardType,
+    /// Unique identifier for the checkout
+    ///
+    /// Constraints:
+    /// - format: `uuid`
+    pub checkout_id: String,
+    /// Client transaction identifier associated with the checkout
+    pub client_transaction_id: String,
+    /// Checkout creation timestamp
+    pub created_at: crate::datetime::DateTime,
+    /// Number of installments for the transaction. Required for some countries.
+    pub installments: i64,
+    /// Payment failure reason
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub payment_failure_reason: Option<crate::Nullable<String>>,
+    /// Payment status from payments v2 event
+    pub payment_status: String,
+    /// Type of the payment. Required for some countries
+    pub payment_type: GetReaderCheckoutResponseDataPaymentType,
+    /// Reader firmware version
+    pub reader_firmware_version: String,
+    /// Device serial number
+    pub reader_serial_number: String,
+    /// Current status of the checkout
+    pub status: GetReaderCheckoutResponseDataStatus,
+    /// Amount structure.
+    ///
+    /// The amount is represented as an integer value altogether with the currency and the minor unit.
+    ///
+    /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
+    pub total_amount: Money,
+    /// Checkout last update timestamp
+    pub updated_at: crate::datetime::DateTime,
+    /// Checkout expiration timestamp. After this time, the checkout will be automatically cancelled.
+    pub valid_until: crate::datetime::DateTime,
 }
 /// Identifier of the model of the device.
 ///
@@ -411,6 +572,11 @@ pub enum CreateCheckoutErrorBody {
     UnprocessableEntity(Problem),
 }
 #[derive(Debug, PartialEq)]
+pub enum GetCheckoutErrorBody {
+    Unauthorized(Problem),
+    NotFound(Problem),
+}
+#[derive(Debug, PartialEq)]
 pub enum GetStatusErrorBody {
     BadRequest(Problem),
     Unauthorized(Problem),
@@ -422,6 +588,14 @@ pub enum TerminateCheckoutErrorBody {
     Unauthorized(Problem),
     NotFound(Problem),
     UnprocessableEntity(Problem),
+}
+#[derive(Debug, PartialEq)]
+pub enum CreateGoCheckoutErrorBody {
+    BadRequest(Problem),
+    Unauthorized(Problem),
+    NotFound(Problem),
+    UnprocessableEntity(Problem),
+    InternalServerError(Problem),
 }
 /// Client for the Readers API endpoints.
 #[derive(Debug)]
@@ -771,6 +945,65 @@ impl<'a> ReadersClient<'a> {
             }
         }
     }
+    /// Get a Reader Checkout
+    ///
+    /// Get a Checkout for a Reader.
+    ///
+    /// Responses:
+    /// - 200: The Checkout got successfully retrieved for the given reader.
+    /// - 401: Unauthorized
+    /// - 404: Response when given reader or checkout is not found
+    pub async fn get_checkout(
+        &self,
+        merchant_code: impl Into<String>,
+        reader_id: impl Into<String>,
+        checkout_id: impl Into<String>,
+    ) -> crate::error::SdkResult<GetReaderCheckoutResponse, GetCheckoutErrorBody> {
+        let path = format!(
+            "/v0.1/merchants/{}/readers/{}/checkout/{}",
+            merchant_code.into(),
+            reader_id.into(),
+            checkout_id.into()
+        );
+        let url = format!("{}{}", self.client.base_url(), path);
+        let mut request = self
+            .client
+            .http_client()
+            .get(&url)
+            .header("User-Agent", crate::version::user_agent())
+            .timeout(self.client.timeout());
+        if let Some(authorization) = self.client.authorization() {
+            request = request.header("Authorization", format!("Bearer {}", authorization));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
+        let response = request.send().await?;
+        let status = response.status();
+        match status {
+            reqwest::StatusCode::OK => {
+                let data: GetReaderCheckoutResponse = response.json().await?;
+                Ok(data)
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetCheckoutErrorBody::Unauthorized(body),
+                ))
+            }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(GetCheckoutErrorBody::NotFound(
+                    body,
+                )))
+            }
+            _ => {
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
+            }
+        }
+    }
     /// Get a Reader Status
     ///
     /// Provides the last known status for a Reader.
@@ -925,6 +1158,88 @@ impl<'a> ReadersClient<'a> {
                 let body: Problem = response.json().await?;
                 Err(crate::error::SdkError::api(
                     TerminateCheckoutErrorBody::UnprocessableEntity(body),
+                ))
+            }
+            _ => {
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
+            }
+        }
+    }
+    /// Create a Go Reader Payment
+    ///
+    /// Initiates a payment on the SumUp Go terminal identified by the reader ID.
+    ///
+    /// Use `client_transaction_id` as an idempotency key: retrying the request with the same value returns the result of the original payment instead of creating a duplicate.
+    ///
+    /// Responses:
+    /// - 200: Returns the result of the payment initiated on the reader.
+    /// - 400: The request is invalid.
+    /// - 401: Authentication failed or missing required scope.
+    /// - 404: The requested Reader resource does not exist.
+    /// - 422: The request could not be processed as it violates a business rule.
+    /// - 500: An unexpected error occurred while processing the request.
+    pub async fn create_go_checkout(
+        &self,
+        merchant_code: impl Into<String>,
+        reader_id: impl Into<String>,
+        body: ReaderPaymentRequestParams,
+    ) -> crate::error::SdkResult<ReaderPaymentResponse, CreateGoCheckoutErrorBody> {
+        let path = format!(
+            "/v0/merchants/{}/readers/{}/go-checkout",
+            merchant_code.into(),
+            reader_id.into()
+        );
+        let url = format!("{}{}", self.client.base_url(), path);
+        let mut request = self
+            .client
+            .http_client()
+            .post(&url)
+            .header("User-Agent", crate::version::user_agent())
+            .timeout(self.client.timeout())
+            .json(&body);
+        if let Some(authorization) = self.client.authorization() {
+            request = request.header("Authorization", format!("Bearer {}", authorization));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
+        let response = request.send().await?;
+        let status = response.status();
+        match status {
+            reqwest::StatusCode::OK => {
+                let data: ReaderPaymentResponse = response.json().await?;
+                Ok(data)
+            }
+            reqwest::StatusCode::BAD_REQUEST => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateGoCheckoutErrorBody::BadRequest(body),
+                ))
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateGoCheckoutErrorBody::Unauthorized(body),
+                ))
+            }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateGoCheckoutErrorBody::NotFound(body),
+                ))
+            }
+            reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateGoCheckoutErrorBody::UnprocessableEntity(body),
+                ))
+            }
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    CreateGoCheckoutErrorBody::InternalServerError(body),
                 ))
             }
             _ => {
