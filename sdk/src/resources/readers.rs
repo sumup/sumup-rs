@@ -5,9 +5,9 @@ use super::common::*;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum ReaderCreated {}
+impl crate::event::private::Sealed for ReaderCreated {}
 impl crate::events::EventSpec for ReaderCreated {
     const EVENT_TYPE: &'static str = "readers.created";
-    const OBJECT_TYPE: &'static str = "reader";
     type FetchedObject = Reader;
 }
 /// Event notification for this event type.
@@ -15,9 +15,9 @@ pub type ReaderCreatedEvent = crate::events::Event<ReaderCreated>;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum ReaderDeleted {}
+impl crate::event::private::Sealed for ReaderDeleted {}
 impl crate::events::EventSpec for ReaderDeleted {
     const EVENT_TYPE: &'static str = "readers.deleted";
-    const OBJECT_TYPE: &'static str = "reader";
     type FetchedObject = Reader;
 }
 /// Event notification for this event type.

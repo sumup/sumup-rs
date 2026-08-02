@@ -5,9 +5,9 @@ use super::common::*;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum MemberCreated {}
+impl crate::event::private::Sealed for MemberCreated {}
 impl crate::events::EventSpec for MemberCreated {
     const EVENT_TYPE: &'static str = "members.created";
-    const OBJECT_TYPE: &'static str = "member";
     type FetchedObject = Member;
 }
 /// Event notification for this event type.
@@ -15,9 +15,9 @@ pub type MemberCreatedEvent = crate::events::Event<MemberCreated>;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum MemberDeleted {}
+impl crate::event::private::Sealed for MemberDeleted {}
 impl crate::events::EventSpec for MemberDeleted {
     const EVENT_TYPE: &'static str = "members.deleted";
-    const OBJECT_TYPE: &'static str = "member";
     type FetchedObject = Member;
 }
 /// Event notification for this event type.
@@ -25,9 +25,9 @@ pub type MemberDeletedEvent = crate::events::Event<MemberDeleted>;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum MemberUpdated {}
+impl crate::event::private::Sealed for MemberUpdated {}
 impl crate::events::EventSpec for MemberUpdated {
     const EVENT_TYPE: &'static str = "members.updated";
-    const OBJECT_TYPE: &'static str = "member";
     type FetchedObject = Member;
 }
 /// Event notification for this event type.

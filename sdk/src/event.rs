@@ -110,12 +110,29 @@ pub trait FetchObject {
     ) -> impl std::future::Future<Output = Result<Self::Object, EventFetchError>> + '_;
 }
 
-/// Static metadata for a typed event notification.
-pub trait EventSpec {
+pub(crate) mod private {
+    pub trait Sealed {}
+}
+
+/// Static metadata for an SDK-generated typed event notification.
+///
+/// This trait is sealed and cannot be implemented outside this SDK. Events that
+/// are not recognized by this SDK version are passed to the unhandled-event
+/// callback as [`EventNotification::Unknown`].
+///
+/// ```compile_fail
+/// use sumup::events::EventSpec;
+///
+/// struct CustomEvent;
+///
+/// impl EventSpec for CustomEvent {
+///     const EVENT_TYPE: &'static str = "custom.created";
+///     type FetchedObject = sumup::readers::Reader;
+/// }
+/// ```
+pub trait EventSpec: private::Sealed {
     /// Event type string from the notification payload.
     const EVENT_TYPE: &'static str;
-    /// Expected object type referenced by this event.
-    const OBJECT_TYPE: &'static str;
 
     /// SDK type returned when the referenced resource is fetched.
     type FetchedObject: serde::de::DeserializeOwned;
