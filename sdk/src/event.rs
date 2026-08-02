@@ -7,8 +7,9 @@
 //!
 //! Event receivers should read the HTTP request body as raw bytes and pass it
 //! together with the `X-SumUp-Webhook-Signature` and
-//! `X-SumUp-Webhook-Timestamp` headers to [`EventsHandler::parse`]. The SDK
-//! verifies the signature and timestamp before deserializing the payload.
+//! `X-SumUp-Webhook-Timestamp` headers to
+//! [`crate::Client::parse_event_notification`]. The SDK verifies the signature
+//! and timestamp before deserializing the payload.
 //!
 //! ```no_run
 //! # use sumup::{Client, Secret};
@@ -19,13 +20,12 @@
 //! # }
 //! # fn example(headers: HeaderMap, body: Bytes, secret: Secret) -> Result<(), sumup::events::EventError> {
 //! let client = Client::default();
-//! let event = client
-//!     .events_handler(secret.secret())
-//!     .parse(
-//!         body.as_ref(),
-//!         header(&headers, SIGNATURE_HEADER),
-//!         header(&headers, TIMESTAMP_HEADER),
-//!     )?;
+//! let event = client.parse_event_notification(
+//!     secret.secret(),
+//!     body.as_ref(),
+//!     header(&headers, SIGNATURE_HEADER),
+//!     header(&headers, TIMESTAMP_HEADER),
+//! )?;
 //!
 //! match event {
 //!     EventNotification::MemberUpdated(event) => {
@@ -47,19 +47,10 @@
 //! be idempotent and safe to run more than once.
 
 pub use crate::events_handler::{
-    DEFAULT_TOLERANCE, EventCallbackError, EventError, EventFetchError,
-    EventHandlerRegistrationError, EventHandlingError, EventNotificationHandler, EventsHandler,
-    IntoEventHandlerResult, SIGNATURE_HEADER, SIGNATURE_VERSION, TIMESTAMP_HEADER,
-    verify_signature,
+    DEFAULT_TOLERANCE, EventCallbackError, EventError, EventHandlerRegistrationError,
+    EventHandlingError, EventsHandler, IntoEventHandlerResult, SIGNATURE_HEADER, SIGNATURE_VERSION,
+    TIMESTAMP_HEADER, verify_signature,
 };
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-struct RawObject {
-    id: String,
-    #[serde(rename = "type")]
-    object_type: String,
-    url: String,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RawEvent {
@@ -67,7 +58,7 @@ pub(crate) struct RawEvent {
     #[serde(rename = "type")]
     event_type: String,
     created_at: crate::datetime::DateTime,
-    object: RawObject,
+    object: EventObject,
 }
 
 impl RawEvent {
@@ -88,16 +79,6 @@ pub struct EventObject {
     pub url: String,
 }
 
-impl From<RawObject> for EventObject {
-    fn from(value: RawObject) -> Self {
-        Self {
-            id: value.id,
-            object_type: value.object_type,
-            url: value.url,
-        }
-    }
-}
-
 /// Trait implemented by typed events that can fetch their referenced API
 /// resource.
 pub trait FetchObject {
@@ -107,7 +88,7 @@ pub trait FetchObject {
     /// Fetches the latest representation of the referenced API resource.
     fn fetch_object(
         &self,
-    ) -> impl std::future::Future<Output = Result<Self::Object, EventFetchError>> + '_;
+    ) -> impl std::future::Future<Output = crate::error::SdkResult<Self::Object>> + '_;
 }
 
 pub(crate) mod private {
@@ -156,7 +137,7 @@ impl<E: EventSpec> Event<E> {
         Self {
             id: event.id,
             created_at: event.created_at,
-            object: event.object.into(),
+            object: event.object,
             client,
             spec: std::marker::PhantomData,
         }
@@ -173,7 +154,7 @@ impl<E: EventSpec> FetchObject for Event<E> {
 
     fn fetch_object(
         &self,
-    ) -> impl std::future::Future<Output = Result<Self::Object, EventFetchError>> + '_ {
+    ) -> impl std::future::Future<Output = crate::error::SdkResult<Self::Object>> + '_ {
         crate::events_handler::fetch_object(&self.client, &self.object.url)
     }
 }
@@ -199,7 +180,7 @@ impl UnknownEvent {
             id: event.id,
             event_type: event.event_type,
             created_at: event.created_at,
-            object: event.object.into(),
+            object: event.object,
             client,
         }
     }
@@ -210,7 +191,7 @@ impl FetchObject for UnknownEvent {
 
     fn fetch_object(
         &self,
-    ) -> impl std::future::Future<Output = Result<Self::Object, EventFetchError>> + '_ {
+    ) -> impl std::future::Future<Output = crate::error::SdkResult<Self::Object>> + '_ {
         crate::events_handler::fetch_object(&self.client, &self.object.url)
     }
 }

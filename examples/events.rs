@@ -27,29 +27,24 @@ use axum::{
 };
 use std::sync::Arc;
 use sumup::{
-    Client, Secret,
+    Client, SdkError, Secret,
     events::{
-        EventError, EventFetchError, EventHandlingError, EventNotification,
-        EventNotificationHandler, FetchObject, SIGNATURE_HEADER, TIMESTAMP_HEADER,
+        EventError, EventHandlingError, EventNotification, EventsHandler, FetchObject,
+        SIGNATURE_HEADER, TIMESTAMP_HEADER,
     },
     members::MemberUpdatedEvent,
     readers::ReaderCreatedEvent,
 };
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_secret = std::env::var("SUMUP_EVENT_SECRET")
         .expect("SUMUP_EVENT_SECRET environment variable must be set");
     let event_secret = Secret::new(event_secret);
     let client = Client::default();
-    let mut event_handler =
-        client.event_notification_handler(event_secret.secret(), handle_unhandled_event);
-    event_handler
-        .on(handle_member_updated)
-        .expect("register members.updated callback");
-    event_handler
-        .on(handle_reader_created)
-        .expect("register readers.created callback");
+    let mut event_handler = client.events_handler(event_secret.secret(), handle_unhandled_event);
+    event_handler.on_member_updated(handle_member_updated)?;
+    event_handler.on_reader_created(handle_reader_created)?;
 
     let app = Router::new()
         .route("/events", post(handle_event))
@@ -63,10 +58,11 @@ async fn main() {
     axum::serve(listener, app)
         .await
         .expect("serve event listener");
+    Ok(())
 }
 
 async fn handle_event(
-    State(handler): State<Arc<EventNotificationHandler>>,
+    State(handler): State<Arc<EventsHandler>>,
     headers: HeaderMap,
     body: Bytes,
 ) -> impl IntoResponse {
@@ -107,10 +103,7 @@ async fn handle_event(
     }
 }
 
-async fn handle_member_updated(
-    event: MemberUpdatedEvent,
-    client: Client,
-) -> Result<(), EventFetchError> {
+async fn handle_member_updated(event: MemberUpdatedEvent, client: Client) -> Result<(), SdkError> {
     println!(
         "received {} for member {}",
         event.event_type(),
@@ -126,10 +119,7 @@ async fn handle_member_updated(
     Ok(())
 }
 
-async fn handle_reader_created(
-    event: ReaderCreatedEvent,
-    client: Client,
-) -> Result<(), EventFetchError> {
+async fn handle_reader_created(event: ReaderCreatedEvent, client: Client) -> Result<(), SdkError> {
     println!(
         "received {} for reader {}",
         event.event_type(),

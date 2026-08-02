@@ -332,7 +332,6 @@ name = "codegen"
 version = "0.0.1"
 dependencies = [
  "heck",
- "indexmap",
  "oas3",
  "prettyplease 0.3.0",
  "proc-macro2",

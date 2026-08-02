@@ -8,19 +8,105 @@
 //! and keep local records in sync with SumUp.
 //!
 //! Event receivers should read the HTTP request body as raw bytes. Most
-//! integrations can register typed async callbacks with
-//! [`EventNotificationHandler::on`] and pass the body together with the
+//! integrations can register typed async callbacks with the generated
+//! `on_*` methods on [`EventsHandler`] and pass the body together with the
 //! `X-SumUp-Webhook-Signature` and `X-SumUp-Webhook-Timestamp` headers to
-//! [`EventNotificationHandler::handle`]. Use [`EventsHandler::parse`] when
-//! direct matching is a better fit. Both paths verify the signature and
-//! timestamp before dispatching or returning an event.
+//! [`EventsHandler::handle`]. Use [`crate::Client::parse_event_notification`]
+//! when direct matching is a better fit. Both paths verify the signature
+//! and timestamp before dispatching or returning an event.
 pub(crate) use crate::event::RawEvent;
 pub use crate::event::{
-    DEFAULT_TOLERANCE, Event, EventCallbackError, EventError, EventFetchError,
-    EventHandlerRegistrationError, EventHandlingError, EventNotificationHandler, EventObject,
-    EventSpec, EventsHandler, FetchObject, IntoEventHandlerResult, SIGNATURE_HEADER,
-    SIGNATURE_VERSION, TIMESTAMP_HEADER, UnknownEvent, verify_signature,
+    DEFAULT_TOLERANCE, Event, EventCallbackError, EventError, EventHandlerRegistrationError,
+    EventHandlingError, EventObject, EventSpec, EventsHandler, FetchObject, IntoEventHandlerResult,
+    SIGNATURE_HEADER, SIGNATURE_VERSION, TIMESTAMP_HEADER, UnknownEvent, verify_signature,
 };
+impl EventsHandler {
+    /// Registers an async callback for `members.created` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_member_created<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::members::MemberCreatedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::members::MemberCreated, _>(callback)
+    }
+    /// Registers an async callback for `members.deleted` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_member_deleted<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::members::MemberDeletedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::members::MemberDeleted, _>(callback)
+    }
+    /// Registers an async callback for `members.updated` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_member_updated<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::members::MemberUpdatedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::members::MemberUpdated, _>(callback)
+    }
+    /// Registers an async callback for `readers.created` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_reader_created<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::readers::ReaderCreatedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::readers::ReaderCreated, _>(callback)
+    }
+    /// Registers an async callback for `readers.deleted` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_reader_deleted<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::readers::ReaderDeletedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::readers::ReaderDeleted, _>(callback)
+    }
+}
 /// Event notification parsed by the SDK.
 ///
 /// Known event types are represented by dedicated variants. Unknown event types
@@ -50,38 +136,33 @@ impl EventNotification {
         }
     }
 }
-pub(crate) fn parse_known_event(
-    client: crate::Client,
-    event: RawEvent,
-) -> Result<EventNotification, EventError> {
+pub(crate) fn parse_known_event(client: crate::Client, event: RawEvent) -> EventNotification {
     match event.event_type() {
         <crate::resources::members::MemberCreated as EventSpec>::EVENT_TYPE => {
-            Ok(EventNotification::MemberCreated(
+            EventNotification::MemberCreated(
                 crate::resources::members::MemberCreatedEvent::from_raw(client, event),
-            ))
+            )
         }
         <crate::resources::members::MemberDeleted as EventSpec>::EVENT_TYPE => {
-            Ok(EventNotification::MemberDeleted(
+            EventNotification::MemberDeleted(
                 crate::resources::members::MemberDeletedEvent::from_raw(client, event),
-            ))
+            )
         }
         <crate::resources::members::MemberUpdated as EventSpec>::EVENT_TYPE => {
-            Ok(EventNotification::MemberUpdated(
+            EventNotification::MemberUpdated(
                 crate::resources::members::MemberUpdatedEvent::from_raw(client, event),
-            ))
+            )
         }
         <crate::resources::readers::ReaderCreated as EventSpec>::EVENT_TYPE => {
-            Ok(EventNotification::ReaderCreated(
+            EventNotification::ReaderCreated(
                 crate::resources::readers::ReaderCreatedEvent::from_raw(client, event),
-            ))
+            )
         }
         <crate::resources::readers::ReaderDeleted as EventSpec>::EVENT_TYPE => {
-            Ok(EventNotification::ReaderDeleted(
+            EventNotification::ReaderDeleted(
                 crate::resources::readers::ReaderDeletedEvent::from_raw(client, event),
-            ))
+            )
         }
-        _ => Ok(EventNotification::Unknown(UnknownEvent::from_raw(
-            client, event,
-        ))),
+        _ => EventNotification::Unknown(UnknownEvent::from_raw(client, event)),
     }
 }

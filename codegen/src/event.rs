@@ -1,28 +1,7 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
+use oas3::Spec as OpenAPI;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-struct EventOperation {
-    #[serde(rename = "operationId")]
-    operation_id: String,
-    #[serde(default)]
-    tags: Vec<String>,
-    #[serde(rename = "x-object")]
-    object: Option<EventObjectRef>,
-}
-
-#[derive(Debug, Deserialize)]
-struct EventObjectRef {
-    #[serde(rename = "$ref")]
-    reference: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct EventPathItem {
-    post: Option<EventOperation>,
-}
 
 #[derive(Debug)]
 struct EventDefinition {
@@ -36,11 +15,8 @@ struct EventDefinition {
 }
 
 /// Generates the event catalog derived from the OpenAPI top-level `webhooks` map.
-pub fn generate_events_file(
-    out_path: &std::path::Path,
-    raw_spec: &serde_json::Value,
-) -> Result<(), String> {
-    let definitions = collect_event_definitions(raw_spec)?;
+pub fn generate_events_file(out_path: &std::path::Path, spec: &OpenAPI) -> Result<(), String> {
+    let definitions = collect_event_definitions(spec)?;
     let tokens = generate_events_tokens(&definitions);
     let contents = crate::format_generated_code(tokens);
 
@@ -51,11 +27,8 @@ pub fn generate_events_file(
 }
 
 /// Generates event marker types and aliases that belong to a resource tag module.
-pub fn generate_tag_event_tokens(
-    raw_spec: &serde_json::Value,
-    tag: &str,
-) -> Result<TokenStream, String> {
-    let definitions = collect_event_definitions(raw_spec)?;
+pub fn generate_tag_event_tokens(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
+    let definitions = collect_event_definitions(spec)?;
     let tag_definitions: Vec<_> = definitions
         .iter()
         .filter(|definition| definition.tag == tag)
@@ -90,19 +63,11 @@ pub fn generate_tag_event_tokens(
     })
 }
 
-fn collect_event_definitions(raw_spec: &serde_json::Value) -> Result<Vec<EventDefinition>, String> {
-    let Some(webhooks_value) = raw_spec.get("webhooks") else {
-        return Ok(Vec::new());
-    };
-
-    let webhooks: indexmap::IndexMap<String, EventPathItem> =
-        serde_json::from_value(webhooks_value.clone())
-            .map_err(|e| format!("Failed to parse OpenAPI webhooks: {}", e))?;
-
+fn collect_event_definitions(spec: &OpenAPI) -> Result<Vec<EventDefinition>, String> {
     let mut definitions = Vec::new();
 
-    for (event_type, path_item) in webhooks {
-        let Some(operation) = path_item.post else {
+    for (event_type, path_item) in &spec.webhooks {
+        let Some(operation) = path_item.post.as_ref() else {
             continue;
         };
 
@@ -110,28 +75,33 @@ fn collect_event_definitions(raw_spec: &serde_json::Value) -> Result<Vec<EventDe
             .tags
             .first()
             .ok_or_else(|| format!("Event '{}' is missing a tag", event_type))?;
-        let object = operation
-            .object
+        let object_reference = operation
+            .extensions
+            .get("object")
+            .and_then(|object| object.get("$ref"))
+            .and_then(serde_json::Value::as_str)
             .ok_or_else(|| format!("Event '{}' is missing x-object", event_type))?;
-        let object_schema = object
-            .reference
+        let object_schema = object_reference
             .strip_prefix("#/components/schemas/")
             .ok_or_else(|| {
                 format!(
                     "Event '{}' has unsupported x-object reference '{}'",
-                    event_type, object.reference
+                    event_type, object_reference
                 )
             })?;
-        let marker_name = operation
+        let operation_id = operation
             .operation_id
+            .as_deref()
+            .ok_or_else(|| format!("Event '{}' is missing operationId", event_type))?;
+        let marker_name = operation_id
             .strip_suffix("Webhook")
-            .unwrap_or(&operation.operation_id)
+            .unwrap_or(operation_id)
             .to_upper_camel_case();
         let event_alias_name = format!("{marker_name}Event");
 
         definitions.push(EventDefinition {
             tag: tag.to_string(),
-            event_type,
+            event_type: event_type.clone(),
             marker_ident: Ident::new(&marker_name, Span::call_site()),
             event_alias_ident: Ident::new(&event_alias_name, Span::call_site()),
             variant_ident: Ident::new(&marker_name, Span::call_site()),
@@ -149,6 +119,35 @@ fn collect_event_definitions(raw_spec: &serde_json::Value) -> Result<Vec<EventDe
 }
 
 fn generate_events_tokens(definitions: &[EventDefinition]) -> TokenStream {
+    let registration_methods = definitions.iter().map(|definition| {
+        let method_ident = Ident::new(
+            &format!("on_{}", definition.marker_ident.to_string().to_snake_case()),
+            Span::call_site(),
+        );
+        let marker_ident = &definition.marker_ident;
+        let event_alias_ident = &definition.event_alias_ident;
+        let object_module_ident = &definition.object_module_ident;
+        let doc = format!(" Registers an async callback for `{}` notifications.", definition.event_type);
+
+        quote! {
+            #[doc = #doc]
+            ///
+            /// The callback receives the typed event and a clone of the client.
+            /// Returns an error if a callback is already registered for this event.
+            pub fn #method_ident<HandlerFuture>(
+                &mut self,
+                callback: impl Fn(crate::resources::#object_module_ident::#event_alias_ident, crate::Client) -> HandlerFuture
+                    + Send + Sync + 'static,
+            ) -> Result<&mut Self, EventHandlerRegistrationError>
+            where
+                HandlerFuture: std::future::Future + Send + 'static,
+                HandlerFuture::Output: IntoEventHandlerResult + 'static,
+            {
+                self.register::<crate::resources::#object_module_ident::#marker_ident, _>(callback)
+            }
+        }
+    });
+
     let variants = definitions.iter().map(|definition| {
         let variant_ident = &definition.variant_ident;
         let event_alias_ident = &definition.event_alias_ident;
@@ -171,9 +170,9 @@ fn generate_events_tokens(definitions: &[EventDefinition]) -> TokenStream {
         let event_alias_ident = &definition.event_alias_ident;
         let object_module_ident = &definition.object_module_ident;
         quote! {
-            <crate::resources::#object_module_ident::#marker_ident as EventSpec>::EVENT_TYPE => Ok(EventNotification::#variant_ident(
+            <crate::resources::#object_module_ident::#marker_ident as EventSpec>::EVENT_TYPE => EventNotification::#variant_ident(
                 crate::resources::#object_module_ident::#event_alias_ident::from_raw(client, event),
-            )),
+            ),
         }
     });
 
@@ -186,21 +185,24 @@ fn generate_events_tokens(definitions: &[EventDefinition]) -> TokenStream {
         //! and keep local records in sync with SumUp.
         //!
         //! Event receivers should read the HTTP request body as raw bytes. Most
-        //! integrations can register typed async callbacks with
-        //! [`EventNotificationHandler::on`] and pass the body together with the
+        //! integrations can register typed async callbacks with the generated
+        //! `on_*` methods on [`EventsHandler`] and pass the body together with the
         //! `X-SumUp-Webhook-Signature` and `X-SumUp-Webhook-Timestamp` headers to
-        //! [`EventNotificationHandler::handle`]. Use [`EventsHandler::parse`] when
-        //! direct matching is a better fit. Both paths verify the signature and
-        //! timestamp before dispatching or returning an event.
+        //! [`EventsHandler::handle`]. Use [`crate::Client::parse_event_notification`]
+        //! when direct matching is a better fit. Both paths verify the signature
+        //! and timestamp before dispatching or returning an event.
 
         pub use crate::event::{
-            verify_signature, Event, EventCallbackError, EventError, EventFetchError,
-            EventHandlerRegistrationError, EventHandlingError, EventNotificationHandler,
-            EventObject, EventSpec, EventsHandler, FetchObject, IntoEventHandlerResult,
-            UnknownEvent, DEFAULT_TOLERANCE, SIGNATURE_HEADER, SIGNATURE_VERSION,
-            TIMESTAMP_HEADER,
+            verify_signature, Event, EventCallbackError, EventError,
+            EventHandlerRegistrationError, EventHandlingError, EventObject, EventSpec,
+            EventsHandler, FetchObject, IntoEventHandlerResult, UnknownEvent,
+            DEFAULT_TOLERANCE, SIGNATURE_HEADER, SIGNATURE_VERSION, TIMESTAMP_HEADER,
         };
         pub(crate) use crate::event::RawEvent;
+
+        impl EventsHandler {
+            #(#registration_methods)*
+        }
 
         /// Event notification parsed by the SDK.
         ///
@@ -228,13 +230,51 @@ fn generate_events_tokens(definitions: &[EventDefinition]) -> TokenStream {
         pub(crate) fn parse_known_event(
             client: crate::Client,
             event: RawEvent,
-        ) -> Result<EventNotification, EventError> {
+        ) -> EventNotification {
             match event.event_type() {
                 #(#parse_arms)*
-                _ => Ok(EventNotification::Unknown(UnknownEvent::from_raw(
+                _ => EventNotification::Unknown(UnknownEvent::from_raw(
                     client, event,
-                ))),
+                )),
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn collects_events_from_typed_spec_extensions() {
+        let spec: OpenAPI = serde_json::from_value(json!({
+            "openapi": "3.1.0",
+            "info": {
+                "title": "Test API",
+                "version": "1.0.0"
+            },
+            "webhooks": {
+                "members.updated": {
+                    "post": {
+                        "operationId": "MemberUpdatedWebhook",
+                        "tags": ["Members"],
+                        "x-object": {
+                            "$ref": "#/components/schemas/Member"
+                        }
+                    }
+                }
+            }
+        }))
+        .expect("parse spec");
+
+        let definitions = collect_event_definitions(&spec).expect("collect events");
+
+        assert_eq!(definitions.len(), 1);
+        assert_eq!(definitions[0].event_type, "members.updated");
+        assert_eq!(definitions[0].tag, "Members");
+        assert_eq!(definitions[0].marker_ident, "MemberUpdated");
+        assert_eq!(definitions[0].object_type_ident, "Member");
+        assert_eq!(definitions[0].object_module_ident, "members");
     }
 }
