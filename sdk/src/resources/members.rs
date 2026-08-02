@@ -11,7 +11,7 @@ impl crate::events::EventSpec for MemberCreated {
     type FetchedObject = Member;
 }
 /// Event notification for this event type.
-pub type MemberCreatedEvent<'a> = crate::events::Event<'a, MemberCreated>;
+pub type MemberCreatedEvent = crate::events::Event<MemberCreated>;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum MemberDeleted {}
@@ -21,7 +21,7 @@ impl crate::events::EventSpec for MemberDeleted {
     type FetchedObject = Member;
 }
 /// Event notification for this event type.
-pub type MemberDeletedEvent<'a> = crate::events::Event<'a, MemberDeleted>;
+pub type MemberDeletedEvent = crate::events::Event<MemberDeleted>;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum MemberUpdated {}
@@ -31,7 +31,7 @@ impl crate::events::EventSpec for MemberUpdated {
     type FetchedObject = Member;
 }
 /// Event notification for this event type.
-pub type MemberUpdatedEvent<'a> = crate::events::Event<'a, MemberUpdated>;
+pub type MemberUpdatedEvent = crate::events::Event<MemberUpdated>;
 /// A member is user within specific resource identified by resource id, resource type, and associated roles.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Member {

@@ -11,7 +11,7 @@ impl crate::events::EventSpec for ReaderCreated {
     type FetchedObject = Reader;
 }
 /// Event notification for this event type.
-pub type ReaderCreatedEvent<'a> = crate::events::Event<'a, ReaderCreated>;
+pub type ReaderCreatedEvent = crate::events::Event<ReaderCreated>;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum ReaderDeleted {}
@@ -21,7 +21,7 @@ impl crate::events::EventSpec for ReaderDeleted {
     type FetchedObject = Reader;
 }
 /// Event notification for this event type.
-pub type ReaderDeletedEvent<'a> = crate::events::Event<'a, ReaderDeleted>;
+pub type ReaderDeletedEvent = crate::events::Event<ReaderDeleted>;
 /// Reader Checkout
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequest {

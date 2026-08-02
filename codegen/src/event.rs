@@ -84,7 +84,7 @@ pub fn generate_tag_event_tokens(
             }
 
             /// Event notification for this event type.
-            pub type #event_alias_ident<'a> = crate::events::Event<'a, #marker_ident>;
+            pub type #event_alias_ident = crate::events::Event<#marker_ident>;
         }
     });
 
@@ -162,7 +162,7 @@ fn generate_events_tokens(definitions: &[EventDefinition]) -> TokenStream {
         let event_alias_ident = &definition.event_alias_ident;
         let object_module_ident = &definition.object_module_ident;
         quote! {
-            #variant_ident(crate::resources::#object_module_ident::#event_alias_ident<'a>)
+            #variant_ident(crate::resources::#object_module_ident::#event_alias_ident)
         }
     });
 
@@ -193,15 +193,20 @@ fn generate_events_tokens(definitions: &[EventDefinition]) -> TokenStream {
         //! trigger fulfillment or accounting workflows, reconcile asynchronous state,
         //! and keep local records in sync with SumUp.
         //!
-        //! Event receivers should read the HTTP request body as raw bytes and pass it
-        //! together with the `X-SumUp-Webhook-Signature` and
-        //! `X-SumUp-Webhook-Timestamp` headers to [`EventsHandler::parse`]. The SDK
-        //! verifies the signature and timestamp before deserializing the payload.
+        //! Event receivers should read the HTTP request body as raw bytes. Most
+        //! integrations can register typed async callbacks with
+        //! [`EventNotificationHandler::on`] and pass the body together with the
+        //! `X-SumUp-Webhook-Signature` and `X-SumUp-Webhook-Timestamp` headers to
+        //! [`EventNotificationHandler::handle`]. Use [`EventsHandler::parse`] when
+        //! direct matching is a better fit. Both paths verify the signature and
+        //! timestamp before dispatching or returning an event.
 
         pub use crate::event::{
-            verify_signature, Event, EventError, EventFetchError, EventObject, EventSpec,
-            EventsHandler, FetchObject, UnknownEvent, DEFAULT_TOLERANCE, SIGNATURE_HEADER,
-            SIGNATURE_VERSION, TIMESTAMP_HEADER,
+            verify_signature, Event, EventCallbackError, EventError, EventFetchError,
+            EventHandlerRegistrationError, EventHandlingError, EventNotificationHandler,
+            EventObject, EventSpec, EventsHandler, FetchObject, IntoEventHandlerResult,
+            UnknownEvent, DEFAULT_TOLERANCE, SIGNATURE_HEADER, SIGNATURE_VERSION,
+            TIMESTAMP_HEADER,
         };
         pub(crate) use crate::event::RawEvent;
 
@@ -213,12 +218,12 @@ fn generate_events_tokens(definitions: &[EventDefinition]) -> TokenStream {
         /// reference.
         #[derive(Debug, Clone)]
         #[non_exhaustive]
-        pub enum EventNotification<'a> {
+        pub enum EventNotification {
             #(#variants,)*
-            Unknown(UnknownEvent<'a>),
+            Unknown(UnknownEvent),
         }
 
-        impl EventNotification<'_> {
+        impl EventNotification {
             /// Returns the event type string, such as `members.updated`.
             pub fn event_type(&self) -> &str {
                 match self {
@@ -228,10 +233,10 @@ fn generate_events_tokens(definitions: &[EventDefinition]) -> TokenStream {
             }
         }
 
-        pub(crate) fn parse_known_event<'a>(
-            client: &'a crate::Client,
+        pub(crate) fn parse_known_event(
+            client: crate::Client,
             event: RawEvent,
-        ) -> Result<EventNotification<'a>, EventError> {
+        ) -> Result<EventNotification, EventError> {
             match event.event_type() {
                 #(#parse_arms)*
                 _ => Ok(EventNotification::Unknown(UnknownEvent::from_raw(

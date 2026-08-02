@@ -84,8 +84,23 @@ impl Client {
         &self.runtime_info
     }
     /// Creates an event helper bound to this client and signing secret.
-    pub fn events_handler(&self, secret: impl AsRef<[u8]>) -> crate::events::EventsHandler<'_> {
+    pub fn events_handler(&self, secret: impl AsRef<[u8]>) -> crate::events::EventsHandler {
         crate::events::EventsHandler::new(self, secret)
+    }
+    /// Creates a verified event notification handler with an unhandled-event
+    /// fallback.
+    pub fn event_notification_handler<Handler, HandlerFuture, HandlerOutput>(
+        &self,
+        secret: impl AsRef<[u8]>,
+        fallback: Handler,
+    ) -> crate::events::EventNotificationHandler
+    where
+        Handler:
+            Fn(crate::events::EventNotification, Self) -> HandlerFuture + Send + Sync + 'static,
+        HandlerFuture: std::future::Future<Output = HandlerOutput> + Send + 'static,
+        HandlerOutput: crate::events::IntoEventHandlerResult + 'static,
+    {
+        crate::events::EventNotificationHandler::new(self, secret, fallback)
     }
     /// Returns a client for the Checkouts API endpoints.
     pub fn checkouts(&self) -> crate::resources::checkouts::CheckoutsClient<'_> {
