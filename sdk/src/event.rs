@@ -7,8 +7,9 @@
 //!
 //! Event receivers should read the HTTP request body as raw bytes and pass it
 //! together with the `X-SumUp-Webhook-Signature` and
-//! `X-SumUp-Webhook-Timestamp` headers to [`EventsHandler::parse`]. The SDK
-//! verifies the signature and timestamp before deserializing the payload.
+//! `X-SumUp-Webhook-Timestamp` headers to
+//! [`crate::Client::parse_event_notification`]. The SDK verifies the signature
+//! and timestamp before deserializing the payload.
 //!
 //! ```no_run
 //! # use sumup::{Client, Secret};
@@ -19,13 +20,12 @@
 //! # }
 //! # fn example(headers: HeaderMap, body: Bytes, secret: Secret) -> Result<(), sumup::events::EventError> {
 //! let client = Client::default();
-//! let event = client
-//!     .events_handler(secret.secret())
-//!     .parse(
-//!         body.as_ref(),
-//!         header(&headers, SIGNATURE_HEADER),
-//!         header(&headers, TIMESTAMP_HEADER),
-//!     )?;
+//! let event = client.parse_event_notification(
+//!     secret.secret(),
+//!     body.as_ref(),
+//!     header(&headers, SIGNATURE_HEADER),
+//!     header(&headers, TIMESTAMP_HEADER),
+//! )?;
 //!
 //! match event {
 //!     EventNotification::MemberUpdated(event) => {
@@ -48,9 +48,8 @@
 
 pub use crate::events_handler::{
     verify_signature, EventCallbackError, EventError, EventFetchError,
-    EventHandlerRegistrationError, EventHandlingError, EventNotificationHandler, EventsHandler,
-    IntoEventHandlerResult, DEFAULT_TOLERANCE, SIGNATURE_HEADER, SIGNATURE_VERSION,
-    TIMESTAMP_HEADER,
+    EventHandlerRegistrationError, EventHandlingError, EventsHandler, IntoEventHandlerResult,
+    DEFAULT_TOLERANCE, SIGNATURE_HEADER, SIGNATURE_VERSION, TIMESTAMP_HEADER,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

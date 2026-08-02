@@ -28,8 +28,8 @@ use axum::{
 use std::sync::Arc;
 use sumup::{
     events::{
-        EventError, EventFetchError, EventHandlingError, EventNotification,
-        EventNotificationHandler, FetchObject, SIGNATURE_HEADER, TIMESTAMP_HEADER,
+        EventError, EventFetchError, EventHandlingError, EventNotification, EventsHandler,
+        FetchObject, SIGNATURE_HEADER, TIMESTAMP_HEADER,
     },
     members::MemberUpdatedEvent,
     readers::ReaderCreatedEvent,
@@ -42,8 +42,7 @@ async fn main() {
         .expect("SUMUP_EVENT_SECRET environment variable must be set");
     let event_secret = Secret::new(event_secret);
     let client = Client::default();
-    let mut event_handler =
-        client.event_notification_handler(event_secret.secret(), handle_unhandled_event);
+    let mut event_handler = client.events_handler(event_secret.secret(), handle_unhandled_event);
     event_handler
         .on(handle_member_updated)
         .expect("register members.updated callback");
@@ -66,7 +65,7 @@ async fn main() {
 }
 
 async fn handle_event(
-    State(handler): State<Arc<EventNotificationHandler>>,
+    State(handler): State<Arc<EventsHandler>>,
     headers: HeaderMap,
     body: Bytes,
 ) -> impl IntoResponse {

@@ -159,21 +159,12 @@ pub fn generate_client_file(
                 &self.runtime_info
             }
 
-            /// Creates an event helper bound to this client and signing secret.
-            pub fn events_handler(
-                &self,
-                secret: impl AsRef<[u8]>,
-            ) -> crate::events::EventsHandler {
-                crate::events::EventsHandler::new(self, secret)
-            }
-
-            /// Creates a verified event notification handler with an unhandled-event
-            /// fallback.
-            pub fn event_notification_handler<Handler, HandlerFuture, HandlerOutput>(
+            /// Creates a verified events handler with an unhandled-event fallback.
+            pub fn events_handler<Handler, HandlerFuture, HandlerOutput>(
                 &self,
                 secret: impl AsRef<[u8]>,
                 fallback: Handler,
-            ) -> crate::events::EventNotificationHandler
+            ) -> crate::events::EventsHandler
             where
                 Handler: Fn(
                         crate::events::EventNotification,
@@ -185,7 +176,7 @@ pub fn generate_client_file(
                 HandlerFuture: std::future::Future<Output = HandlerOutput> + Send + 'static,
                 HandlerOutput: crate::events::IntoEventHandlerResult + 'static,
             {
-                crate::events::EventNotificationHandler::new(self, secret, fallback)
+                crate::events::EventsHandler::new(self, secret, fallback)
             }
 
             #(#tag_methods)*
