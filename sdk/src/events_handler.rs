@@ -1,12 +1,19 @@
 //! Event notification verification helpers.
 //!
-//! Most integrations should create an [`EventsHandler`] through
-//! [`crate::Client::events_handler`] and call [`EventsHandler::parse`] with the
-//! raw HTTP request body and SumUp signature headers.
+//! Most integrations should create an [`EventNotificationHandler`] through
+//! [`crate::Client::event_notification_handler`], register typed callbacks with
+//! [`EventNotificationHandler::on`], and pass the raw HTTP request body and
+//! SumUp signature headers to [`EventNotificationHandler::handle`].
 
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{
+    collections::HashMap,
+    future::Future,
+    pin::Pin,
+    sync::atomic::{AtomicBool, Ordering},
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -71,6 +78,96 @@ impl std::error::Error for EventError {
     }
 }
 
+/// Boxed error returned by an event callback.
+pub type EventCallbackError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// Converts an async event callback's output into the result expected by the
+/// notification handler.
+///
+/// Callbacks can return either `()` or `Result<(), E>`, where `E` can be
+/// converted into [`EventCallbackError`].
+pub trait IntoEventHandlerResult {
+    #[doc(hidden)]
+    fn into_event_handler_result(self) -> Result<(), EventCallbackError>;
+}
+
+impl IntoEventHandlerResult for () {
+    fn into_event_handler_result(self) -> Result<(), EventCallbackError> {
+        Ok(())
+    }
+}
+
+impl<E> IntoEventHandlerResult for Result<(), E>
+where
+    E: Into<EventCallbackError>,
+{
+    fn into_event_handler_result(self) -> Result<(), EventCallbackError> {
+        self.map_err(Into::into)
+    }
+}
+
+/// Error returned when an event callback cannot be registered.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum EventHandlerRegistrationError {
+    /// A callback was already registered for this event type.
+    AlreadyRegistered(&'static str),
+    /// The handler has already handled an event and can no longer be changed.
+    RegistrationClosed,
+}
+
+impl std::fmt::Display for EventHandlerRegistrationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AlreadyRegistered(event_type) => {
+                write!(f, "handler already registered for event type: {event_type}")
+            }
+            Self::RegistrationClosed => {
+                write!(
+                    f,
+                    "cannot register event callbacks after handling has started"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for EventHandlerRegistrationError {}
+
+/// Error returned when a notification cannot be verified, parsed, or handled.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum EventHandlingError {
+    /// The event could not be verified or parsed.
+    Event(EventError),
+    /// A registered or fallback callback failed.
+    Callback(EventCallbackError),
+}
+
+impl From<EventError> for EventHandlingError {
+    fn from(value: EventError) -> Self {
+        Self::Event(value)
+    }
+}
+
+impl std::fmt::Display for EventHandlingError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Event(err) => write!(f, "failed to process event notification: {err}"),
+            Self::Callback(err) => write!(f, "event callback failed: {err}"),
+        }
+    }
+}
+
+impl std::error::Error for EventHandlingError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Event(err) => Some(err),
+            Self::Callback(err) => Some(err.as_ref()),
+        }
+    }
+}
+
 /// Error returned when fetching the API resource referenced by an event.
 #[derive(Debug)]
 #[non_exhaustive]
@@ -107,26 +204,26 @@ impl std::error::Error for EventFetchError {
 
 /// Verifies and parses event notifications for a [`crate::Client`].
 #[derive(Debug, Clone)]
-pub struct EventsHandler<'a> {
-    client: &'a crate::Client,
+pub struct EventsHandler {
+    client: crate::Client,
     secret: Vec<u8>,
     tolerance: Duration,
 }
 
-impl<'a> EventsHandler<'a> {
+impl EventsHandler {
     /// Creates an event handler using the signing secret configured for your
     /// SumUp event destination.
-    pub fn new(client: &'a crate::Client, secret: impl AsRef<[u8]>) -> Self {
+    pub fn new(client: &crate::Client, secret: impl AsRef<[u8]>) -> Self {
         Self {
-            client,
+            client: client.clone(),
             secret: secret.as_ref().to_vec(),
             tolerance: DEFAULT_TOLERANCE,
         }
     }
 
     /// Returns the client used for parsing and follow-up resource fetches.
-    pub fn client(&self) -> &'a crate::Client {
-        self.client
+    pub fn client(&self) -> &crate::Client {
+        &self.client
     }
 
     /// Overrides the allowed clock skew for event signature verification.
@@ -166,9 +263,9 @@ impl<'a> EventsHandler<'a> {
         payload: &[u8],
         signature_header: impl AsRef<str>,
         timestamp_header: impl AsRef<str>,
-    ) -> Result<crate::events::EventNotification<'a>, EventError> {
+    ) -> Result<crate::events::EventNotification, EventError> {
         self.verify(payload, signature_header, timestamp_header)?;
-        parse_event_notification(self.client, payload)
+        parse_event_notification(&self.client, payload)
     }
 
     /// Parses an event notification without verifying its signature.
@@ -179,18 +276,186 @@ impl<'a> EventsHandler<'a> {
     pub fn dangerously_parse_unverified(
         &self,
         payload: &[u8],
-    ) -> Result<crate::events::EventNotification<'a>, EventError> {
-        parse_event_notification(self.client, payload)
+    ) -> Result<crate::events::EventNotification, EventError> {
+        parse_event_notification(&self.client, payload)
     }
 }
 
-pub(crate) fn parse_event_notification<'a>(
-    client: &'a crate::Client,
+type EventCallbackFuture =
+    Pin<Box<dyn Future<Output = Result<(), EventCallbackError>> + Send + 'static>>;
+type RegisteredEventCallback =
+    dyn Fn(crate::events::RawEvent, crate::Client) -> EventCallbackFuture + Send + Sync + 'static;
+type FallbackEventCallback = dyn Fn(crate::events::EventNotification, crate::Client) -> EventCallbackFuture
+    + Send
+    + Sync
+    + 'static;
+
+/// Verifies, parses, and routes event notifications to typed async callbacks.
+///
+/// Create this handler through [`crate::Client::event_notification_handler`], then
+/// register callbacks with [`EventNotificationHandler::on`] before sharing it
+/// with your HTTP server. Events without a dedicated callback are sent to the
+/// fallback callback supplied at construction time.
+///
+/// ```no_run
+/// # use sumup::{Client, events::{EventHandlerRegistrationError, EventNotification}};
+/// # use sumup::members::MemberUpdatedEvent;
+/// # async fn handle_unhandled(_event: EventNotification, _client: Client) {}
+/// # async fn handle_member_updated(_event: MemberUpdatedEvent, _client: Client) {}
+/// # fn configure() -> Result<(), EventHandlerRegistrationError> {
+/// let client = Client::default();
+/// let mut handler = client.event_notification_handler("event_secret", handle_unhandled);
+/// handler.on(handle_member_updated)?;
+/// # Ok(())
+/// # }
+/// ```
+pub struct EventNotificationHandler {
+    events: EventsHandler,
+    fallback: Box<FallbackEventCallback>,
+    registered_handlers: HashMap<&'static str, Box<RegisteredEventCallback>>,
+    has_handled_event: AtomicBool,
+}
+
+impl std::fmt::Debug for EventNotificationHandler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EventNotificationHandler")
+            .field("events", &self.events)
+            .field("registered_event_types", &self.registered_event_types())
+            .field(
+                "has_handled_event",
+                &self.has_handled_event.load(Ordering::Acquire),
+            )
+            .finish_non_exhaustive()
+    }
+}
+
+impl EventNotificationHandler {
+    /// Creates a handler with a callback for events that do not have a dedicated
+    /// registered callback.
+    pub fn new<Handler, HandlerFuture, HandlerOutput>(
+        client: &crate::Client,
+        secret: impl AsRef<[u8]>,
+        fallback: Handler,
+    ) -> Self
+    where
+        Handler: Fn(crate::events::EventNotification, crate::Client) -> HandlerFuture
+            + Send
+            + Sync
+            + 'static,
+        HandlerFuture: Future<Output = HandlerOutput> + Send + 'static,
+        HandlerOutput: IntoEventHandlerResult + 'static,
+    {
+        let fallback = Box::new(move |event, client| {
+            let future = fallback(event, client);
+            Box::pin(async move { future.await.into_event_handler_result() }) as EventCallbackFuture
+        });
+
+        Self {
+            events: EventsHandler::new(client, secret),
+            fallback,
+            registered_handlers: HashMap::new(),
+            has_handled_event: AtomicBool::new(false),
+        }
+    }
+
+    /// Returns the client used for parsing and follow-up API calls.
+    pub fn client(&self) -> &crate::Client {
+        self.events.client()
+    }
+
+    /// Overrides the allowed clock skew for event signature verification.
+    pub fn with_tolerance(mut self, tolerance: Duration) -> Self {
+        self.events = self.events.with_tolerance(tolerance);
+        self
+    }
+
+    /// Registers an async callback for the generated event type accepted by the
+    /// callback's first argument.
+    ///
+    /// The callback also receives a clone of the client associated with this
+    /// handler. Only one callback can be registered for each event type, and all
+    /// callbacks must be registered before the first call to
+    /// [`EventNotificationHandler::handle`].
+    pub fn on<EventType, Handler, HandlerFuture, HandlerOutput>(
+        &mut self,
+        callback: Handler,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        EventType: crate::events::EventSpec + Send + Sync + 'static,
+        Handler: Fn(crate::events::Event<EventType>, crate::Client) -> HandlerFuture
+            + Send
+            + Sync
+            + 'static,
+        HandlerFuture: Future<Output = HandlerOutput> + Send + 'static,
+        HandlerOutput: IntoEventHandlerResult + 'static,
+    {
+        if self.has_handled_event.load(Ordering::Acquire) {
+            return Err(EventHandlerRegistrationError::RegistrationClosed);
+        }
+
+        let event_type = EventType::EVENT_TYPE;
+        if self.registered_handlers.contains_key(event_type) {
+            return Err(EventHandlerRegistrationError::AlreadyRegistered(event_type));
+        }
+
+        self.registered_handlers.insert(
+            event_type,
+            Box::new(move |event, client| {
+                let event = crate::events::Event::<EventType>::from_raw(client.clone(), event);
+                let future = callback(event, client);
+                Box::pin(async move { future.await.into_event_handler_result() })
+            }),
+        );
+        Ok(self)
+    }
+
+    /// Returns the event types with dedicated callbacks, sorted by event type.
+    pub fn registered_event_types(&self) -> Vec<&'static str> {
+        let mut event_types: Vec<_> = self.registered_handlers.keys().copied().collect();
+        event_types.sort_unstable();
+        event_types
+    }
+
+    /// Verifies, parses, and routes one raw event notification.
+    ///
+    /// Pass the exact raw body bytes received over HTTP. Do not parse,
+    /// reserialize, trim, or otherwise transform the body before calling this
+    /// method.
+    pub async fn handle(
+        &self,
+        payload: &[u8],
+        signature_header: impl AsRef<str>,
+        timestamp_header: impl AsRef<str>,
+    ) -> Result<(), EventHandlingError> {
+        self.has_handled_event.store(true, Ordering::Release);
+        self.events
+            .verify(payload, signature_header, timestamp_header)?;
+
+        let event = parse_raw_event(payload)?;
+        let client = self.events.client().clone();
+        if let Some(callback) = self.registered_handlers.get(event.event_type()) {
+            return callback(event, client)
+                .await
+                .map_err(EventHandlingError::Callback);
+        }
+
+        let event = crate::events::parse_known_event(client.clone(), event)?;
+        (self.fallback)(event, client)
+            .await
+            .map_err(EventHandlingError::Callback)
+    }
+}
+
+pub(crate) fn parse_event_notification(
+    client: &crate::Client,
     payload: &[u8],
-) -> Result<crate::events::EventNotification<'a>, EventError> {
-    let event: crate::events::RawEvent =
-        serde_json::from_slice(payload).map_err(EventError::InvalidPayload)?;
-    crate::events::parse_known_event(client, event)
+) -> Result<crate::events::EventNotification, EventError> {
+    let event = parse_raw_event(payload)?;
+    crate::events::parse_known_event(client.clone(), event)
+}
+
+fn parse_raw_event(payload: &[u8]) -> Result<crate::events::RawEvent, EventError> {
+    serde_json::from_slice(payload).map_err(EventError::InvalidPayload)
 }
 
 pub(crate) async fn fetch_object<T>(
@@ -248,13 +513,13 @@ impl crate::Client {
     /// [`EventsHandler::parse`]. Pass the raw HTTP request body and the
     /// `X-SumUp-Webhook-Signature` and `X-SumUp-Webhook-Timestamp` header
     /// values from the same request.
-    pub fn parse_event_notification<'a>(
-        &'a self,
+    pub fn parse_event_notification(
+        &self,
         secret: impl AsRef<[u8]>,
         payload: &[u8],
         signature_header: impl AsRef<str>,
         timestamp_header: impl AsRef<str>,
-    ) -> Result<crate::events::EventNotification<'a>, EventError> {
+    ) -> Result<crate::events::EventNotification, EventError> {
         self.events_handler(secret)
             .parse(payload, signature_header, timestamp_header)
     }
@@ -264,10 +529,10 @@ impl crate::Client {
     /// Only use this for tests, fixtures, or payloads that were already verified
     /// by trusted infrastructure before entering this process. Prefer
     /// [`crate::Client::parse_event_notification`] for production request handling.
-    pub fn dangerously_parse_unverified_event_notification<'a>(
-        &'a self,
+    pub fn dangerously_parse_unverified_event_notification(
+        &self,
         payload: &[u8],
-    ) -> Result<crate::events::EventNotification<'a>, EventError> {
+    ) -> Result<crate::events::EventNotification, EventError> {
         parse_event_notification(self, payload)
     }
 }
@@ -499,6 +764,171 @@ mod tests {
             event,
             crate::events::EventNotification::MemberUpdated(_)
         ));
+    }
+
+    #[tokio::test]
+    async fn event_notification_handler_routes_typed_and_unhandled_events() {
+        let client = crate::Client::default();
+        let secret = test_secret();
+        let handled = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let unhandled = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+
+        let fallback_calls = unhandled.clone();
+        let mut handler = client.event_notification_handler(&secret, move |event, _client| {
+            let fallback_calls = fallback_calls.clone();
+            async move {
+                let is_unknown = matches!(&event, EventNotification::Unknown(_));
+                fallback_calls
+                    .lock()
+                    .expect("lock fallback calls")
+                    .push((event.event_type().to_owned(), is_unknown));
+            }
+        });
+
+        let handled_calls = handled.clone();
+        handler
+            .on(
+                move |event: crate::resources::members::MemberUpdatedEvent, client| {
+                    let handled_calls = handled_calls.clone();
+                    async move {
+                        handled_calls
+                            .lock()
+                            .expect("lock handled calls")
+                            .push((event.event_type().to_owned(), client.base_url().to_owned()));
+                    }
+                },
+            )
+            .expect("register members.updated callback");
+
+        let timestamp = current_timestamp();
+        let typed_payload = member_payload("https://api.sumup.com", "members.updated");
+        let typed_signature = signature_for(&secret, timestamp, &typed_payload);
+        handler
+            .handle(&typed_payload, typed_signature, timestamp.to_string())
+            .await
+            .expect("handle registered event");
+
+        let known_payload = member_payload("https://api.sumup.com", "members.created");
+        let known_signature = signature_for(&secret, timestamp, &known_payload);
+        handler
+            .handle(&known_payload, known_signature, timestamp.to_string())
+            .await
+            .expect("handle known unregistered event");
+
+        let unknown_payload = member_payload("https://api.sumup.com", "merchant.updated");
+        let unknown_signature = signature_for(&secret, timestamp, &unknown_payload);
+        handler
+            .handle(&unknown_payload, unknown_signature, timestamp.to_string())
+            .await
+            .expect("handle unknown event");
+
+        assert_eq!(
+            *handled.lock().expect("lock handled calls"),
+            vec![(
+                "members.updated".to_owned(),
+                "https://api.sumup.com".to_owned()
+            )]
+        );
+        assert_eq!(
+            *unhandled.lock().expect("lock fallback calls"),
+            vec![
+                ("members.created".to_owned(), false),
+                ("merchant.updated".to_owned(), true)
+            ]
+        );
+        assert_eq!(handler.registered_event_types(), vec!["members.updated"]);
+    }
+
+    #[tokio::test]
+    async fn event_notification_handler_verifies_before_dispatching() {
+        let client = crate::Client::default();
+        let secret = test_secret();
+        let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+
+        let fallback_calls = calls.clone();
+        let mut handler = client.event_notification_handler(&secret, move |_, _| {
+            let fallback_calls = fallback_calls.clone();
+            async move {
+                fallback_calls.fetch_add(1, Ordering::Relaxed);
+            }
+        });
+        let handled_calls = calls.clone();
+        handler
+            .on(move |_: crate::resources::members::MemberUpdatedEvent, _| {
+                let handled_calls = handled_calls.clone();
+                async move {
+                    handled_calls.fetch_add(1, Ordering::Relaxed);
+                }
+            })
+            .expect("register callback");
+
+        let payload = member_payload("https://api.sumup.com", "members.updated");
+        let error = handler
+            .handle(&payload, "v1=deadbeef", current_timestamp().to_string())
+            .await
+            .expect_err("reject invalid signature");
+
+        assert!(matches!(
+            error,
+            EventHandlingError::Event(EventError::InvalidSignature)
+        ));
+        assert_eq!(calls.load(Ordering::Relaxed), 0);
+    }
+
+    #[tokio::test]
+    async fn event_notification_handler_rejects_duplicate_and_late_registration() {
+        let client = crate::Client::default();
+        let secret = test_secret();
+        let mut handler = client.event_notification_handler(&secret, |_, _| async {});
+
+        handler
+            .on(|_: crate::resources::members::MemberUpdatedEvent, _| async {})
+            .expect("register callback");
+        let duplicate = handler
+            .on(|_: crate::resources::members::MemberUpdatedEvent, _| async {})
+            .expect_err("reject duplicate callback");
+        assert_eq!(
+            duplicate,
+            EventHandlerRegistrationError::AlreadyRegistered("members.updated")
+        );
+
+        let payload = member_payload("https://api.sumup.com", "members.updated");
+        let timestamp = current_timestamp();
+        let signature = signature_for(&secret, timestamp, &payload);
+        handler
+            .handle(&payload, signature, timestamp.to_string())
+            .await
+            .expect("handle event");
+
+        let late = handler
+            .on(|_: crate::resources::readers::ReaderCreatedEvent, _| async {})
+            .expect_err("reject late callback");
+        assert_eq!(late, EventHandlerRegistrationError::RegistrationClosed);
+    }
+
+    #[tokio::test]
+    async fn event_notification_handler_surfaces_callback_errors() {
+        let client = crate::Client::default();
+        let secret = test_secret();
+        let mut handler = client.event_notification_handler(&secret, |_, _| async {});
+        handler
+            .on(
+                |_: crate::resources::members::MemberUpdatedEvent, _| async {
+                    Err::<(), _>(std::io::Error::other("callback failed"))
+                },
+            )
+            .expect("register callback");
+
+        let payload = member_payload("https://api.sumup.com", "members.updated");
+        let timestamp = current_timestamp();
+        let signature = signature_for(&secret, timestamp, &payload);
+        let error = handler
+            .handle(&payload, signature, timestamp.to_string())
+            .await
+            .expect_err("surface callback error");
+
+        assert!(matches!(error, EventHandlingError::Callback(_)));
+        assert_eq!(error.to_string(), "event callback failed: callback failed");
     }
 
     #[test]

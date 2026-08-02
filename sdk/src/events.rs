@@ -7,15 +7,19 @@
 //! trigger fulfillment or accounting workflows, reconcile asynchronous state,
 //! and keep local records in sync with SumUp.
 //!
-//! Event receivers should read the HTTP request body as raw bytes and pass it
-//! together with the `X-SumUp-Webhook-Signature` and
-//! `X-SumUp-Webhook-Timestamp` headers to [`EventsHandler::parse`]. The SDK
-//! verifies the signature and timestamp before deserializing the payload.
+//! Event receivers should read the HTTP request body as raw bytes. Most
+//! integrations can register typed async callbacks with
+//! [`EventNotificationHandler::on`] and pass the body together with the
+//! `X-SumUp-Webhook-Signature` and `X-SumUp-Webhook-Timestamp` headers to
+//! [`EventNotificationHandler::handle`]. Use [`EventsHandler::parse`] when
+//! direct matching is a better fit. Both paths verify the signature and
+//! timestamp before dispatching or returning an event.
 pub(crate) use crate::event::RawEvent;
 pub use crate::event::{
-    DEFAULT_TOLERANCE, Event, EventError, EventFetchError, EventObject, EventSpec, EventsHandler,
-    FetchObject, SIGNATURE_HEADER, SIGNATURE_VERSION, TIMESTAMP_HEADER, UnknownEvent,
-    verify_signature,
+    DEFAULT_TOLERANCE, Event, EventCallbackError, EventError, EventFetchError,
+    EventHandlerRegistrationError, EventHandlingError, EventNotificationHandler, EventObject,
+    EventSpec, EventsHandler, FetchObject, IntoEventHandlerResult, SIGNATURE_HEADER,
+    SIGNATURE_VERSION, TIMESTAMP_HEADER, UnknownEvent, verify_signature,
 };
 /// Event notification parsed by the SDK.
 ///
@@ -25,15 +29,15 @@ pub use crate::event::{
 /// reference.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
-pub enum EventNotification<'a> {
-    MemberCreated(crate::resources::members::MemberCreatedEvent<'a>),
-    MemberDeleted(crate::resources::members::MemberDeletedEvent<'a>),
-    MemberUpdated(crate::resources::members::MemberUpdatedEvent<'a>),
-    ReaderCreated(crate::resources::readers::ReaderCreatedEvent<'a>),
-    ReaderDeleted(crate::resources::readers::ReaderDeletedEvent<'a>),
-    Unknown(UnknownEvent<'a>),
+pub enum EventNotification {
+    MemberCreated(crate::resources::members::MemberCreatedEvent),
+    MemberDeleted(crate::resources::members::MemberDeletedEvent),
+    MemberUpdated(crate::resources::members::MemberUpdatedEvent),
+    ReaderCreated(crate::resources::readers::ReaderCreatedEvent),
+    ReaderDeleted(crate::resources::readers::ReaderDeletedEvent),
+    Unknown(UnknownEvent),
 }
-impl EventNotification<'_> {
+impl EventNotification {
     /// Returns the event type string, such as `members.updated`.
     pub fn event_type(&self) -> &str {
         match self {
@@ -46,10 +50,10 @@ impl EventNotification<'_> {
         }
     }
 }
-pub(crate) fn parse_known_event<'a>(
-    client: &'a crate::Client,
+pub(crate) fn parse_known_event(
+    client: crate::Client,
     event: RawEvent,
-) -> Result<EventNotification<'a>, EventError> {
+) -> Result<EventNotification, EventError> {
     match event.event_type() {
         <crate::resources::members::MemberCreated as EventSpec>::EVENT_TYPE => {
             Ok(EventNotification::MemberCreated(

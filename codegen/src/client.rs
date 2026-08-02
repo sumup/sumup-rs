@@ -171,8 +171,29 @@ pub fn generate_client_file(
             pub fn events_handler(
                 &self,
                 secret: impl AsRef<[u8]>,
-            ) -> crate::events::EventsHandler<'_> {
+            ) -> crate::events::EventsHandler {
                 crate::events::EventsHandler::new(self, secret)
+            }
+
+            /// Creates a verified event notification handler with an unhandled-event
+            /// fallback.
+            pub fn event_notification_handler<Handler, HandlerFuture, HandlerOutput>(
+                &self,
+                secret: impl AsRef<[u8]>,
+                fallback: Handler,
+            ) -> crate::events::EventNotificationHandler
+            where
+                Handler: Fn(
+                        crate::events::EventNotification,
+                        Self,
+                    ) -> HandlerFuture
+                    + Send
+                    + Sync
+                    + 'static,
+                HandlerFuture: std::future::Future<Output = HandlerOutput> + Send + 'static,
+                HandlerOutput: crate::events::IntoEventHandlerResult + 'static,
+            {
+                crate::events::EventNotificationHandler::new(self, secret, fallback)
             }
 
             #(#tag_methods)*

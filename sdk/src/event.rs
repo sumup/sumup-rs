@@ -47,8 +47,10 @@
 //! be idempotent and safe to run more than once.
 
 pub use crate::events_handler::{
-    DEFAULT_TOLERANCE, EventError, EventFetchError, EventsHandler, SIGNATURE_HEADER,
-    SIGNATURE_VERSION, TIMESTAMP_HEADER, verify_signature,
+    DEFAULT_TOLERANCE, EventCallbackError, EventError, EventFetchError,
+    EventHandlerRegistrationError, EventHandlingError, EventNotificationHandler, EventsHandler,
+    IntoEventHandlerResult, SIGNATURE_HEADER, SIGNATURE_VERSION, TIMESTAMP_HEADER,
+    verify_signature,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -121,19 +123,19 @@ pub trait EventSpec {
 
 /// Event notification with static event metadata.
 #[derive(Debug, Clone)]
-pub struct Event<'a, E: EventSpec> {
+pub struct Event<E: EventSpec> {
     /// Event identifier from the notification.
     pub id: String,
     /// Time when the event was created.
     pub created_at: crate::datetime::DateTime,
     /// Referenced API resource.
     pub object: EventObject,
-    client: &'a crate::Client,
+    client: crate::Client,
     spec: std::marker::PhantomData<E>,
 }
 
-impl<'a, E: EventSpec> Event<'a, E> {
-    pub(crate) fn from_raw(client: &'a crate::Client, event: RawEvent) -> Self {
+impl<E: EventSpec> Event<E> {
+    pub(crate) fn from_raw(client: crate::Client, event: RawEvent) -> Self {
         Self {
             id: event.id,
             created_at: event.created_at,
@@ -149,20 +151,20 @@ impl<'a, E: EventSpec> Event<'a, E> {
     }
 }
 
-impl<E: EventSpec> FetchObject for Event<'_, E> {
+impl<E: EventSpec> FetchObject for Event<E> {
     type Object = E::FetchedObject;
 
     fn fetch_object(
         &self,
     ) -> impl std::future::Future<Output = Result<Self::Object, EventFetchError>> + '_ {
-        crate::events_handler::fetch_object(self.client, &self.object.url)
+        crate::events_handler::fetch_object(&self.client, &self.object.url)
     }
 }
 
 /// Event notification for an event type that does not yet have a dedicated SDK
 /// variant.
 #[derive(Debug, Clone)]
-pub struct UnknownEvent<'a> {
+pub struct UnknownEvent {
     /// Event identifier from the notification.
     pub id: String,
     /// Event type string from the notification.
@@ -171,11 +173,11 @@ pub struct UnknownEvent<'a> {
     pub created_at: crate::datetime::DateTime,
     /// Referenced API resource.
     pub object: EventObject,
-    client: &'a crate::Client,
+    client: crate::Client,
 }
 
-impl<'a> UnknownEvent<'a> {
-    pub(crate) fn from_raw(client: &'a crate::Client, event: RawEvent) -> Self {
+impl UnknownEvent {
+    pub(crate) fn from_raw(client: crate::Client, event: RawEvent) -> Self {
         Self {
             id: event.id,
             event_type: event.event_type,
@@ -186,12 +188,12 @@ impl<'a> UnknownEvent<'a> {
     }
 }
 
-impl<'a> FetchObject for UnknownEvent<'a> {
+impl FetchObject for UnknownEvent {
     type Object = serde_json::Value;
 
     fn fetch_object(
         &self,
     ) -> impl std::future::Future<Output = Result<Self::Object, EventFetchError>> + '_ {
-        crate::events_handler::fetch_object(self.client, &self.object.url)
+        crate::events_handler::fetch_object(&self.client, &self.object.url)
     }
 }
