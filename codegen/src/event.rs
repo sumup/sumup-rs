@@ -11,8 +11,6 @@ struct EventOperation {
     tags: Vec<String>,
     #[serde(rename = "x-object")]
     object: Option<EventObjectRef>,
-    #[serde(rename = "x-object-type")]
-    object_type: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,7 +28,6 @@ struct EventPathItem {
 struct EventDefinition {
     tag: String,
     event_type: String,
-    object_type: String,
     marker_ident: Ident,
     event_alias_ident: Ident,
     variant_ident: Ident,
@@ -69,16 +66,16 @@ pub fn generate_tag_event_tokens(
         let event_alias_ident = &definition.event_alias_ident;
         let object_type_ident = &definition.object_type_ident;
         let event_type = &definition.event_type;
-        let object_type = &definition.object_type;
 
         quote! {
             /// Marker type for this event notification.
             #[derive(Debug, Clone)]
             pub enum #marker_ident {}
 
+            impl crate::event::private::Sealed for #marker_ident {}
+
             impl crate::events::EventSpec for #marker_ident {
                 const EVENT_TYPE: &'static str = #event_type;
-                const OBJECT_TYPE: &'static str = #object_type;
 
                 type FetchedObject = #object_type_ident;
             }
@@ -125,10 +122,6 @@ fn collect_event_definitions(raw_spec: &serde_json::Value) -> Result<Vec<EventDe
                     event_type, object.reference
                 )
             })?;
-        let object_type = operation
-            .object_type
-            .ok_or_else(|| format!("Event '{}' is missing x-object-type", event_type))?;
-
         let marker_name = operation
             .operation_id
             .strip_suffix("Webhook")
@@ -139,7 +132,6 @@ fn collect_event_definitions(raw_spec: &serde_json::Value) -> Result<Vec<EventDe
         definitions.push(EventDefinition {
             tag: tag.to_string(),
             event_type,
-            object_type,
             marker_ident: Ident::new(&marker_name, Span::call_site()),
             event_alias_ident: Ident::new(&event_alias_name, Span::call_site()),
             variant_ident: Ident::new(&marker_name, Span::call_site()),
