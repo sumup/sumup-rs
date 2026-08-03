@@ -5,6 +5,9 @@ on:
   pull_request:
     paths:
       - openapi.json
+      - codegen/**
+      - xtask/**
+      - sdk/Cargo.toml
     branches:
       - main
 
@@ -31,6 +34,9 @@ jobs:
           components: rustfmt, clippy
 
       - run: cargo xtask generate
+
+      - name: Validate generated code samples
+        run: cargo xtask validate-code-samples
 
       - name: Create GitHub App token
         id: app-token

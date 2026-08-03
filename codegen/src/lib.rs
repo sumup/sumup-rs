@@ -15,12 +15,14 @@ use operation::GeneratedClientMethods;
 pub mod body;
 pub mod client;
 pub mod operation;
+pub mod samples;
 pub mod schema;
 pub mod tag;
 
 pub use body::generate_operation_bodies;
 pub use client::generate_client_file;
 pub use operation::generate_client_methods;
+pub use samples::{generate_code_samples, CodeSample, CodeSampleCatalog};
 pub use schema::{generate_module_doc_comment, generate_structs_for_schemas};
 pub use tag::{collect_schemas_by_tag, SchemasByTag, TagSchemas};
 
