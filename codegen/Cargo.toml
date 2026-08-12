@@ -13,4 +13,4 @@ quote = "1.0"
 proc-macro2 = "1.0"
 indexmap = "2.14"
 prettyplease = "0.3"
-syn = "2.0"
+syn = { version = "3.0", features = ["full"] }
