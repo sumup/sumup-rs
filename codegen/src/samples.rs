@@ -494,4 +494,43 @@ mod tests {
         assert!(encoded.get("sample").is_some());
         assert!(encoded.get("source").is_none());
     }
+
+    #[test]
+    fn preserves_whole_request_example() {
+        let spec: OpenAPI = serde_json::from_value(serde_json::json!({
+            "openapi": "3.0.3",
+            "info": { "title": "Samples", "version": "1.0.0" },
+            "paths": {
+                "/samples": {
+                    "post": {
+                        "operationId": "CreateSample",
+                        "tags": ["Samples"],
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "required": ["selected", "missing"],
+                                        "properties": {
+                                            "selected": { "type": "string", "example": "property-selected" },
+                                            "missing": { "type": "string", "example": "property-missing" }
+                                        }
+                                    },
+                                    "example": { "selected": "request-selected" }
+                                }
+                            }
+                        },
+                        "responses": { "204": { "description": "Created" } }
+                    }
+                }
+            }
+        }))
+        .expect("parse OpenAPI document");
+
+        let generated = generate_code_samples(&spec, "test").expect("generate samples");
+        let sample = &generated.samples[0].sample;
+        assert!(sample.contains("request-selected"));
+        assert!(!sample.contains("property-"));
+    }
 }
