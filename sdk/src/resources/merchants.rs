@@ -143,7 +143,7 @@ pub struct BasePerson {
     pub user_id: Option<String>,
     /// The date of birth of the individual, represented as an ISO 8601:2004 [ISO8601‑2004] YYYY-MM-DD format.
     ///
-    /// Example: `1980-01-12`
+    /// Example: `1980-01-12T00:00:00Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub birthdate: Option<crate::datetime::Date>,
     /// The first name(s) of the individual.
@@ -479,7 +479,7 @@ pub struct Person {
     pub user_id: Option<String>,
     /// The date of birth of the individual, represented as an ISO 8601:2004 [ISO8601‑2004] YYYY-MM-DD format.
     ///
-    /// Example: `1980-01-12`
+    /// Example: `1980-01-12T00:00:00Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub birthdate: Option<crate::datetime::Date>,
     /// The first name(s) of the individual.

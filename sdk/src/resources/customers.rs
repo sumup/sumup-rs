@@ -9,20 +9,22 @@ use super::common::*;
 /// Saved customer details.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Customer {
-    /// Unique ID of the customer.
+    /// Unique identifier of the customer.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     pub customer_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub personal_details: Option<PersonalDetails>,
 }
-/// Payment Instrument Response
+/// Details of a saved payment instrument.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PaymentInstrumentResponse {
     /// Unique token identifying the saved payment card for a customer.
     ///
     /// Constraints:
     /// - read-only
+    ///
+    /// Example: `bcfc8e5f-3b47-4cb9-854b-3b7a4cce7be3`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
     /// Indicates whether the payment instrument is active and can be used for payments. To deactivate it, send a `DELETE` request to the resource endpoint.
@@ -32,6 +34,8 @@ pub struct PaymentInstrumentResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub active: Option<bool>,
     /// Type of the payment instrument.
+    ///
+    /// Example: `card`
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<PaymentInstrumentResponseType>,
@@ -40,11 +44,15 @@ pub struct PaymentInstrumentResponse {
     pub card: Option<PaymentInstrumentResponseCard>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mandate: Option<MandateResponse>,
-    /// Creation date of payment instrument. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    /// The timestamp of when the payment instrument was created.
+    ///
+    /// Example: `2021-03-30T10:06:07.000+00:00`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<crate::datetime::DateTime>,
 }
 /// Type of the payment instrument.
+///
+/// Example: `card`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum PaymentInstrumentResponseType {
     #[serde(rename = "card")]
@@ -72,7 +80,7 @@ pub struct PaymentInstrumentResponseCard {
 /// Details of the customer.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateRequest {
-    /// Unique ID of the customer.
+    /// Unique identifier of the customer.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     pub customer_id: String,
