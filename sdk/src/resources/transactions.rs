@@ -101,22 +101,34 @@ pub struct Event {
     pub r#type: Option<TransactionEventType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<TransactionEventStatus>,
-    /// Amount of the event.
+    /// Amount associated with the transaction event, in major units.
+    ///
+    /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f32>,
-    /// Date and time of the transaction event.
+    /// The timestamp of when the transaction event occurred.
+    ///
+    /// Example: `2020-05-25T10:49:42.784Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
-    /// Amount of the fee related to the event.
+    /// Fee associated with the transaction event, in major units.
+    ///
+    /// Example: `0.25`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fee_amount: Option<f32>,
-    /// Consecutive number of the installment.
+    /// Consecutive number of the installment associated with the event.
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installment_number: Option<i64>,
-    /// Amount deducted for the event.
+    /// Amount deducted from the merchant for the event, in major units.
+    ///
+    /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deducted_amount: Option<f32>,
-    /// Amount of the fee deducted for the event.
+    /// Fee deducted from the merchant for the event, in major units.
+    ///
+    /// Example: `0.25`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deducted_fee_amount: Option<f32>,
 }
@@ -125,28 +137,38 @@ pub type Lat = f32;
 /// Details of a link to a related resource.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Link {
-    /// Specifies the relation to the current resource.
+    /// Relation of the linked resource to the current resource.
+    ///
+    /// Example: `refund`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rel: Option<String>,
     /// URL for accessing the related resource.
     ///
     /// Constraints:
     /// - format: `uri`
+    ///
+    /// Example: `https://api.sumup.com/v1.0/merchants/MH4H92C7/payments/4ffb8dfc-7f2b-413d-a497-2ad00766585e/refunds`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub href: Option<String>,
-    /// Specifies the media type of the related resource.
+    /// Media type of the linked resource.
+    ///
+    /// Example: `application/json`
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
-    /// Minimum allowed amount for the refund.
+    /// Minimum amount allowed for a refund, in major units.
+    ///
+    /// Example: `0.01`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub min_amount: Option<f32>,
-    /// Maximum allowed amount for the refund.
+    /// Maximum amount allowed for a refund, in major units.
+    ///
+    /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_amount: Option<f32>,
 }
 pub type Lon = f32;
-/// Purchase product.
+/// Product details associated with a transaction.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Product {
     /// Product name.
@@ -154,7 +176,9 @@ pub struct Product {
     /// Example: `Purchase reader for merchant with code ME3FCAVF`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// Product description.
+    /// Human-readable label for the product price.
+    ///
+    /// Example: `EUR 100.00`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub price_label: Option<String>,
     /// Product price.
@@ -165,28 +189,36 @@ pub struct Product {
     /// Example: `100`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub price: Option<f64>,
-    /// VAT percentage.
+    /// VAT rate applied to the product price.
     ///
     /// Constraints:
     /// - format: `decimal`
+    ///
+    /// Example: `0.19`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vat_rate: Option<f64>,
     /// VAT amount for a single product.
     ///
     /// Constraints:
     /// - format: `decimal`
+    ///
+    /// Example: `19`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub single_vat_amount: Option<f64>,
-    /// Product price incl. VAT.
+    /// Product price including VAT.
     ///
     /// Constraints:
     /// - format: `decimal`
+    ///
+    /// Example: `119`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub price_with_vat: Option<f64>,
-    /// VAT amount.
+    /// Total VAT amount for the product quantity.
     ///
     /// Constraints:
     /// - format: `decimal`
+    ///
+    /// Example: `19`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vat_amount: Option<f64>,
     /// Product quantity.
@@ -194,7 +226,7 @@ pub struct Product {
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i64>,
-    /// Quantity x product price.
+    /// Total price calculated as the product price multiplied by the quantity.
     ///
     /// Constraints:
     /// - format: `decimal`
@@ -202,10 +234,12 @@ pub struct Product {
     /// Example: `100`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_price: Option<f64>,
-    /// Total price incl. VAT.
+    /// Total product price including VAT.
     ///
     /// Constraints:
     /// - format: `decimal`
+    ///
+    /// Example: `119`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_with_vat: Option<f64>,
 }
@@ -250,7 +284,7 @@ pub struct TransactionEvent {
 /// Full transaction resource with checkout, payout, and event details.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFull {
-    /// Unique ID of the transaction.
+    /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -267,7 +301,7 @@ pub struct TransactionFull {
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
-    /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    /// The timestamp of when the transaction was created.
     ///
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -276,10 +310,12 @@ pub struct TransactionFull {
     pub status: Option<TransactionStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
-    /// Current number of the installment for deferred payments.
+    /// Number of installments for a deferred payment.
     ///
     /// Constraints:
     /// - value >= 1
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.
@@ -305,23 +341,31 @@ pub struct TransactionFull {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
     /// Short description of the payment. The value is taken from the `description` property of the related checkout resource.
+    ///
+    /// Example: `Purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub product_summary: Option<String>,
     /// Total number of payouts to the registered user specified in the `user` property.
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payouts_total: Option<i64>,
     /// Number of payouts that are made to the registered user specified in the `user` property.
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payouts_received: Option<i64>,
     /// Payout plan of the registered user at the time when the transaction was made.
+    ///
+    /// Example: `SINGLE_PAYMENT`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payout_plan: Option<TransactionFullPayoutPlan>,
-    /// External/foreign transaction id (passed by clients).
+    /// External transaction identifier supplied by the client.
     ///
     /// Example: `J13253253x1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub foreign_transaction_id: Option<String>,
-    /// Client transaction id.
+    /// Client-supplied identifier of the transaction.
     ///
     /// Example: `urn:sumup:pos:sale:MNKKNGST:1D4E3B2D-111D-48D7-9AF0-832DAEF63DD7;2`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -330,6 +374,8 @@ pub struct TransactionFull {
     ///
     /// Constraints:
     /// - format: `email`
+    ///
+    /// Example: `merchant@example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
     /// Transaction SumUp total fee amount.
@@ -346,7 +392,7 @@ pub struct TransactionFull {
     pub lon: Option<Lon>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub horizontal_accuracy: Option<HorizontalAccuracy>,
-    /// SumUp merchant internal Id.
+    /// Internal SumUp identifier of the merchant.
     ///
     /// Example: `136902`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -354,16 +400,22 @@ pub struct TransactionFull {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub device_info: Option<Device>,
     /// Simple name of the payment type.
+    ///
+    /// Example: `CARD`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub simple_payment_type: Option<TransactionFullSimplePaymentType>,
     /// Verification method used for the transaction.
+    ///
+    /// Example: `none`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub verification_method: Option<TransactionFullVerificationMethod>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub card: Option<CardResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub elv_account: Option<ElvCardAccount>,
-    /// Local date and time of the creation of the transaction.
+    /// Local timestamp of when the transaction was created.
+    ///
+    /// Example: `2020-02-29T11:56:56+01:00`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub local_time: Option<crate::datetime::DateTime>,
     /// The date of the payout.
@@ -372,9 +424,11 @@ pub struct TransactionFull {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payout_date: Option<crate::datetime::Date>,
     /// Payout type for the transaction.
+    ///
+    /// Example: `BANK_ACCOUNT`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payout_type: Option<TransactionFullPayoutType>,
-    /// Debit/Credit.
+    /// Whether the transaction was processed as credit or debit.
     ///
     /// Example: `CREDIT`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -400,6 +454,8 @@ pub struct TransactionFull {
     /// - `REFUND_FAILED`: An attempt to refund the payment was not completed successfully.
     /// - `CHARGEBACK`: The payment was subject to a chargeback.
     /// - `NON_COLLECTION`: The amount could not be collected from the merchant after a chargeback or related adjustment.
+    ///
+    /// Example: `SUCCESSFUL`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub simple_status: Option<TransactionFullSimpleStatus>,
     /// List of hyperlinks for accessing related resources.
@@ -412,13 +468,15 @@ pub struct TransactionFull {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<TransactionFullLocation>,
     /// Indicates whether tax deduction is enabled for the transaction.
+    ///
+    /// Example: `true`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tax_enabled: Option<bool>,
 }
 /// Transaction entry returned in history listing responses.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionHistory {
-    /// Unique ID of the transaction.
+    /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -435,7 +493,7 @@ pub struct TransactionHistory {
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
-    /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    /// The timestamp of when the transaction was created.
     ///
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -444,36 +502,52 @@ pub struct TransactionHistory {
     pub status: Option<TransactionStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
-    /// Current number of the installment for deferred payments.
+    /// Number of installments for a deferred payment.
     ///
     /// Constraints:
     /// - value >= 1
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Short description of the payment. The value is taken from the `description` property of the related checkout resource.
+    ///
+    /// Example: `Purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub product_summary: Option<String>,
     /// Total number of payouts to the registered user specified in the `user` property.
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payouts_total: Option<i64>,
     /// Number of payouts that are made to the registered user specified in the `user` property.
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payouts_received: Option<i64>,
     /// Payout plan of the registered user at the time when the transaction was made.
+    ///
+    /// Example: `SINGLE_PAYMENT`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payout_plan: Option<TransactionHistoryPayoutPlan>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<TransactionId>,
-    /// Client-specific ID of the transaction.
+    /// Client-supplied identifier of the transaction.
+    ///
+    /// Example: `urn:sumup:pos:sale:MNKKNGST:1D4E3B2D-111D-48D7-9AF0-832DAEF63DD7;2`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_transaction_id: Option<String>,
     /// Email address of the registered user (merchant) to whom the payment is made.
     ///
     /// Constraints:
     /// - format: `email`
+    ///
+    /// Example: `merchant@example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<String>,
     /// Type of the transaction for the registered user specified in the `user` property.
+    ///
+    /// Example: `PAYMENT`
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<TransactionHistoryType>,
@@ -511,6 +585,8 @@ pub struct TransactionsHistoryLink {
     pub href: String,
 }
 /// Payout plan of the registered user at the time when the transaction was made.
+///
+/// Example: `SINGLE_PAYMENT`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullPayoutPlan {
     #[serde(rename = "SINGLE_PAYMENT")]
@@ -523,6 +599,8 @@ pub enum TransactionFullPayoutPlan {
     Other(String),
 }
 /// Simple name of the payment type.
+///
+/// Example: `CARD`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullSimplePaymentType {
     #[serde(rename = "CASH")]
@@ -557,6 +635,8 @@ pub enum TransactionFullSimplePaymentType {
     Other(String),
 }
 /// Verification method used for the transaction.
+///
+/// Example: `none`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullVerificationMethod {
     #[serde(rename = "none")]
@@ -575,6 +655,8 @@ pub enum TransactionFullVerificationMethod {
     Other(String),
 }
 /// Payout type for the transaction.
+///
+/// Example: `BANK_ACCOUNT`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullPayoutType {
     #[serde(rename = "BANK_ACCOUNT")]
@@ -584,7 +666,7 @@ pub enum TransactionFullPayoutType {
     #[serde(untagged)]
     Other(String),
 }
-/// Debit/Credit.
+/// Whether the transaction was processed as credit or debit.
 ///
 /// Example: `CREDIT`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -643,6 +725,8 @@ pub struct TransactionFullVatRatesItem {
 /// - `REFUND_FAILED`: An attempt to refund the payment was not completed successfully.
 /// - `CHARGEBACK`: The payment was subject to a chargeback.
 /// - `NON_COLLECTION`: The amount could not be collected from the merchant after a chargeback or related adjustment.
+///
+/// Example: `SUCCESSFUL`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionFullSimpleStatus {
     #[serde(rename = "SUCCESSFUL")]
@@ -679,6 +763,8 @@ pub struct TransactionFullLocation {
     pub horizontal_accuracy: Option<HorizontalAccuracy>,
 }
 /// Payout plan of the registered user at the time when the transaction was made.
+///
+/// Example: `SINGLE_PAYMENT`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionHistoryPayoutPlan {
     #[serde(rename = "SINGLE_PAYMENT")]
@@ -691,6 +777,8 @@ pub enum TransactionHistoryPayoutPlan {
     Other(String),
 }
 /// Type of the transaction for the registered user specified in the `user` property.
+///
+/// Example: `PAYMENT`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransactionHistoryType {
     #[serde(rename = "PAYMENT")]
@@ -763,27 +851,39 @@ pub type RefundResponse = serde_json::Value;
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GetParams {
     /// Retrieves the transaction resource with the specified transaction ID (the `id` parameter in the transaction resource).
+    ///
+    /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// Retrieves the transaction resource with the specified transaction code.
+    ///
+    /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
-    /// External/foreign transaction id (passed by clients).
+    /// External transaction identifier supplied by the client.
+    ///
+    /// Example: `J13253253x1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub foreign_transaction_id: Option<String>,
-    /// Client transaction id.
+    /// Client-supplied identifier of the transaction.
+    ///
+    /// Example: `urn:sumup:pos:sale:MNKKNGST:1D4E3B2D-111D-48D7-9AF0-832DAEF63DD7;2`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_transaction_id: Option<String>,
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
     /// Retrieves the transaction resource with the specified transaction code.
+    ///
+    /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
     /// Specifies the order in which the returned results are displayed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<ListParamsOrder>,
     /// Specifies the maximum number of results per page. Value must be a positive integer and if not specified, will return 10 results.
+    ///
+    /// Example: `10`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
     /// Filters the returned results by user email.
@@ -807,26 +907,38 @@ pub struct ListParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub types: Option<Vec<ListParamsTypesItem>>,
     /// Filters the results by the latest modification time of resources and returns only transactions that are modified *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
+    ///
+    /// Example: `2019-08-28T09:00:00Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub changes_since: Option<crate::datetime::DateTime>,
     /// Filters the results by the creation time of resources and returns only transactions that are created *before* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
+    ///
+    /// Example: `2019-08-29T09:00:00Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub newest_time: Option<crate::datetime::DateTime>,
     /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *smaller* than the specified value. This parameters supersedes the `newest_time` parameter (if both are provided in the request).
+    ///
+    /// Example: `090df9bf-93b7-40f1-8181-fbdb236568a1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub newest_ref: Option<String>,
     /// Filters the results by the creation time of resources and returns only transactions that are created *at or after* the specified timestamp (in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format).
+    ///
+    /// Example: `2019-08-28T09:00:00Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oldest_time: Option<crate::datetime::DateTime>,
     /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *greater* than the specified value. This parameters supersedes the `oldest_time` parameter (if both are provided in the request).
+    ///
+    /// Example: `090df9bf-93b7-40f1-8181-fbdb236568a1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oldest_ref: Option<String>,
 }
 /// Returns a page of transaction history items.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListResponse {
+    /// Transactions in the current result page.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<TransactionHistory>>,
+    /// Pagination links for navigating the transaction history.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub links: Option<Vec<TransactionsHistoryLink>>,
 }

@@ -45,6 +45,8 @@ pub struct Card {
     ///
     /// Constraints:
     /// - write-only
+    ///
+    /// Example: `12`
     pub expiry_month: CardExpiryMonth,
     /// Three or four-digit card verification value (security code) of the payment card.
     ///
@@ -86,7 +88,7 @@ pub struct Checkout {
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
-    /// Merchant account that receives the payment.
+    /// Short unique identifier for the merchant that receives the payment.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -117,7 +119,7 @@ pub struct Checkout {
     /// Example: `PENDING`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<CheckoutStatus>,
-    /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    /// The timestamp of when the checkout was created.
     ///
     /// Example: `2020-02-29T10:56:56+00:00`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -179,7 +181,7 @@ pub struct CheckoutSuccess {
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
-    /// Merchant account that receives the payment.
+    /// Short unique identifier for the merchant that receives the payment.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -210,7 +212,7 @@ pub struct CheckoutSuccess {
     /// Example: `PENDING`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<CheckoutSuccessStatus>,
-    /// Date and time of the creation of the payment checkout. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    /// The timestamp of when the checkout was created.
     ///
     /// Example: `2020-02-29T10:56:56+00:00`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -254,7 +256,7 @@ pub struct CheckoutSuccess {
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
-    /// Transaction ID of the successful transaction with which the payment for the checkout is completed.
+    /// Unique identifier of the successful transaction that completed payment for the checkout.
     ///
     /// Constraints:
     /// - read-only
@@ -262,7 +264,7 @@ pub struct CheckoutSuccess {
     /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<String>,
-    /// Name of the merchant
+    /// Name of the merchant.
     ///
     /// Example: `Sample Merchant`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -276,7 +278,7 @@ pub struct CheckoutSuccess {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_instrument: Option<CheckoutSuccessPaymentInstrument>,
 }
-/// Error message structure.
+/// Details of a request validation error.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DetailsError {
     /// Short title of the error.
@@ -289,7 +291,7 @@ pub struct DetailsError {
     /// Example: `One or more of the parameters are invalid.`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub details: Option<String>,
-    /// The status code.
+    /// HTTP status code for the error.
     ///
     /// Example: `400`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -339,6 +341,8 @@ pub struct MandatePayload {
 ///
 /// Constraints:
 /// - write-only
+///
+/// Example: `12`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CardExpiryMonth {
     #[serde(rename = "01")]
@@ -386,7 +390,7 @@ pub enum CheckoutStatus {
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutTransactionsItem {
-    /// Unique ID of the transaction.
+    /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -403,7 +407,7 @@ pub struct CheckoutTransactionsItem {
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
-    /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    /// The timestamp of when the transaction was created.
     ///
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -412,10 +416,12 @@ pub struct CheckoutTransactionsItem {
     pub status: Option<TransactionStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
-    /// Current number of the installment for deferred payments.
+    /// Number of installments for a deferred payment.
     ///
     /// Constraints:
     /// - value >= 1
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.
@@ -503,7 +509,7 @@ pub enum CheckoutSuccessStatus {
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccessTransactionsItem {
-    /// Unique ID of the transaction.
+    /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -520,7 +526,7 @@ pub struct CheckoutSuccessTransactionsItem {
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
-    /// Date and time of the creation of the transaction. Response format expressed according to [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) code.
+    /// The timestamp of when the transaction was created.
     ///
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -529,10 +535,12 @@ pub struct CheckoutSuccessTransactionsItem {
     pub status: Option<TransactionStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payment_type: Option<PaymentType>,
-    /// Current number of the installment for deferred payments.
+    /// Number of installments for a deferred payment.
     ///
     /// Constraints:
     /// - value >= 1
+    ///
+    /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.
@@ -561,7 +569,7 @@ pub struct CheckoutSuccessTransactionsItem {
 /// Details of the saved payment instrument created or reused during checkout processing.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CheckoutSuccessPaymentInstrument {
-    /// Token value
+    /// Unique token of the saved payment instrument.
     ///
     /// Example: `e76d7e5c-9375-4fac-a7e7-b19dc5302fbc`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -569,8 +577,14 @@ pub struct CheckoutSuccessPaymentInstrument {
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DetailsErrorFailedConstraintsItem {
+    /// Human-readable description of the violated constraint.
+    ///
+    /// Example: `Currency must also be specified when filtering by amount`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// Name of the field that violated the constraint.
+    ///
+    /// Example: `currency`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reference: Option<String>,
 }
@@ -618,14 +632,16 @@ pub enum ProcessRequestPaymentType {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem {
-    /// The ID of the payment method.
+    /// Unique identifier of the payment method.
     ///
     /// Example: `qr_code_pix`
     pub id: String,
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListParams {
-    /// Filters the list of checkout resources by the unique ID of the checkout.
+    /// Filters the list of checkout resources by the unique reference of the checkout.
+    ///
+    /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkout_reference: Option<String>,
 }
@@ -646,7 +662,7 @@ pub struct CreateRequest {
     /// Example: `10.1`
     pub amount: f32,
     pub currency: Currency,
-    /// Merchant account that should receive the payment.
+    /// Short unique identifier for the merchant that should receive the payment.
     ///
     /// Example: `MH4H92C7`
     pub merchant_code: String,
@@ -787,6 +803,7 @@ pub struct ListAvailablePaymentMethodsParams {
 /// Available payment methods
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListAvailablePaymentMethodsResponse {
+    /// Payment methods available to the merchant for the checkout.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub available_payment_methods:
         Option<Vec<ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem>>,
