@@ -44,7 +44,7 @@ pub struct ListResponse {
     pub items: Vec<Role>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct CreateBody {
+pub struct CreateRequest {
     /// User-defined name of the role.
     ///
     /// Example: `Senior Shop Manager II`
@@ -63,7 +63,7 @@ pub struct CreateBody {
     pub description: Option<String>,
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct UpdateBody {
+pub struct UpdateRequest {
     /// User-defined name of the role.
     ///
     /// Example: `Senior Shop Manager II`
@@ -172,7 +172,7 @@ impl<'a> RolesClient<'a> {
     pub async fn create(
         &self,
         merchant_code: impl Into<String>,
-        body: CreateBody,
+        body: CreateRequest,
     ) -> crate::error::SdkResult<Role, CreateErrorBody> {
         let path = format!("/v0.1/merchants/{}/roles", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
@@ -325,7 +325,7 @@ impl<'a> RolesClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         role_id: impl Into<String>,
-        body: UpdateBody,
+        body: UpdateRequest,
     ) -> crate::error::SdkResult<Role, UpdateErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",

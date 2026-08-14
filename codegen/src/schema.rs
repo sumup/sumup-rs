@@ -410,6 +410,16 @@ pub fn generate_structs_for_schemas(
     schema_names: &HashSet<String>,
     error_schema_names: &HashSet<String>,
 ) -> Result<TokenStream, String> {
+    let mut symbols = crate::symbol::SymbolRegistry::new("standalone schemas");
+    generate_structs_for_schemas_with_registry(spec, schema_names, error_schema_names, &mut symbols)
+}
+
+pub(crate) fn generate_structs_for_schemas_with_registry(
+    spec: &OpenAPI,
+    schema_names: &HashSet<String>,
+    error_schema_names: &HashSet<String>,
+    symbols: &mut crate::symbol::SymbolRegistry,
+) -> Result<TokenStream, String> {
     let mut items = Vec::new();
     let mut nested_schemas = Vec::new();
 
@@ -444,6 +454,11 @@ pub fn generate_structs_for_schemas(
             openapiv3::ReferenceOr::Reference { .. } => continue,
         };
 
+        symbols.reserve(
+            struct_name.to_string(),
+            format!("component schema `{name}`"),
+        )?;
+
         match &schema.schema_kind {
             openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
                 if should_emit_free_form_object_alias(
@@ -457,7 +472,13 @@ pub fn generate_structs_for_schemas(
                 }
 
                 // Collect nested inline schemas
-                collect_nested_schemas(spec, name, &obj.properties, &mut nested_schemas)?;
+                collect_nested_schemas_with_registry(
+                    spec,
+                    name,
+                    &obj.properties,
+                    &mut nested_schemas,
+                    symbols,
+                )?;
 
                 let fields = generate_struct_fields(
                     name,
@@ -517,7 +538,13 @@ pub fn generate_structs_for_schemas(
                         continue;
                     }
 
-                    collect_nested_schemas(spec, name, &combined_properties, &mut nested_schemas)?;
+                    collect_nested_schemas_with_registry(
+                        spec,
+                        name,
+                        &combined_properties,
+                        &mut nested_schemas,
+                        symbols,
+                    )?;
 
                     let fields = generate_struct_fields(
                         name,
@@ -647,6 +674,21 @@ pub fn generate_structs_for_schemas(
     })
 }
 
+pub(crate) fn schema_symbol_names(
+    spec: &OpenAPI,
+    schema_names: &HashSet<String>,
+    error_schema_names: &HashSet<String>,
+) -> Result<Vec<String>, String> {
+    let mut symbols = crate::symbol::SymbolRegistry::new("schema symbol discovery");
+    generate_structs_for_schemas_with_registry(
+        spec,
+        schema_names,
+        error_schema_names,
+        &mut symbols,
+    )?;
+    Ok(symbols.names().map(str::to_string).collect())
+}
+
 /// Produces a `#[deprecated]` attribute when the schema marks itself as deprecated.
 fn generate_deprecation_attribute(schema_data: &openapiv3::SchemaData) -> TokenStream {
     if !schema_data.deprecated {
@@ -670,14 +712,20 @@ fn generate_deprecation_attribute(schema_data: &openapiv3::SchemaData) -> TokenS
 struct NestedStructGenerator<'spec, 'schemas> {
     spec: &'spec OpenAPI,
     nested_schemas: &'schemas mut Vec<TokenStream>,
+    symbols: &'schemas mut crate::symbol::SymbolRegistry,
 }
 
 impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
     /// Creates a helper that appends generated nested structs to the shared buffer.
-    fn new(spec: &'spec OpenAPI, nested_schemas: &'schemas mut Vec<TokenStream>) -> Self {
+    fn new(
+        spec: &'spec OpenAPI,
+        nested_schemas: &'schemas mut Vec<TokenStream>,
+        symbols: &'schemas mut crate::symbol::SymbolRegistry,
+    ) -> Self {
         Self {
             spec,
             nested_schemas,
+            symbols,
         }
     }
 
@@ -710,26 +758,20 @@ impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
         fallback_suffix: &str,
     ) -> Result<(), String> {
         let (parent_name, field_name) = parent_field;
-        let nested_struct_name = schema
-            .schema_data
-            .title
-            .as_ref()
-            .map(|t| t.to_upper_camel_case())
-            .unwrap_or_else(|| {
-                format!(
-                    "{}{}{}",
-                    parent_name.to_upper_camel_case(),
-                    field_name.to_upper_camel_case(),
-                    fallback_suffix
-                )
-            });
+        let nested_struct_name = nested_inline_type_name(parent_name, field_name, fallback_suffix);
         let struct_ident = Ident::new(&nested_struct_name, Span::call_site());
 
-        collect_nested_schemas(
+        self.symbols.reserve(
+            nested_struct_name.clone(),
+            format!("inline schema for field `{parent_name}.{field_name}`"),
+        )?;
+
+        collect_nested_schemas_with_registry(
             self.spec,
             &nested_struct_name,
             properties,
             &mut *self.nested_schemas,
+            &mut *self.symbols,
         )?;
 
         let fields = generate_struct_fields(
@@ -773,6 +815,10 @@ impl<'spec, 'schemas> NestedStructGenerator<'spec, 'schemas> {
     ) -> Result<(), String> {
         let type_name = nested_inline_type_name(parent_name, field_name, fallback_suffix);
         let type_ident = Ident::new(&type_name, Span::call_site());
+        self.symbols.reserve(
+            type_name,
+            format!("inline enum for field `{parent_name}.{field_name}`"),
+        )?;
         let description = schema.schema_data.description.as_deref();
         let enum_tokens =
             generate_inline_string_enum(&type_ident, enumeration, description, schema)?;
@@ -830,7 +876,24 @@ pub fn collect_nested_schemas(
     properties: &Properties,
     nested_schemas: &mut Vec<TokenStream>,
 ) -> Result<(), String> {
-    let mut generator = NestedStructGenerator::new(spec, nested_schemas);
+    let mut symbols = crate::symbol::SymbolRegistry::new(parent_name);
+    collect_nested_schemas_with_registry(
+        spec,
+        parent_name,
+        properties,
+        nested_schemas,
+        &mut symbols,
+    )
+}
+
+pub(crate) fn collect_nested_schemas_with_registry(
+    spec: &OpenAPI,
+    parent_name: &str,
+    properties: &Properties,
+    nested_schemas: &mut Vec<TokenStream>,
+    symbols: &mut crate::symbol::SymbolRegistry,
+) -> Result<(), String> {
+    let mut generator = NestedStructGenerator::new(spec, nested_schemas, symbols);
 
     for (field_name, prop_ref) in properties {
         if let openapiv3::ReferenceOr::Item(schema) = prop_ref {
@@ -1045,7 +1108,7 @@ pub(crate) fn flatten_all_of_object(
 }
 
 /// Resolves a schema reference to the concrete schema definition within `components`.
-fn dereference_schema<'a>(
+pub(crate) fn dereference_schema<'a>(
     spec: &'a OpenAPI,
     schema_ref: &'a openapiv3::ReferenceOr<openapiv3::Schema>,
 ) -> Result<&'a openapiv3::Schema, String> {
@@ -1369,20 +1432,9 @@ pub fn infer_rust_type(
                             ) {
                                 quote! { serde_json::Value }
                             } else {
-                                // Prefer title if available, otherwise use nested struct name
-                                let nested_type = schema
-                                    .schema_data
-                                    .title
-                                    .as_ref()
-                                    .map(|t| t.to_upper_camel_case())
-                                    .or_else(|| {
-                                        parent_field.map(|(parent_name, field_name)| {
-                                            format!(
-                                                "{}{}Item",
-                                                parent_name.to_upper_camel_case(),
-                                                field_name.to_upper_camel_case()
-                                            )
-                                        })
+                                let nested_type = parent_field
+                                    .map(|(parent_name, field_name)| {
+                                        nested_inline_type_name(parent_name, field_name, "Item")
                                     })
                                     .unwrap_or_else(|| "serde_json::Value".to_string());
 
@@ -1395,19 +1447,9 @@ pub fn infer_rust_type(
                             }
                         }
                         openapiv3::SchemaKind::AllOf { .. } => {
-                            let nested_type = schema
-                                .schema_data
-                                .title
-                                .as_ref()
-                                .map(|t| t.to_upper_camel_case())
-                                .or_else(|| {
-                                    parent_field.map(|(parent_name, field_name)| {
-                                        format!(
-                                            "{}{}Item",
-                                            parent_name.to_upper_camel_case(),
-                                            field_name.to_upper_camel_case()
-                                        )
-                                    })
+                            let nested_type = parent_field
+                                .map(|(parent_name, field_name)| {
+                                    nested_inline_type_name(parent_name, field_name, "Item")
                                 })
                                 .unwrap_or_else(|| "serde_json::Value".to_string());
 
@@ -1451,31 +1493,9 @@ pub fn infer_rust_type(
                 }
             }
 
-            // Prefer title if available from the schema_ref
-            let nested_type = if let openapiv3::ReferenceOr::Item(schema) = schema_ref {
-                schema
-                    .schema_data
-                    .title
-                    .as_ref()
-                    .map(|t| t.to_upper_camel_case())
-                    .or_else(|| {
-                        parent_field.map(|(parent_name, field_name)| {
-                            format!(
-                                "{}{}",
-                                parent_name.to_upper_camel_case(),
-                                field_name.to_upper_camel_case()
-                            )
-                        })
-                    })
-            } else {
-                parent_field.map(|(parent_name, field_name)| {
-                    format!(
-                        "{}{}",
-                        parent_name.to_upper_camel_case(),
-                        field_name.to_upper_camel_case()
-                    )
-                })
-            };
+            let nested_type = parent_field.map(|(parent_name, field_name)| {
+                nested_inline_type_name(parent_name, field_name, "")
+            });
 
             if let Some(type_name) = nested_type {
                 let type_ident = Ident::new(&type_name, Span::call_site());
@@ -1485,30 +1505,9 @@ pub fn infer_rust_type(
             }
         }
         openapiv3::SchemaKind::AllOf { .. } => {
-            let nested_type = if let openapiv3::ReferenceOr::Item(schema) = schema_ref {
-                schema
-                    .schema_data
-                    .title
-                    .as_ref()
-                    .map(|t| t.to_upper_camel_case())
-                    .or_else(|| {
-                        parent_field.map(|(parent_name, field_name)| {
-                            format!(
-                                "{}{}",
-                                parent_name.to_upper_camel_case(),
-                                field_name.to_upper_camel_case()
-                            )
-                        })
-                    })
-            } else {
-                parent_field.map(|(parent_name, field_name)| {
-                    format!(
-                        "{}{}",
-                        parent_name.to_upper_camel_case(),
-                        field_name.to_upper_camel_case()
-                    )
-                })
-            };
+            let nested_type = parent_field.map(|(parent_name, field_name)| {
+                nested_inline_type_name(parent_name, field_name, "")
+            });
 
             if let Some(type_name) = nested_type {
                 let type_ident = Ident::new(&type_name, Span::call_site());

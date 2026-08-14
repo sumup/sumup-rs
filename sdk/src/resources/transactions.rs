@@ -751,7 +751,7 @@ pub enum ListParamsTypesItem {
 }
 /// Optional amount for partial refunds.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct RefundBody {
+pub struct RefundRequest {
     /// Amount to be refunded. Eligible amount can't exceed the amount of the transaction and varies based on country and currency. If you do not specify a value, the system performs a full refund of the transaction.
     ///
     /// Example: `5`
@@ -877,7 +877,7 @@ impl<'a> TransactionsClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         transaction_id: impl Into<String>,
-        body: Option<RefundBody>,
+        body: Option<RefundRequest>,
     ) -> crate::error::SdkResult<RefundResponse, RefundErrorBody> {
         let path = format!(
             "/v1.0/merchants/{}/payments/{}/refunds",

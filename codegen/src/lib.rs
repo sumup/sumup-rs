@@ -17,6 +17,7 @@ pub mod client;
 pub mod operation;
 pub mod samples;
 pub mod schema;
+mod symbol;
 pub mod tag;
 
 pub use body::generate_operation_bodies;
@@ -195,18 +196,34 @@ impl Generator {
             tag_data.error_schemas.len()
         ));
 
-        let schema_tokens = generate_structs_for_schemas(
+        let use_common_schemas = self.should_import_common(tag, tag_data);
+        let mut symbols = symbol::SymbolRegistry::new(tag.to_snake_case());
+        symbols.reserve("Client", "import `crate::client::Client`")?;
+
+        if use_common_schemas {
+            for name in schema::schema_symbol_names(
+                &self.spec,
+                &self.schemas_by_tag.common_schemas,
+                &self.schemas_by_tag.common_error_schemas,
+            )? {
+                symbols.reserve(name.clone(), format!("common schema import `{name}`"))?;
+            }
+        }
+
+        let schema_tokens = schema::generate_structs_for_schemas_with_registry(
             &self.spec,
             &tag_data.all_schemas,
             &tag_data.error_schemas,
+            &mut symbols,
         )?;
-        let body_tokens = generate_operation_bodies(&self.spec, tag)?;
-        let client_tokens = generate_tag_client(&self.spec, tag)?;
+        let body_tokens =
+            body::generate_operation_bodies_with_registry(&self.spec, tag, &mut symbols)?;
+        let client_tokens = generate_tag_client_with_registry(&self.spec, tag, &mut symbols)?;
         let module_doc_comment = tag_description(&self.spec, tag)
             .map(generate_module_doc_comment)
             .unwrap_or_default();
 
-        let use_common = if self.should_import_common(tag, tag_data) {
+        let use_common = if use_common_schemas {
             quote! {
                 use super::common::*;
             }
@@ -365,10 +382,12 @@ pub fn generate_common_file(
     common_path.push("resources");
     common_path.push("common.rs");
 
-    let schema_tokens = generate_structs_for_schemas(
+    let mut symbols = symbol::SymbolRegistry::new("common");
+    let schema_tokens = schema::generate_structs_for_schemas_with_registry(
         spec,
         &schemas_by_tag.common_schemas,
         &schemas_by_tag.common_error_schemas,
+        &mut symbols,
     )?;
 
     let contents = format_generated_code(schema_tokens);
@@ -424,10 +443,21 @@ fn format_with_rustfmt(code: &str) -> Result<String, std::io::Error> {
 
 /// Builds the client struct and methods for a specific OpenAPI tag.
 pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
+    let mut symbols = symbol::SymbolRegistry::new(tag.to_snake_case());
+    symbols.reserve("Client", "import `crate::client::Client`")?;
+    generate_tag_client_with_registry(spec, tag, &mut symbols)
+}
+
+fn generate_tag_client_with_registry(
+    spec: &OpenAPI,
+    tag: &str,
+    symbols: &mut symbol::SymbolRegistry,
+) -> Result<TokenStream, String> {
     let client_type = Ident::new(
         &format!("{}Client", tag.to_upper_camel_case()),
         Span::call_site(),
     );
+    symbols.reserve(client_type.to_string(), format!("client for tag `{tag}`"))?;
     let doc_comment =
         schema::generate_doc_comment(&format!("Client for the {} API endpoints.", tag));
 
@@ -435,7 +465,7 @@ pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, Str
     let GeneratedClientMethods {
         methods,
         extra_items,
-    } = generate_client_methods(spec, tag)?;
+    } = operation::generate_client_methods_with_registry(spec, tag, symbols)?;
     let methods_tokens = quote! { #(#methods)* };
     let extra_items_tokens = if extra_items.is_empty() {
         quote! {}
@@ -496,13 +526,29 @@ pub fn does_reference_common_schemas(
     false
 }
 
-/// Reports whether operations with the given tag mention common schemas in their responses.
+/// Reports whether operations with the given tag mention common schemas in their bodies.
 pub fn does_tag_operations_reference_common(
     spec: &OpenAPI,
     tag: &str,
     common_schemas: &std::collections::HashSet<String>,
 ) -> bool {
     for tagged_operation in collect_tagged_operations(spec, tag) {
+        if let Some(request_body_ref) = &tagged_operation.operation.request_body {
+            if let Ok(request_body) = body::resolve_request_body(spec, request_body_ref) {
+                if let Some(schema_ref) = body::request_body_schema(request_body) {
+                    if references_common_schema_ref(schema_ref, common_schemas) {
+                        return true;
+                    }
+
+                    if let Ok(schema) = schema::dereference_schema(spec, schema_ref) {
+                        if references_common_in_schema(schema, common_schemas) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
         for response_ref in tagged_operation.operation.responses.responses.values() {
             let response = match response_ref {
                 openapiv3::ReferenceOr::Item(r) => r,
@@ -635,6 +681,39 @@ mod tests {
         serde_json::from_value(value).expect("failed to parse OpenAPI fixture")
     }
 
+    fn generate_tag_surface(spec: &OpenAPI, tag: &str) -> Result<(), String> {
+        let grouped = collect_schemas_by_tag(spec)?;
+        let tag_data = grouped
+            .tag_schemas
+            .get(tag)
+            .ok_or_else(|| format!("tag `{tag}` not found"))?;
+        let mut symbols = symbol::SymbolRegistry::new(tag.to_snake_case());
+        symbols.reserve("Client", "import `crate::client::Client`")?;
+
+        let uses_common =
+            does_reference_common_schemas(spec, &tag_data.all_schemas, &grouped.common_schemas)
+                || does_tag_operations_reference_common(spec, tag, &grouped.common_schemas);
+        if uses_common {
+            for name in schema::schema_symbol_names(
+                spec,
+                &grouped.common_schemas,
+                &grouped.common_error_schemas,
+            )? {
+                symbols.reserve(name.clone(), format!("common schema import `{name}`"))?;
+            }
+        }
+
+        schema::generate_structs_for_schemas_with_registry(
+            spec,
+            &tag_data.all_schemas,
+            &tag_data.error_schemas,
+            &mut symbols,
+        )?;
+        body::generate_operation_bodies_with_registry(spec, tag, &mut symbols)?;
+        generate_tag_client_with_registry(spec, tag, &mut symbols)?;
+        Ok(())
+    }
+
     #[test]
     fn collect_tagged_operations_filters_and_sorts_operations() {
         let spec = parse_spec(json!({
@@ -669,6 +748,355 @@ mod tests {
         assert_eq!(operations[0].http_method, "post");
         assert_eq!(operations[1].path, "/z-endpoint");
         assert_eq!(operations[1].http_method, "get");
+    }
+
+    #[test]
+    fn component_and_operation_request_collision_reports_both_origins() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/checkouts": {
+                    "post": {
+                        "operationId": "CreateReaderCheckout",
+                        "x-codegen": { "method_name": "create_checkout" },
+                        "tags": ["Readers"],
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": { "amount": { "type": "number" } }
+                                    }
+                                }
+                            }
+                        },
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "$ref": "#/components/schemas/CreateCheckoutRequest"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "CreateCheckoutRequest": { "type": "object" }
+                }
+            }
+        }));
+
+        let error = generate_tag_surface(&spec, "Readers")
+            .expect_err("component and request names should collide");
+        assert!(error.contains("component schema `CreateCheckoutRequest`"));
+        assert!(error.contains("request body for operation `create_checkout`"));
+    }
+
+    #[test]
+    fn duplicate_operation_request_names_report_both_operations() {
+        let request_body = json!({
+            "required": true,
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": { "value": { "type": "string" } }
+                    }
+                }
+            }
+        });
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/a": {
+                    "post": {
+                        "operationId": "CreateA",
+                        "x-codegen": { "method_name": "create_checkout" },
+                        "tags": ["Readers"],
+                        "requestBody": request_body.clone(),
+                        "responses": { "204": { "description": "ok" } }
+                    }
+                },
+                "/b": {
+                    "post": {
+                        "operationId": "CreateB",
+                        "x-codegen": { "method_name": "create_checkout" },
+                        "tags": ["Readers"],
+                        "requestBody": request_body,
+                        "responses": { "204": { "description": "ok" } }
+                    }
+                }
+            }
+        }));
+
+        let error = generate_tag_surface(&spec, "Readers")
+            .expect_err("duplicate operation request names should collide");
+        assert!(error.contains("post /a, operationId `CreateA`"));
+        assert!(error.contains("post /b, operationId `CreateB`"));
+    }
+
+    #[test]
+    fn common_import_and_operation_request_collision_is_rejected() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/target": {
+                    "post": {
+                        "operationId": "CreateTarget",
+                        "x-codegen": { "method_name": "create" },
+                        "tags": ["Target"],
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": { "type": "object" }
+                                }
+                            }
+                        },
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/CreateRequest" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "/other": {
+                    "get": {
+                        "operationId": "GetOther",
+                        "tags": ["Other"],
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/CreateRequest" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "CreateRequest": { "type": "object" }
+                }
+            }
+        }));
+
+        let error = generate_tag_surface(&spec, "Target")
+            .expect_err("common import and request names should collide");
+        assert!(error.contains("common schema import `CreateRequest`"));
+        assert!(error.contains("request body for operation `create`"));
+    }
+
+    #[test]
+    fn component_and_operation_error_collision_is_rejected() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/create": {
+                    "post": {
+                        "operationId": "CreateThing",
+                        "x-codegen": { "method_name": "create" },
+                        "tags": ["Things"],
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/CreateErrorBody" }
+                                    }
+                                }
+                            },
+                            "400": { "description": "bad request" }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "CreateErrorBody": { "type": "object" }
+                }
+            }
+        }));
+
+        let error = generate_tag_surface(&spec, "Things")
+            .expect_err("component and error names should collide");
+        assert!(error.contains("component schema `CreateErrorBody`"));
+        assert!(error.contains("error response body for operation `create`"));
+    }
+
+    #[test]
+    fn component_and_operation_params_collision_is_rejected() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/things": {
+                    "get": {
+                        "operationId": "ListThings",
+                        "x-codegen": { "method_name": "list" },
+                        "tags": ["Things"],
+                        "parameters": [
+                            {
+                                "name": "query",
+                                "in": "query",
+                                "schema": { "type": "string" }
+                            }
+                        ],
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/ListParams" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "ListParams": { "type": "object" }
+                }
+            }
+        }));
+
+        let error = generate_tag_surface(&spec, "Things")
+            .expect_err("component and params names should collide");
+        assert!(error.contains("component schema `ListParams`"));
+        assert!(error.contains("query parameters for operation `list`"));
+    }
+
+    #[test]
+    fn component_and_inline_response_collision_is_rejected() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/inline": {
+                    "get": {
+                        "operationId": "GetInline",
+                        "x-codegen": { "method_name": "get" },
+                        "tags": ["Things"],
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": { "value": { "type": "string" } }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "/component": {
+                    "get": {
+                        "operationId": "GetComponent",
+                        "tags": ["Things"],
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "$ref": "#/components/schemas/GetResponse" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "GetResponse": { "type": "object" }
+                }
+            }
+        }));
+
+        let error = generate_tag_surface(&spec, "Things")
+            .expect_err("component and response names should collide");
+        assert!(error.contains("component schema `GetResponse`"));
+        assert!(error.contains("success response body for operation `get`"));
+    }
+
+    #[test]
+    fn component_and_nested_inline_collision_is_rejected() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/create": {
+                    "post": {
+                        "operationId": "CreateThing",
+                        "x-codegen": { "method_name": "create" },
+                        "tags": ["Things"],
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "details": {
+                                                "title": "IgnoredTitle",
+                                                "type": "object",
+                                                "properties": {
+                                                    "value": { "type": "string" }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "responses": {
+                            "200": {
+                                "description": "ok",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "$ref": "#/components/schemas/CreateRequestDetails"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "CreateRequestDetails": { "type": "object" }
+                }
+            }
+        }));
+
+        let error = generate_tag_surface(&spec, "Things")
+            .expect_err("component and nested names should collide");
+        assert!(error.contains("component schema `CreateRequestDetails`"));
+        assert!(error.contains("inline schema for field `CreateRequest.details`"));
     }
 
     #[test]
