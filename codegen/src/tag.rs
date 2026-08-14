@@ -43,15 +43,13 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
 
                 // Collect schemas from request body
                 if let Some(request_body_ref) = &operation.request_body {
-                    let request_body = match request_body_ref {
-                        openapiv3::ReferenceOr::Item(rb) => rb,
-                        openapiv3::ReferenceOr::Reference { .. } => continue,
-                    };
+                    let request_body = crate::body::resolve_request_body(spec, request_body_ref)?;
 
                     for media_type in request_body.content.values() {
                         if let Some(schema_ref) = &media_type.schema {
-                            collect_schema_references_unboxed(
-                                schema_ref,
+                            let schema = crate::schema::dereference_schema(spec, schema_ref)?;
+                            collect_schema_references_from_schema(
+                                schema,
                                 &mut tag_data.all_schemas,
                             );
                         }
@@ -411,5 +409,50 @@ mod tests {
             .expect("untagged operations should be grouped");
         assert!(untagged.all_schemas.contains("UntaggedOnly"));
         assert!(untagged.error_schemas.is_empty());
+    }
+
+    #[test]
+    fn request_root_schema_is_replaced_by_operation_request_struct() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/demo": {
+                    "post": {
+                        "operationId": "createDemo",
+                        "tags": ["Demo"],
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "schema": { "$ref": "#/components/schemas/LegacyRequest" }
+                                }
+                            }
+                        },
+                        "responses": { "204": { "description": "ok" } }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "LegacyRequest": {
+                        "type": "object",
+                        "properties": {
+                            "value": { "$ref": "#/components/schemas/RequestValue" }
+                        }
+                    },
+                    "RequestValue": { "type": "string" }
+                }
+            }
+        }));
+
+        let grouped = collect_schemas_by_tag(&spec).expect("schema grouping should succeed");
+        let demo = grouped
+            .tag_schemas
+            .get("Demo")
+            .expect("demo operations should be grouped");
+
+        assert!(!demo.all_schemas.contains("LegacyRequest"));
+        assert!(demo.all_schemas.contains("RequestValue"));
     }
 }

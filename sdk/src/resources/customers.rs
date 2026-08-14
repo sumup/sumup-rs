@@ -69,9 +69,19 @@ pub struct PaymentInstrumentResponseCard {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<CardType>,
 }
+/// Details of the customer.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CreateRequest {
+    /// Unique ID of the customer.
+    ///
+    /// Example: `831ff8d4cd5958ab5670`
+    pub customer_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub personal_details: Option<PersonalDetails>,
+}
 /// Customer fields to update.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct UpdateBody {
+pub struct UpdateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub personal_details: Option<PersonalDetails>,
 }
@@ -135,7 +145,7 @@ impl<'a> CustomersClient<'a> {
     /// - 409: A customer with the provided identifier already exists.
     pub async fn create(
         &self,
-        body: Customer,
+        body: CreateRequest,
     ) -> crate::error::SdkResult<Customer, CreateErrorBody> {
         let path = "/v0.1/customers";
         let url = format!("{}{}", self.client.base_url(), path);
@@ -258,7 +268,7 @@ impl<'a> CustomersClient<'a> {
     pub async fn update(
         &self,
         customer_id: impl Into<String>,
-        body: UpdateBody,
+        body: UpdateRequest,
     ) -> crate::error::SdkResult<Customer, UpdateErrorBody> {
         let path = format!("/v0.1/customers/{}", customer_id.into());
         let url = format!("{}{}", self.client.base_url(), path);

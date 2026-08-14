@@ -104,7 +104,7 @@ pub enum UserType {
 }
 /// Allows you to update user data of managed users.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct UpdateBodyUser {
+pub struct UpdateRequestUser {
     /// User's nickname. Used for display purposes only.
     ///
     /// Constraints:
@@ -173,7 +173,7 @@ pub struct ListResponse {
     pub total_count: Option<i64>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct CreateBody {
+pub struct CreateRequest {
     /// True if the user is managed by the merchant. In this case, we'll created a virtual user with the provided password and nickname.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_managed_user: Option<bool>,
@@ -208,7 +208,7 @@ pub struct CreateBody {
     pub attributes: Option<Attributes>,
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct UpdateBody {
+pub struct UpdateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub roles: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -217,7 +217,7 @@ pub struct UpdateBody {
     pub attributes: Option<Attributes>,
     /// Allows you to update user data of managed users.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user: Option<UpdateBodyUser>,
+    pub user: Option<UpdateRequestUser>,
 }
 use crate::client::Client;
 #[derive(Debug, PartialEq)]
@@ -337,7 +337,7 @@ impl<'a> MembersClient<'a> {
     pub async fn create(
         &self,
         merchant_code: impl Into<String>,
-        body: CreateBody,
+        body: CreateRequest,
     ) -> crate::error::SdkResult<Member, CreateErrorBody> {
         let path = format!("/v0.1/merchants/{}/members", merchant_code.into());
         let url = format!("{}{}", self.client.base_url(), path);
@@ -498,7 +498,7 @@ impl<'a> MembersClient<'a> {
         &self,
         merchant_code: impl Into<String>,
         member_id: impl Into<String>,
-        body: UpdateBody,
+        body: UpdateRequest,
     ) -> crate::error::SdkResult<Member, UpdateErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/members/{}",

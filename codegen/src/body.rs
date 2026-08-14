@@ -5,8 +5,16 @@ use quote::quote;
 
 /// Generates request and response body structs for every operation under the given tag.
 pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
+    let mut symbols = crate::symbol::SymbolRegistry::new(tag.to_snake_case());
+    generate_operation_bodies_with_registry(spec, tag, &mut symbols)
+}
+
+pub(crate) fn generate_operation_bodies_with_registry(
+    spec: &OpenAPI,
+    tag: &str,
+    symbols: &mut crate::symbol::SymbolRegistry,
+) -> Result<TokenStream, String> {
     let mut body_structs = Vec::new();
-    let mut generated_names = std::collections::HashSet::new();
     let mut nested_schemas = Vec::new();
 
     // Collect all operations with this tag and sort them by path, method, and operation name.
@@ -41,12 +49,19 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
             .then_with(|| a.3.cmp(&b.3))
     });
 
-    for (_path, _http_method, _operation_id, operation_name, op) in operations_to_process {
+    for (path, http_method, operation_id, operation_name, op) in operations_to_process {
+        let operation_origin = format!(
+            "operation `{operation_name}` ({http_method} {path}, operationId `{operation_id}`)"
+        );
+
         // Generate query params struct if present
-        let query_types = generate_query_param_types(&operation_name, op, &mut generated_names)?;
+        let query_types =
+            generate_query_param_types(&operation_name, op, &operation_origin, symbols)?;
         nested_schemas.extend(query_types);
 
-        if let Some(params_struct) = generate_query_params_struct(op, &operation_name) {
+        if let Some(params_struct) =
+            generate_query_params_struct(op, &operation_name, &operation_origin, symbols)?
+        {
             body_structs.push(params_struct);
         }
 
@@ -55,9 +70,10 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
             if let Some(body_struct) = generate_request_body_struct(
                 spec,
                 &operation_name,
+                &operation_origin,
                 request_body_ref,
-                &mut generated_names,
                 &mut nested_schemas,
+                symbols,
             )? {
                 body_structs.push(body_struct);
             }
@@ -67,9 +83,10 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
         if let Some(response_structs) = generate_response_body_structs(
             spec,
             &operation_name,
+            &operation_origin,
             &op.responses,
-            &mut generated_names,
             &mut nested_schemas,
+            symbols,
         )? {
             body_structs.extend(response_structs);
         }
@@ -88,7 +105,9 @@ pub fn generate_operation_bodies(spec: &OpenAPI, tag: &str) -> Result<TokenStrea
 fn generate_query_params_struct(
     operation: &openapiv3::Operation,
     operation_name: &str,
-) -> Option<TokenStream> {
+    operation_origin: &str,
+    symbols: &mut crate::symbol::SymbolRegistry,
+) -> Result<Option<TokenStream>, String> {
     // Collect query parameters
     let mut query_params = Vec::new();
 
@@ -104,10 +123,14 @@ fn generate_query_params_struct(
     }
 
     if query_params.is_empty() {
-        return None;
+        return Ok(None);
     }
 
     let params_struct_name = format!("{}Params", operation_name.to_upper_camel_case());
+    symbols.reserve(
+        params_struct_name.clone(),
+        format!("query parameters for {operation_origin}"),
+    )?;
     let struct_name = Ident::new(&params_struct_name, Span::call_site());
 
     // Generate fields
@@ -173,12 +196,12 @@ fn generate_query_params_struct(
         });
     }
 
-    Some(quote! {
+    Ok(Some(quote! {
         #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
         pub struct #struct_name {
             #(#fields,)*
         }
-    })
+    }))
 }
 
 /// Infers the Rust type for a query parameter schema and reports whether it is nullable.
@@ -298,7 +321,8 @@ fn infer_param_type(
 fn generate_query_param_types(
     operation_name: &str,
     operation: &openapiv3::Operation,
-    generated_names: &mut std::collections::HashSet<String>,
+    operation_origin: &str,
+    symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<Vec<TokenStream>, String> {
     let mut generated = Vec::new();
 
@@ -321,7 +345,8 @@ fn generate_query_param_types(
             operation_name,
             &field_name,
             schema_ref,
-            generated_names,
+            operation_origin,
+            symbols,
         )?);
     }
 
@@ -332,7 +357,8 @@ fn generate_query_param_type_definition(
     operation_name: &str,
     field_name: &str,
     schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
-    generated_names: &mut std::collections::HashSet<String>,
+    operation_origin: &str,
+    symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<Vec<TokenStream>, String> {
     let openapiv3::ReferenceOr::Item(schema) = schema_ref else {
         return Ok(Vec::new());
@@ -345,9 +371,10 @@ fn generate_query_param_type_definition(
             }
 
             let type_ident = query_param_type_ident(operation_name, field_name);
-            if !generated_names.insert(type_ident.to_string()) {
-                return Ok(Vec::new());
-            }
+            symbols.reserve(
+                type_ident.to_string(),
+                format!("query parameter `{field_name}` for {operation_origin}"),
+            )?;
 
             Ok(vec![build_string_enum(
                 type_ident,
@@ -371,9 +398,10 @@ fn generate_query_param_type_definition(
             }
 
             let type_ident = query_param_item_type_ident(operation_name, field_name);
-            if !generated_names.insert(type_ident.to_string()) {
-                return Ok(Vec::new());
-            }
+            symbols.reserve(
+                type_ident.to_string(),
+                format!("query parameter `{field_name}` item for {operation_origin}"),
+            )?;
 
             Ok(vec![build_string_enum(
                 type_ident,
@@ -457,75 +485,96 @@ fn query_param_item_type_ident(operation_name: &str, field_name: &str) -> Ident 
     )
 }
 
-/// Emits a request body struct for inline request schemas referenced by the operation.
+/// Emits a request body type named after the operation.
 fn generate_request_body_struct(
     spec: &OpenAPI,
     operation_name: &str,
+    operation_origin: &str,
     request_body_ref: &openapiv3::ReferenceOr<openapiv3::RequestBody>,
-    generated_names: &mut std::collections::HashSet<String>,
     nested_schemas: &mut Vec<TokenStream>,
+    symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<Option<TokenStream>, String> {
-    let request_body = match request_body_ref {
-        openapiv3::ReferenceOr::Item(rb) => rb,
-        openapiv3::ReferenceOr::Reference { .. } => {
-            // If it's a reference, it should already be in the schemas
-            return Ok(None);
-        }
+    let request_body = resolve_request_body(spec, request_body_ref)?;
+    let Some(schema_ref) = request_body_schema(request_body) else {
+        return Ok(None);
     };
+    let schema = crate::schema::dereference_schema(spec, schema_ref)?;
+    let struct_name = operation_request_type_ident(operation_name);
+    let struct_name_str = struct_name.to_string();
 
-    // Look for application/json content
-    let media_type = request_body
-        .content
-        .get("application/json")
-        .or_else(|| request_body.content.values().next());
+    symbols.reserve(
+        struct_name_str,
+        format!("request body for {operation_origin}"),
+    )?;
 
-    if let Some(mt) = media_type {
-        if let Some(schema_ref) = &mt.schema {
-            match schema_ref {
-                openapiv3::ReferenceOr::Reference { .. } => {
-                    // Already a schema reference, will be handled elsewhere
-                    return Ok(None);
-                }
-                openapiv3::ReferenceOr::Item(schema) => {
-                    // Inline schema - generate a struct
-                    let struct_name_str = format!("{}Body", operation_name.to_upper_camel_case());
+    let description = request_body
+        .description
+        .as_deref()
+        .or(schema.schema_data.description.as_deref())
+        .map(|description| crate::schema::generate_schema_doc_comment(Some(description), schema));
 
-                    if !generated_names.insert(struct_name_str.clone()) {
-                        // Already generated
-                        return Ok(None);
-                    }
+    generate_schema_struct(
+        spec,
+        &struct_name,
+        schema,
+        description,
+        nested_schemas,
+        symbols,
+    )
+    .map(Some)
+}
 
-                    let struct_name = Ident::new(&struct_name_str, Span::call_site());
+pub(crate) fn operation_request_type_ident(operation_name: &str) -> Ident {
+    Ident::new(
+        &format!("{}Request", operation_name.to_upper_camel_case()),
+        Span::call_site(),
+    )
+}
 
-                    let description = request_body
-                        .description
-                        .as_ref()
-                        .map(|d| crate::schema::generate_doc_comment(d));
+pub(crate) fn resolve_request_body<'a>(
+    spec: &'a OpenAPI,
+    request_body_ref: &'a openapiv3::ReferenceOr<openapiv3::RequestBody>,
+) -> Result<&'a openapiv3::RequestBody, String> {
+    match request_body_ref {
+        openapiv3::ReferenceOr::Item(request_body) => Ok(request_body),
+        openapiv3::ReferenceOr::Reference { reference } => {
+            let request_body_name = reference
+                .strip_prefix("#/components/requestBodies/")
+                .ok_or_else(|| format!("Unsupported request body reference: {reference}"))?;
+            let components = spec
+                .components
+                .as_ref()
+                .ok_or_else(|| "OpenAPI spec is missing components section".to_string())?;
+            let target = components
+                .request_bodies
+                .get(request_body_name)
+                .ok_or_else(|| {
+                    format!("Referenced request body '{request_body_name}' not found")
+                })?;
 
-                    let body_tokens = generate_schema_struct(
-                        spec,
-                        &struct_name,
-                        schema,
-                        description,
-                        nested_schemas,
-                    )?;
-
-                    return Ok(Some(body_tokens));
-                }
-            }
+            resolve_request_body(spec, target)
         }
     }
+}
 
-    Ok(None)
+pub(crate) fn request_body_schema(
+    request_body: &openapiv3::RequestBody,
+) -> Option<&openapiv3::ReferenceOr<openapiv3::Schema>> {
+    request_body
+        .content
+        .get("application/json")
+        .or_else(|| request_body.content.values().next())
+        .and_then(|media_type| media_type.schema.as_ref())
 }
 
 /// Creates response body representations for the operation's successful responses.
 fn generate_response_body_structs(
     spec: &OpenAPI,
     operation_name: &str,
+    operation_origin: &str,
     responses: &openapiv3::Responses,
-    generated_names: &mut std::collections::HashSet<String>,
     nested_schemas: &mut Vec<TokenStream>,
+    symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<Option<Vec<TokenStream>>, String> {
     let mut response_structs = Vec::new();
     let mut success_responses = Vec::new();
@@ -569,9 +618,10 @@ fn generate_response_body_structs(
                         let struct_name_str =
                             format!("{}Response", operation_name.to_upper_camel_case());
 
-                        if !generated_names.insert(struct_name_str.clone()) {
-                            return Ok(None);
-                        }
+                        symbols.reserve(
+                            struct_name_str.clone(),
+                            format!("success response body for {operation_origin}"),
+                        )?;
 
                         let struct_name = Ident::new(&struct_name_str, Span::call_site());
 
@@ -584,6 +634,7 @@ fn generate_response_body_structs(
                             schema,
                             description,
                             nested_schemas,
+                            symbols,
                         )?;
 
                         response_structs.push(body_tokens);
@@ -595,102 +646,106 @@ fn generate_response_body_structs(
         // Multiple successful responses - create an enum
         let enum_name_str = format!("{}Response", operation_name.to_upper_camel_case());
 
-        if generated_names.insert(enum_name_str.clone()) {
-            let enum_name = Ident::new(&enum_name_str, Span::call_site());
-            let mut variants = Vec::new();
-            let mut variant_structs = Vec::new();
+        symbols.reserve(
+            enum_name_str.clone(),
+            format!("success response enum for {operation_origin}"),
+        )?;
+        let enum_name = Ident::new(&enum_name_str, Span::call_site());
+        let mut variants = Vec::new();
+        let mut variant_structs = Vec::new();
 
-            for (status, response_ref) in success_responses.iter() {
-                let variant_name_str = format!("Status{}", status);
-                let variant_name = Ident::new(&variant_name_str, Span::call_site());
+        for (status, response_ref) in success_responses.iter() {
+            let variant_name_str = format!("Status{}", status);
+            let variant_name = Ident::new(&variant_name_str, Span::call_site());
 
-                let struct_name_str =
-                    format!("{}Response{}", operation_name.to_upper_camel_case(), status);
-                let struct_name = Ident::new(&struct_name_str, Span::call_site());
+            let struct_name_str =
+                format!("{}Response{}", operation_name.to_upper_camel_case(), status);
+            let struct_name = Ident::new(&struct_name_str, Span::call_site());
 
-                match response_ref {
-                    openapiv3::ReferenceOr::Reference { reference } => {
-                        // For referenced responses, use the schema name directly
-                        let schema_name = reference
-                            .strip_prefix("#/components/responses/")
-                            .or_else(|| reference.strip_prefix("#/components/schemas/"))
-                            .ok_or_else(|| format!("Invalid response reference: {}", reference))?;
-                        let schema_type = Ident::new(schema_name, Span::call_site());
+            match response_ref {
+                openapiv3::ReferenceOr::Reference { reference } => {
+                    // For referenced responses, use the schema name directly
+                    let schema_name = reference
+                        .strip_prefix("#/components/responses/")
+                        .or_else(|| reference.strip_prefix("#/components/schemas/"))
+                        .ok_or_else(|| format!("Invalid response reference: {}", reference))?;
+                    let schema_type = Ident::new(schema_name, Span::call_site());
 
-                        variants.push(quote! {
-                            #variant_name(#schema_type)
-                        });
-                    }
-                    openapiv3::ReferenceOr::Item(response) => {
-                        if let Some(media_type) =
-                            crate::preferred_response_media_type(&response.content)
-                        {
-                            if let Some(schema_ref) = &media_type.schema {
-                                match schema_ref {
-                                    openapiv3::ReferenceOr::Reference { reference } => {
-                                        // Schema reference - use that type
-                                        let schema_name = reference
-                                            .strip_prefix("#/components/schemas/")
-                                            .ok_or_else(|| {
-                                                format!("Invalid schema reference: {}", reference)
-                                            })?;
-                                        let schema_type =
-                                            Ident::new(schema_name, Span::call_site());
+                    variants.push(quote! {
+                        #variant_name(#schema_type)
+                    });
+                }
+                openapiv3::ReferenceOr::Item(response) => {
+                    if let Some(media_type) =
+                        crate::preferred_response_media_type(&response.content)
+                    {
+                        if let Some(schema_ref) = &media_type.schema {
+                            match schema_ref {
+                                openapiv3::ReferenceOr::Reference { reference } => {
+                                    // Schema reference - use that type
+                                    let schema_name = reference
+                                        .strip_prefix("#/components/schemas/")
+                                        .ok_or_else(|| {
+                                            format!("Invalid schema reference: {}", reference)
+                                        })?;
+                                    let schema_type = Ident::new(schema_name, Span::call_site());
 
-                                        variants.push(quote! {
-                                            #variant_name(#schema_type)
-                                        });
-                                    }
-                                    openapiv3::ReferenceOr::Item(schema) => {
-                                        // Inline schema - generate struct
-                                        if generated_names.insert(struct_name_str.clone()) {
-                                            let description =
-                                                Some(&response.description).map(|d| {
-                                                    crate::schema::generate_doc_comment(d.as_str())
-                                                });
-
-                                            let body_tokens = generate_schema_struct(
-                                                spec,
-                                                &struct_name,
-                                                schema,
-                                                description,
-                                                nested_schemas,
-                                            )?;
-
-                                            variant_structs.push(body_tokens);
-                                        }
-
-                                        variants.push(quote! {
-                                            #variant_name(#struct_name)
-                                        });
-                                    }
+                                    variants.push(quote! {
+                                        #variant_name(#schema_type)
+                                    });
                                 }
-                            } else {
-                                // No schema - unit variant
-                                variants.push(quote! {
-                                    #variant_name
-                                });
+                                openapiv3::ReferenceOr::Item(schema) => {
+                                    // Inline schema - generate struct
+                                    symbols.reserve(
+                                        struct_name_str.clone(),
+                                        format!(
+                                            "{status} success response body for {operation_origin}"
+                                        ),
+                                    )?;
+                                    let description = Some(&response.description)
+                                        .map(|d| crate::schema::generate_doc_comment(d.as_str()));
+
+                                    let body_tokens = generate_schema_struct(
+                                        spec,
+                                        &struct_name,
+                                        schema,
+                                        description,
+                                        nested_schemas,
+                                        symbols,
+                                    )?;
+
+                                    variant_structs.push(body_tokens);
+
+                                    variants.push(quote! {
+                                        #variant_name(#struct_name)
+                                    });
+                                }
                             }
                         } else {
-                            // No content - unit variant
+                            // No schema - unit variant
                             variants.push(quote! {
                                 #variant_name
                             });
                         }
+                    } else {
+                        // No content - unit variant
+                        variants.push(quote! {
+                            #variant_name
+                        });
                     }
                 }
             }
+        }
 
-            if !variants.is_empty() {
-                response_structs.extend(variant_structs);
-                response_structs.push(quote! {
-                    #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-                    #[serde(untagged)]
-                    pub enum #enum_name {
-                        #(#variants,)*
-                    }
-                });
-            }
+        if !variants.is_empty() {
+            response_structs.extend(variant_structs);
+            response_structs.push(quote! {
+                #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+                #[serde(untagged)]
+                pub enum #enum_name {
+                    #(#variants,)*
+                }
+            });
         }
     }
 
@@ -708,6 +763,7 @@ fn generate_schema_struct(
     schema: &openapiv3::Schema,
     description: Option<TokenStream>,
     nested_schemas: &mut Vec<TokenStream>,
+    symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<TokenStream, String> {
     match &schema.schema_kind {
         openapiv3::SchemaKind::Type(openapiv3::Type::Object(obj)) => {
@@ -724,11 +780,12 @@ fn generate_schema_struct(
             let struct_name_str = struct_name.to_string();
 
             // Collect nested inline schemas
-            crate::schema::collect_nested_schemas(
+            crate::schema::collect_nested_schemas_with_registry(
                 spec,
                 &struct_name_str,
                 &obj.properties,
                 nested_schemas,
+                symbols,
             )?;
 
             let fields = crate::schema::generate_struct_fields(
@@ -761,11 +818,12 @@ fn generate_schema_struct(
             {
                 let struct_name_str = struct_name.to_string();
 
-                crate::schema::collect_nested_schemas(
+                crate::schema::collect_nested_schemas_with_registry(
                     spec,
                     &struct_name_str,
                     &combined_properties,
                     nested_schemas,
+                    symbols,
                 )?;
 
                 let fields = crate::schema::generate_struct_fields(
@@ -818,5 +876,84 @@ fn generate_schema_struct(
                 pub type #struct_name = #base_type;
             })
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn parse_spec(value: serde_json::Value) -> OpenAPI {
+        serde_json::from_value(value).expect("failed to parse OpenAPI fixture")
+    }
+
+    #[test]
+    fn request_struct_uses_operation_name_for_referenced_schema() {
+        let spec = parse_spec(json!({
+            "openapi": "3.0.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/checkouts": {
+                    "post": {
+                        "operationId": "CreateReaderCheckout",
+                        "x-codegen": { "method_name": "create_checkout" },
+                        "tags": ["Readers"],
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/ReaderCheckoutBody"
+                                    }
+                                }
+                            }
+                        },
+                        "responses": { "204": { "description": "ok" } }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "ReaderCheckoutBody": {
+                        "type": "object",
+                        "properties": {
+                            "description": { "type": "string" },
+                            "inline_money": {
+                                "title": "Money",
+                                "type": "object",
+                                "properties": {
+                                    "value": { "type": "integer" }
+                                }
+                            },
+                            "shared_money": {
+                                "$ref": "#/components/schemas/Money"
+                            }
+                        },
+                        "required": ["description"]
+                    },
+                    "Money": {
+                        "type": "object",
+                        "properties": {
+                            "value": { "type": "integer" }
+                        }
+                    }
+                }
+            }
+        }));
+
+        let body_tokens = generate_operation_bodies(&spec, "Readers")
+            .expect("request body generation should succeed");
+        let body_code = crate::format_generated_code(body_tokens);
+        assert!(body_code.contains("pub struct CreateCheckoutRequest {"));
+        assert!(body_code.contains("pub struct CreateCheckoutRequestInlineMoney {"));
+        assert!(body_code.contains("pub inline_money: Option<CreateCheckoutRequestInlineMoney>,"));
+        assert!(body_code.contains("pub shared_money: Option<Money>,"));
+        assert!(!body_code.contains("pub struct Money {"));
+
+        let client_tokens =
+            crate::generate_tag_client(&spec, "Readers").expect("client generation should succeed");
+        let client_code = crate::format_generated_code(client_tokens);
+        assert!(client_code.contains("body: CreateCheckoutRequest,"));
     }
 }
