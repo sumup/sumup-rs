@@ -15,61 +15,6 @@
 //!
 //! Checkouts are used to initiate and orchestrate online payments. Transactions remain the authoritative record of the resulting payment outcome.
 use super::common::*;
-/// __Required when payment type is `card`.__ Details of the payment card.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct Card {
-    /// Name of the cardholder as it appears on the payment card.
-    ///
-    /// Constraints:
-    /// - write-only
-    ///
-    /// Example: `FIRSTNAME LASTNAME`
-    pub name: String,
-    /// Number of the payment card (without spaces).
-    ///
-    /// Constraints:
-    /// - write-only
-    ///
-    /// Example: `1234567890123456`
-    pub number: String,
-    /// Year from the expiration time of the payment card. Accepted formats are `YY` and `YYYY`.
-    ///
-    /// Constraints:
-    /// - write-only
-    /// - min length: 2
-    /// - max length: 4
-    ///
-    /// Example: `2023`
-    pub expiry_year: String,
-    /// Month from the expiration time of the payment card. Accepted format is `MM`.
-    ///
-    /// Constraints:
-    /// - write-only
-    ///
-    /// Example: `12`
-    pub expiry_month: CardExpiryMonth,
-    /// Three or four-digit card verification value (security code) of the payment card.
-    ///
-    /// Constraints:
-    /// - write-only
-    /// - min length: 3
-    /// - max length: 4
-    ///
-    /// Example: `123`
-    pub cvv: String,
-    /// Required five-digit ZIP code. Applicable only to merchant users in the USA.
-    ///
-    /// Constraints:
-    /// - write-only
-    /// - min length: 5
-    /// - max length: 5
-    ///
-    /// Example: `12345`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub zip_code: Option<String>,
-    #[serde(rename = "type")]
-    pub r#type: CardType,
-}
 /// Core checkout resource returned by the Checkouts API. A checkout is created before payment processing and then updated as payment attempts, redirects, and resulting transactions are attached to it.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Checkout {
@@ -155,13 +100,6 @@ pub struct Checkout {
     /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transactions: Option<Vec<CheckoutTransactionsItem>>,
-}
-/// Response returned when checkout processing requires an additional payer action, such as a 3DS challenge or a redirect to an external payment method page.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct CheckoutAccepted {
-    /// Instructions for the next action the payer or client must take.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub next_step: Option<CheckoutAcceptedNextStep>,
 }
 /// Checkout resource returned after a synchronous processing attempt. In addition to the base checkout fields, it can include the resulting transaction identifiers and any newly created payment instrument token.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -319,59 +257,6 @@ pub struct HostedCheckout {
     /// Example: `true`
     pub enabled: bool,
 }
-/// Mandate details used when a checkout should create a reusable card token for future recurring or merchant-initiated payments.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct MandatePayload {
-    /// Type of mandate to create for the saved payment instrument.
-    ///
-    /// Example: `recurrent`
-    #[serde(rename = "type")]
-    pub r#type: MandatePayloadType,
-    /// Browser or client user agent observed when consent was collected.
-    ///
-    /// Example: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36`
-    pub user_agent: String,
-    /// IP address of the payer when the mandate was accepted.
-    ///
-    /// Example: `172.217.169.174`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_ip: Option<String>,
-}
-/// Month from the expiration time of the payment card. Accepted format is `MM`.
-///
-/// Constraints:
-/// - write-only
-///
-/// Example: `12`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum CardExpiryMonth {
-    #[serde(rename = "01")]
-    _01,
-    #[serde(rename = "02")]
-    _02,
-    #[serde(rename = "03")]
-    _03,
-    #[serde(rename = "04")]
-    _04,
-    #[serde(rename = "05")]
-    _05,
-    #[serde(rename = "06")]
-    _06,
-    #[serde(rename = "07")]
-    _07,
-    #[serde(rename = "08")]
-    _08,
-    #[serde(rename = "09")]
-    _09,
-    #[serde(rename = "10")]
-    _10,
-    #[serde(rename = "11")]
-    _11,
-    #[serde(rename = "12")]
-    _12,
-    #[serde(untagged)]
-    Other(String),
-}
 /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
 ///
 /// Example: `PENDING`
@@ -446,50 +331,6 @@ pub struct CheckoutTransactionsItem {
     /// Example: `053201`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_code: Option<String>,
-}
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum CheckoutAcceptedNextStepMechanismItem {
-    #[serde(rename = "iframe")]
-    Iframe,
-    #[serde(rename = "browser")]
-    Browser,
-    #[serde(untagged)]
-    Other(String),
-}
-/// Parameters required to complete the next step. The exact keys depend on the payment provider and flow type.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct CheckoutAcceptedNextStepPayload {
-    #[serde(
-        flatten,
-        default,
-        skip_serializing_if = "std::collections::HashMap::is_empty"
-    )]
-    pub additional_properties: std::collections::HashMap<String, String>,
-}
-/// Instructions for the next action the payer or client must take.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct CheckoutAcceptedNextStep {
-    /// URL to open or submit in order to continue processing.
-    ///
-    /// Example: `https://dummy-3ds-gateway.com/cap?RID=1233&VAA=A`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub url: Option<String>,
-    /// HTTP method to use when following the next step.
-    ///
-    /// Example: `POST`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub method: Option<String>,
-    /// Merchant URL where the payer returns after the external flow finishes.
-    ///
-    /// Example: `https://mysite.com/completed_purchase`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub redirect_url: Option<String>,
-    /// Allowed presentation mechanisms for the next step. `iframe` means the flow can be embedded, while `browser` means it can be completed through a full-page redirect.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mechanism: Option<Vec<CheckoutAcceptedNextStepMechanismItem>>,
-    /// Parameters required to complete the next step. The exact keys depend on the payment provider and flow type.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payload: Option<CheckoutAcceptedNextStepPayload>,
 }
 /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
 ///
@@ -588,16 +429,6 @@ pub struct DetailsErrorFailedConstraintsItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reference: Option<String>,
 }
-/// Type of mandate to create for the saved payment instrument.
-///
-/// Example: `recurrent`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum MandatePayloadType {
-    #[serde(rename = "recurrent")]
-    Recurrent,
-    #[serde(untagged)]
-    Other(String),
-}
 /// Business purpose of the checkout. Use `CHECKOUT` for a standard payment and `SETUP_RECURRING_PAYMENT` when collecting consent and payment details for future recurring charges.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CreateRequestPurpose {
@@ -605,28 +436,6 @@ pub enum CreateRequestPurpose {
     Checkout,
     #[serde(rename = "SETUP_RECURRING_PAYMENT")]
     SetupRecurringPayment,
-    #[serde(untagged)]
-    Other(String),
-}
-/// Payment method used for this processing attempt. It determines which additional request fields are required.
-///
-/// Example: `card`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum ProcessRequestPaymentType {
-    #[serde(rename = "card")]
-    Card,
-    #[serde(rename = "boleto")]
-    Boleto,
-    #[serde(rename = "ideal")]
-    Ideal,
-    #[serde(rename = "blik")]
-    Blik,
-    #[serde(rename = "bancontact")]
-    Bancontact,
-    #[serde(rename = "google_pay")]
-    GooglePay,
-    #[serde(rename = "apple_pay")]
-    ApplePay,
     #[serde(untagged)]
     Other(String),
 }
@@ -742,51 +551,6 @@ pub struct UpdateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub customer_id: Option<String>,
 }
-/// Details of the payment instrument for processing the checkout.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct ProcessRequest {
-    /// Payment method used for this processing attempt. It determines which additional request fields are required.
-    ///
-    /// Example: `card`
-    pub payment_type: ProcessRequestPaymentType,
-    /// Number of installments for deferred payments. Available only to merchant users in Brazil.
-    ///
-    /// Constraints:
-    /// - value >= 1
-    /// - value <= 12
-    ///
-    /// Example: `1`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub installments: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mandate: Option<MandatePayload>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub card: Option<Card>,
-    /// Raw `PaymentData` object received from Google Pay. Send the Google Pay response payload as-is.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub google_pay: Option<serde_json::Value>,
-    /// Raw payment token object received from Apple Pay. Send the Apple Pay response payload as-is.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub apple_pay: Option<serde_json::Value>,
-    /// Saved-card token to use instead of raw card details when processing with a previously stored payment instrument.
-    ///
-    /// Example: `ba85dfee-c3cf-48a6-84f5-d7d761fbba50`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub token: Option<String>,
-    /// Customer identifier associated with the saved payment instrument. Required when `token` is provided.
-    ///
-    /// Example: `MEDKHDTI`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub customer_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub personal_details: Option<PersonalDetails>,
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(untagged)]
-pub enum ProcessResponse {
-    Status200(CheckoutSuccess),
-    Status202(CheckoutAccepted),
-}
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListAvailablePaymentMethodsParams {
     /// The amount for which the payment methods should be eligible, in major units.
@@ -857,13 +621,6 @@ pub enum GetErrorBody {
 pub enum UpdateErrorBody {
     Unauthorized(Problem),
     NotFound(Error),
-}
-#[derive(Debug, PartialEq)]
-pub enum ProcessErrorBody {
-    BadRequest(crate::error::UnknownApiBody),
-    Unauthorized(Problem),
-    NotFound(Error),
-    Conflict(Error),
 }
 #[derive(Debug, PartialEq)]
 pub enum ListAvailablePaymentMethodsErrorBody {
@@ -1162,82 +919,6 @@ impl<'a> CheckoutsClient<'a> {
             _ => {
                 let body_bytes = response.bytes().await?;
                 let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
-        }
-    }
-    /// Process a checkout
-    ///
-    /// Processing a checkout will attempt to charge the provided payment instrument for the amount of the specified checkout resource initiated in the `Create a checkout` endpoint.
-    ///
-    /// Follow this request with `Retrieve a checkout` to confirm its status.
-    ///
-    /// Responses:
-    /// - 200: Returns the checkout resource after a processing attempt.
-    /// - 202: Returns the next required action for asynchronous checkout processing.
-    /// - 400: The request body is invalid for processing the checkout.
-    /// - 401: The request is not authorized.
-    /// - 404: The requested resource does not exist.
-    /// - 409: The request conflicts with the current state of the resource.
-    pub async fn process(
-        &self,
-        checkout_id: impl Into<String>,
-        body: ProcessRequest,
-    ) -> crate::error::SdkResult<ProcessResponse, ProcessErrorBody> {
-        let path = format!("/v0.1/checkouts/{}", checkout_id.into());
-        let url = format!("{}{}", self.client.base_url(), path);
-        let mut request = self
-            .client
-            .http_client()
-            .put(&url)
-            .header("User-Agent", crate::version::user_agent())
-            .timeout(self.client.timeout())
-            .json(&body);
-        if let Some(authorization) = self.client.authorization() {
-            request = request.header("Authorization", format!("Bearer {}", authorization));
-        }
-        for (header_name, header_value) in self.client.runtime_headers() {
-            request = request.header(*header_name, header_value);
-        }
-        let response = request.send().await?;
-        let status = response.status();
-        match status {
-            reqwest::StatusCode::OK => {
-                let data: CheckoutSuccess = response.json().await?;
-                Ok(ProcessResponse::Status200(data))
-            }
-            reqwest::StatusCode::ACCEPTED => {
-                let data: CheckoutAccepted = response.json().await?;
-                Ok(ProcessResponse::Status202(data))
-            }
-            reqwest::StatusCode::BAD_REQUEST => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::api(ProcessErrorBody::BadRequest(
-                    body,
-                )))
-            }
-            reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(ProcessErrorBody::Unauthorized(
-                    body,
-                )))
-            }
-            reqwest::StatusCode::NOT_FOUND => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(ProcessErrorBody::NotFound(
-                    body,
-                )))
-            }
-            reqwest::StatusCode::CONFLICT => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(ProcessErrorBody::Conflict(
-                    body,
-                )))
-            }
-            _ => {
-                let body = response.text().await?;
-                let body = crate::error::UnknownApiBody::from_text(body);
                 Err(crate::error::SdkError::unexpected(status, body))
             }
         }

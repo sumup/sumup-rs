@@ -1,39 +1,5 @@
 // The contents of this file are generated; do not modify them.
 
-/// Profile's personal address information.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct AddressLegacy {
-    /// City name from the address.
-    ///
-    /// Example: `Berlin`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub city: Option<String>,
-    /// Two letter country code formatted according to [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
-    ///
-    /// Example: `DE`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub country: Option<String>,
-    /// First line of the address with details of the street name and number.
-    ///
-    /// Example: `Sample street`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub line_1: Option<String>,
-    /// Second line of the address with details of the building, unit, apartment, and floor numbers.
-    ///
-    /// Example: `ap. 5`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub line_2: Option<String>,
-    /// Postal code from the address.
-    ///
-    /// Example: `10115`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub postal_code: Option<String>,
-    /// State name or abbreviation from the address.
-    ///
-    /// Example: `Berlin`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub state: Option<String>,
-}
 /// Object attributes that are modifiable only by SumUp applications.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Attributes {
@@ -357,45 +323,6 @@ pub enum PaymentType {
     Unknown,
     #[serde(untagged)]
     Other(String),
-}
-/// Personal details for the customer.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct PersonalDetails {
-    /// First name of the customer.
-    ///
-    /// Example: `John`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub first_name: Option<String>,
-    /// Last name of the customer.
-    ///
-    /// Example: `Doe`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_name: Option<String>,
-    /// Email address of the customer.
-    ///
-    /// Example: `user@example.com`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
-    /// Phone number of the customer.
-    ///
-    /// Example: `+491635559723`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub phone: Option<String>,
-    /// Date of birth of the customer.
-    ///
-    /// Example: `1993-12-31`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub birth_date: Option<crate::datetime::Date>,
-    /// Identification number used for tax purposes, such as a CPF in Brazil.
-    ///
-    /// Constraints:
-    /// - max length: 255
-    ///
-    /// Example: `423.378.593-47`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tax_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub address: Option<AddressLegacy>,
 }
 /// A RFC 9457 problem details object.
 ///
