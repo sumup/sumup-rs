@@ -556,7 +556,7 @@ pub struct PersonalIdentifier {
     /// Example: `br.cpf`
     #[serde(rename = "ref")]
     pub r#ref: String,
-    /// The company identifier value.
+    /// The personal identifier value.
     ///
     /// Constraints:
     /// - max length: 128
