@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use oas3::{
-    spec::{ObjectOrReference, ObjectSchema, ParameterIn, Schema},
     Spec,
+    spec::{ObjectOrReference, ObjectSchema, ParameterIn, Schema},
 };
 
 /// Holds the schemas associated with a single OpenAPI tag.
@@ -53,12 +53,11 @@ pub fn collect_schemas_by_tag(spec: &Spec) -> Result<SchemasByTag, String> {
 
                     if let Some(media_type) =
                         crate::preferred_response_media_type(&response.content)
+                        && let Some(schema_ref) = &media_type.schema
                     {
-                        if let Some(schema_ref) = &media_type.schema {
-                            collect_schema_reference(schema_ref, &mut tag_data.all_schemas);
-                            if is_error {
-                                collect_top_level_schema(schema_ref, &mut tag_data.error_schemas);
-                            }
+                        collect_schema_reference(schema_ref, &mut tag_data.all_schemas);
+                        if is_error {
+                            collect_top_level_schema(schema_ref, &mut tag_data.error_schemas);
                         }
                     }
                 }
@@ -73,10 +72,9 @@ pub fn collect_schemas_by_tag(spec: &Spec) -> Result<SchemasByTag, String> {
                             | ParameterIn::Header
                             | ParameterIn::Path
                             | ParameterIn::Cookie
-                    ) {
-                        if let Some(schema_ref) = &parameter.schema {
-                            collect_schema_reference(schema_ref, &mut tag_data.all_schemas);
-                        }
+                    ) && let Some(schema_ref) = &parameter.schema
+                    {
+                        collect_schema_reference(schema_ref, &mut tag_data.all_schemas);
                     }
                 }
             }
@@ -158,10 +156,10 @@ fn collect_top_level_schema(
     schema_ref: &ObjectOrReference<ObjectSchema>,
     schemas: &mut HashSet<String>,
 ) {
-    if let ObjectOrReference::Ref { ref_path, .. } = schema_ref {
-        if let Some(schema_name) = ref_path.strip_prefix("#/components/schemas/") {
-            schemas.insert(schema_name.to_string());
-        }
+    if let ObjectOrReference::Ref { ref_path, .. } = schema_ref
+        && let Some(schema_name) = ref_path.strip_prefix("#/components/schemas/")
+    {
+        schemas.insert(schema_name.to_string());
     }
 }
 
@@ -241,8 +239,10 @@ mod tests {
 
         let schemas = collect_schemas_by_tag(&spec).expect("collect schemas");
         assert!(schemas.common_schemas.contains("Shared"));
-        assert!(schemas.tag_schemas["Untagged"]
-            .all_schemas
-            .contains("OnlyUntagged"));
+        assert!(
+            schemas.tag_schemas["Untagged"]
+                .all_schemas
+                .contains("OnlyUntagged")
+        );
     }
 }

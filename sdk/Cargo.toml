@@ -3,8 +3,8 @@ name = "sumup"
 description = "Rust SDK for the SumUp API."
 documentation = "https://docs.rs/sumup"
 version = "0.5.12"
-edition = "2021"
-rust-version = "1.82"
+edition = "2024"
+rust-version = "1.90"
 readme = "../README.md"
 authors = ["Matous Dzivjak <matous.dzivjak@sumup.com>"]
 categories = ["api-bindings", "finance"]
@@ -34,7 +34,6 @@ serde_json = "1.0"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
-serial_test = "4.0"
 wiremock = "0.6"
 uuid = { version = "1.23", features = ["serde", "v4"] }
 oauth2 = { version = "5.0.0", default-features = false, features = [

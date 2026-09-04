@@ -1,37 +1,50 @@
+use std::process::Command;
 use std::time::Duration;
 
 use serde_json::json;
-use serial_test::serial;
-use sumup::{version, Authorization, Client};
+use sumup::{Authorization, Client, version};
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-struct EnvVarGuard {
-    key: &'static str,
-    original: Option<String>,
-}
+const ENV_TEST_CASE: &str = "SUMUP_RS_ENV_TEST_CASE";
 
-impl EnvVarGuard {
-    fn set(key: &'static str, value: &str) -> Self {
-        let original = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, original }
+fn run_environment_test(case: &str, api_key: Option<&str>) {
+    let mut command = Command::new(std::env::current_exe().expect("resolve current test binary"));
+    command
+        .args(["--exact", "client_environment_case"])
+        .env(ENV_TEST_CASE, case);
+
+    if let Some(api_key) = api_key {
+        command.env("SUMUP_API_KEY", api_key);
+    } else {
+        command.env_remove("SUMUP_API_KEY");
     }
 
-    fn unset(key: &'static str) -> Self {
-        let original = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, original }
-    }
+    let output = command.output().expect("run environment test subprocess");
+    assert!(
+        output.status.success(),
+        "environment test subprocess failed:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        if let Some(ref value) = self.original {
-            std::env::set_var(self.key, value);
-        } else {
-            std::env::remove_var(self.key);
-        }
+#[test]
+fn client_environment_case() {
+    let Ok(case) = std::env::var(ENV_TEST_CASE) else {
+        return;
+    };
+
+    let client = Client::new();
+    match case.as_str() {
+        "reads_authorization" => assert_eq!(client.authorization(), Some("env-token")),
+        "overrides_authorization" => assert_eq!(
+            client
+                .with_authorization(Authorization::api_key("override-token"))
+                .authorization(),
+            Some("override-token")
+        ),
+        "missing_authorization" => assert!(client.authorization().is_none()),
+        _ => panic!("unknown environment test case: {case}"),
     }
 }
 
@@ -55,32 +68,18 @@ fn client_with_timeout_updates_timeout() {
 }
 
 #[test]
-#[serial]
 fn client_reads_authorization_from_env() {
-    let token = "env-token";
-    let _guard = EnvVarGuard::set("SUMUP_API_KEY", token);
-
-    let client = Client::new();
-
-    assert_eq!(client.authorization(), Some(token));
+    run_environment_test("reads_authorization", Some("env-token"));
 }
 
 #[test]
-#[serial]
 fn client_with_authorization_overrides_env_value() {
-    let _guard = EnvVarGuard::set("SUMUP_API_KEY", "env-token");
-    let override_token = "override-token";
-
-    let client = Client::new().with_authorization(Authorization::api_key(override_token));
-
-    assert_eq!(client.authorization(), Some(override_token));
+    run_environment_test("overrides_authorization", Some("env-token"));
 }
 
 #[tokio::test]
-#[serial]
 async fn client_requests_include_user_agent_and_custom_authorization() {
     let server = MockServer::start().await;
-    let _guard = EnvVarGuard::set("SUMUP_API_KEY", "env-token");
     let override_token = "override-token";
     let expected_auth = format!("Bearer {}", override_token);
     let expected_user_agent = version::user_agent();
@@ -106,10 +105,8 @@ async fn client_requests_include_user_agent_and_custom_authorization() {
 }
 
 #[tokio::test]
-#[serial]
 async fn client_requests_include_runtime_headers() {
     let server = MockServer::start().await;
-    let _guard = EnvVarGuard::set("SUMUP_API_KEY", "env-token");
     let expected_user_agent = version::user_agent();
 
     let mut mock = Mock::given(method("GET"))
@@ -136,9 +133,6 @@ async fn client_requests_include_runtime_headers() {
 }
 
 #[test]
-#[serial]
 fn client_returns_none_when_authorization_missing() {
-    let _guard = EnvVarGuard::unset("SUMUP_API_KEY");
-    let client = Client::new();
-    assert!(client.authorization().is_none());
+    run_environment_test("missing_authorization", None);
 }

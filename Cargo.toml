@@ -1,6 +1,6 @@
 [workspace]
 members = ["sdk", "xtask", "codegen"]
-resolver = "2"
+resolver = "3"
 
 [profile.dist]
 inherits = "release"

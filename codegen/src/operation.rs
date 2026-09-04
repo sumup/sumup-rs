@@ -1,6 +1,6 @@
 use heck::ToSnakeCase;
 use heck::ToUpperCamelCase;
-use oas3::{spec as openapiv3, Spec as OpenAPI};
+use oas3::{Spec as OpenAPI, spec as openapiv3};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
@@ -251,7 +251,7 @@ fn generate_operation_method(
                             crate::Nullable::Null => {
                                 request = request.query(&[(#param_name, "null")]);
                             }
-                            crate::Nullable::Value(ref v) => {
+                            crate::Nullable::Value(v) => {
                                 request = request.query(&[(#param_name, v)]);
                             }
                         }

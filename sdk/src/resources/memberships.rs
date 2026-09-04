@@ -215,7 +215,7 @@ impl<'a> MembershipsClient<'a> {
                 crate::Nullable::Null => {
                     request = request.query(&[("resource.parent.id", "null")]);
                 }
-                crate::Nullable::Value(ref v) => {
+                crate::Nullable::Value(v) => {
                     request = request.query(&[("resource.parent.id", v)]);
                 }
             }
@@ -225,7 +225,7 @@ impl<'a> MembershipsClient<'a> {
                 crate::Nullable::Null => {
                     request = request.query(&[("resource.parent.type", "null")]);
                 }
-                crate::Nullable::Value(ref v) => {
+                crate::Nullable::Value(v) => {
                     request = request.query(&[("resource.parent.type", v)]);
                 }
             }

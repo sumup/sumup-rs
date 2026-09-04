@@ -1,5 +1,5 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
-use oas3::{spec as openapiv3, Spec as OpenAPI};
+use oas3::{Spec as OpenAPI, spec as openapiv3};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
@@ -66,17 +66,17 @@ pub(crate) fn generate_operation_bodies_with_registry(
         }
 
         // Generate request body struct if present
-        if let Some(request_body_ref) = &op.request_body {
-            if let Some(body_struct) = generate_request_body_struct(
+        if let Some(request_body_ref) = &op.request_body
+            && let Some(body_struct) = generate_request_body_struct(
                 spec,
                 &operation_name,
                 &operation_origin,
                 request_body_ref,
                 &mut nested_schemas,
                 symbols,
-            )? {
-                body_structs.push(body_struct);
-            }
+            )?
+        {
+            body_structs.push(body_struct);
         }
 
         // Generate response body struct(s)
@@ -580,10 +580,10 @@ fn generate_response_body_structs(
 
     // Collect successful responses (2xx status codes)
     for (status, response_ref) in responses.into_iter().flatten() {
-        if let Ok(code) = status.parse::<u16>() {
-            if (200..300).contains(&code) {
-                success_responses.push((code, response_ref));
-            }
+        if let Ok(code) = status.parse::<u16>()
+            && (200..300).contains(&code)
+        {
+            success_responses.push((code, response_ref));
         }
     }
 
@@ -605,41 +605,41 @@ fn generate_response_body_structs(
             }
         };
 
-        if let Some(media_type) = crate::preferred_response_media_type(&response.content) {
-            if let Some(schema_ref) = &media_type.schema {
-                match schema_ref {
-                    openapiv3::ObjectOrReference::Ref { .. } => {
-                        // Already a schema reference
-                        return Ok(None);
-                    }
-                    openapiv3::ObjectOrReference::Object(schema) => {
-                        // Inline schema - generate a struct
-                        let struct_name_str =
-                            format!("{}Response", operation_name.to_upper_camel_case());
+        if let Some(media_type) = crate::preferred_response_media_type(&response.content)
+            && let Some(schema_ref) = &media_type.schema
+        {
+            match schema_ref {
+                openapiv3::ObjectOrReference::Ref { .. } => {
+                    // Already a schema reference
+                    return Ok(None);
+                }
+                openapiv3::ObjectOrReference::Object(schema) => {
+                    // Inline schema - generate a struct
+                    let struct_name_str =
+                        format!("{}Response", operation_name.to_upper_camel_case());
 
-                        symbols.reserve(
-                            struct_name_str.clone(),
-                            format!("success response body for {operation_origin}"),
-                        )?;
+                    symbols.reserve(
+                        struct_name_str.clone(),
+                        format!("success response body for {operation_origin}"),
+                    )?;
 
-                        let struct_name = Ident::new(&struct_name_str, Span::call_site());
+                    let struct_name = Ident::new(&struct_name_str, Span::call_site());
 
-                        let description = response
-                            .description
-                            .as_deref()
-                            .map(crate::schema::generate_doc_comment);
+                    let description = response
+                        .description
+                        .as_deref()
+                        .map(crate::schema::generate_doc_comment);
 
-                        let body_tokens = generate_schema_struct(
-                            spec,
-                            &struct_name,
-                            schema,
-                            description,
-                            nested_schemas,
-                            symbols,
-                        )?;
+                    let body_tokens = generate_schema_struct(
+                        spec,
+                        &struct_name,
+                        schema,
+                        description,
+                        nested_schemas,
+                        symbols,
+                    )?;
 
-                        response_structs.push(body_tokens);
-                    }
+                    response_structs.push(body_tokens);
                 }
             }
         }

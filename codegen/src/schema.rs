@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, HashSet};
 
 use heck::ToUpperCamelCase;
 use oas3::{
-    spec::{BooleanSchema, ObjectOrReference, ObjectSchema, Schema, SchemaType},
     Spec as OpenAPI,
+    spec::{BooleanSchema, ObjectOrReference, ObjectSchema, Schema, SchemaType},
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -93,8 +93,8 @@ fn constraints(s: &ObjectSchema) -> Vec<String> {
     if s.write_only.unwrap_or(false) {
         out.push("write-only".into());
     }
-    if let Some(v) = s.format.as_deref() {
-        if !matches!(
+    if let Some(v) = s.format.as_deref()
+        && !matches!(
             v,
             "date-time"
                 | "date"
@@ -105,9 +105,9 @@ fn constraints(s: &ObjectSchema) -> Vec<String> {
                 | "double"
                 | "int32"
                 | "int64"
-        ) {
-            out.push(format!("format: `{v}`"));
-        }
+        )
+    {
+        out.push(format!("format: `{v}`"));
     }
     if let Some(v) = &s.pattern {
         out.push(format!("pattern: `{v}`"));
@@ -359,10 +359,11 @@ fn mixin_refs(
     for v in &s.all_of {
         match v {
             ObjectOrReference::Ref { ref_path, .. } => {
-                if let Some(n) = ref_path.strip_prefix("#/components/schemas/") {
-                    if names.contains(n) && n.contains("Mixin") {
-                        out.insert(n.into());
-                    }
+                if let Some(n) = ref_path.strip_prefix("#/components/schemas/")
+                    && names.contains(n)
+                    && n.contains("Mixin")
+                {
+                    out.insert(n.into());
                 }
             }
             ObjectOrReference::Object(s) => {
@@ -407,10 +408,10 @@ pub(crate) fn collect_nested_schemas_with_registry(
             continue;
         };
         if crate::oas::schema_type(s) == Some(SchemaType::Array) {
-            if let Some(Schema::Object(item)) = s.items.as_deref() {
-                if let ObjectOrReference::Object(item) = item.as_ref() {
-                    nested(spec, parent, field, "Item", item, out, symbols)?
-                }
+            if let Some(Schema::Object(item)) = s.items.as_deref()
+                && let ObjectOrReference::Object(item) = item.as_ref()
+            {
+                nested(spec, parent, field, "Item", item, out, symbols)?
             }
         } else {
             nested(spec, parent, field, "", s, out, symbols)?
