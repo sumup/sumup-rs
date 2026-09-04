@@ -1,5 +1,5 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
-use openapiv3::OpenAPI;
+use oas3::Spec as OpenAPI;
 use proc_macro2::{Ident, Span};
 use quote::quote;
 use std::collections::HashMap;
@@ -23,8 +23,7 @@ pub fn generate_client_file(
     // Build a map of tag names to their deprecation notices.
     let mut tag_deprecations: HashMap<String, String> = HashMap::new();
     for tag in &spec.tags {
-        if let Some(serde_json::Value::String(notice)) = tag.extensions.get("x-deprecation-notice")
-        {
+        if let Some(serde_json::Value::String(notice)) = tag.extensions.get("deprecation-notice") {
             tag_deprecations.insert(tag.name.clone(), notice.clone());
         }
     }

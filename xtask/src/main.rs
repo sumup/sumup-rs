@@ -9,7 +9,7 @@ use std::{
 };
 
 use clap::Parser;
-use openapiv3::OpenAPI;
+use oas3::Spec as OpenAPI;
 
 #[derive(Parser)]
 #[command(name = "xtask")]
@@ -50,8 +50,11 @@ fn load_spec(root_path: &Path) -> Result<OpenAPI, String> {
     let spec_path = root_path.join("openapi.json");
     let file = File::open(&spec_path)
         .map_err(|error| format!("Failed to open {}: {error}", spec_path.display()))?;
-    serde_json::from_reader(file)
-        .map_err(|error| format!("Failed to parse {}: {error}", spec_path.display()))
+    let spec: OpenAPI = serde_json::from_reader(file)
+        .map_err(|error| format!("Failed to parse {}: {error}", spec_path.display()))?;
+    spec.validate_version()
+        .map_err(|error| format!("Failed to parse {}: {error}", spec_path.display()))?;
+    Ok(spec)
 }
 
 fn generate() -> Result<(), String> {

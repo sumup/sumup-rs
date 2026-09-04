@@ -31,10 +31,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use sumup::{
-    resources::merchants::{GetParams, Merchant},
-    Authorization, Client,
-};
+use sumup::{resources::merchants::Merchant, Authorization, Client};
 
 #[derive(Clone)]
 struct AppState {
@@ -164,9 +161,9 @@ async fn handle_callback(
 
     let merchant = client
         .merchants()
-        .get(merchant_code, GetParams::default())
+        .get(merchant_code)
         .await
-        .expect("get mercahnt");
+        .expect("get merchant");
 
     (jar, Json(merchant))
 }

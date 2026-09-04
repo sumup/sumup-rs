@@ -167,6 +167,9 @@
 //! - [GitHub Repository](https://github.com/sumup/sumup-rs)
 
 #![forbid(unsafe_code)]
+// Generated endpoint methods intentionally retain typed API response bodies in
+// their error variants, which can exceed Clippy's heuristic size threshold.
+#![allow(clippy::result_large_err)]
 
 mod string_or_number;
 
