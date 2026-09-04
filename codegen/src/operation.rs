@@ -1,6 +1,6 @@
 use heck::ToSnakeCase;
 use heck::ToUpperCamelCase;
-use openapiv3::OpenAPI;
+use oas3::{spec as openapiv3, Spec as OpenAPI};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
@@ -82,7 +82,7 @@ fn generate_operation_method(
     path: &str,
     http_method: &str,
     operation: &openapiv3::Operation,
-    path_parameters: &[openapiv3::ReferenceOr<openapiv3::Parameter>],
+    path_parameters: &[openapiv3::ObjectOrReference<openapiv3::Parameter>],
     symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<GeneratedOperation, String> {
     let operation_id = operation
@@ -104,36 +104,32 @@ fn generate_operation_method(
     // Process path-level parameters first
     for param_ref in path_parameters {
         let param = match param_ref {
-            openapiv3::ReferenceOr::Item(p) => p,
-            openapiv3::ReferenceOr::Reference { .. } => continue,
+            openapiv3::ObjectOrReference::Object(p) => p,
+            openapiv3::ObjectOrReference::Ref { .. } => continue,
         };
 
-        if let openapiv3::Parameter::Path { parameter_data, .. } = param {
-            if parameter_data.required {
-                let param_name = parameter_data.name.to_snake_case();
-                let param_ident = crate::schema::make_rust_field_ident(&param_name);
+        if param.location == openapiv3::ParameterIn::Path && param.required.unwrap_or(false) {
+            let param_name = param.name.to_snake_case();
+            let param_ident = crate::schema::make_rust_field_ident(&param_name);
 
-                path_params.push(quote! { #param_ident: impl Into<String> });
-                path_param_names.push((parameter_data.name.clone(), param_ident));
-            }
+            path_params.push(quote! { #param_ident: impl Into<String> });
+            path_param_names.push((param.name.clone(), param_ident));
         }
     }
 
     // Then process operation-level parameters
     for param_ref in &operation.parameters {
         let param = match param_ref {
-            openapiv3::ReferenceOr::Item(p) => p,
-            openapiv3::ReferenceOr::Reference { .. } => continue,
+            openapiv3::ObjectOrReference::Object(p) => p,
+            openapiv3::ObjectOrReference::Ref { .. } => continue,
         };
 
-        if let openapiv3::Parameter::Path { parameter_data, .. } = param {
-            if parameter_data.required {
-                let param_name = parameter_data.name.to_snake_case();
-                let param_ident = crate::schema::make_rust_field_ident(&param_name);
+        if param.location == openapiv3::ParameterIn::Path && param.required.unwrap_or(false) {
+            let param_name = param.name.to_snake_case();
+            let param_ident = crate::schema::make_rust_field_ident(&param_name);
 
-                path_params.push(quote! { #param_ident: impl Into<String> });
-                path_param_names.push((parameter_data.name.clone(), param_ident));
-            }
+            path_params.push(quote! { #param_ident: impl Into<String> });
+            path_param_names.push((param.name.clone(), param_ident));
         }
     }
 
@@ -144,13 +140,17 @@ fn generate_operation_method(
 
             if crate::body::request_body_schema(request_body).is_some() {
                 let body_type = crate::body::operation_request_type_ident(&operation_name);
-                let body_param = if request_body.required {
+                let body_param = if request_body.required.unwrap_or(false) {
                     quote! { body: #body_type }
                 } else {
                     quote! { body: Option<#body_type> }
                 };
 
-                (Some(body_param), !request_body.required, true)
+                (
+                    Some(body_param),
+                    !request_body.required.unwrap_or(false),
+                    true,
+                )
             } else {
                 (None, false, false)
             }
@@ -163,12 +163,12 @@ fn generate_operation_method(
 
     for param_ref in &operation.parameters {
         let param = match param_ref {
-            openapiv3::ReferenceOr::Item(p) => p,
-            openapiv3::ReferenceOr::Reference { .. } => continue,
+            openapiv3::ObjectOrReference::Object(p) => p,
+            openapiv3::ObjectOrReference::Ref { .. } => continue,
         };
 
-        if let openapiv3::Parameter::Query { parameter_data, .. } = param {
-            query_params.push(parameter_data.clone());
+        if param.location == openapiv3::ParameterIn::Query {
+            query_params.push(param.clone());
         }
     }
 
@@ -228,18 +228,18 @@ fn generate_operation_method(
             let param_name = &query_param.name;
 
             // Check if this parameter is nullable
-            let is_nullable = if let openapiv3::ParameterSchemaOrContent::Schema(schema_ref) =
-                &query_param.format
-            {
+            let is_nullable = if let Some(schema_ref) = &query_param.schema {
                 match schema_ref {
-                    openapiv3::ReferenceOr::Item(schema) => schema.schema_data.nullable,
-                    openapiv3::ReferenceOr::Reference { .. } => false,
+                    openapiv3::ObjectOrReference::Object(schema) => {
+                        schema.is_nullable().unwrap_or(false)
+                    }
+                    openapiv3::ObjectOrReference::Ref { .. } => false,
                 }
             } else {
                 false
             };
 
-            if query_param.required {
+            if query_param.required.unwrap_or(false) {
                 query_field_additions.push(quote! {
                     request = request.query(&[(#param_name, &params.#field_name)]);
                 });
@@ -352,7 +352,7 @@ fn generate_response_handling(
     operation_name: &str,
     operation_origin: &str,
     operation: &openapiv3::Operation,
-    spec: &openapiv3::OpenAPI,
+    spec: &OpenAPI,
     symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<OperationResponse, String> {
     use heck::ToUpperCamelCase;
@@ -360,15 +360,13 @@ fn generate_response_handling(
     let mut success_responses = Vec::new();
     let mut error_responses = Vec::new();
 
-    for (status_code, response_ref) in &operation.responses.responses {
-        match status_code {
-            openapiv3::StatusCode::Code(code) if (200..300).contains(code) => {
-                success_responses.push((*code, response_ref));
+    for (status_code, response_ref) in operation.responses.iter().flatten() {
+        if let Ok(code) = status_code.parse::<u16>() {
+            if (200..300).contains(&code) {
+                success_responses.push((code, response_ref));
+            } else if code >= 400 {
+                error_responses.push((code, response_ref));
             }
-            openapiv3::StatusCode::Code(code) if *code >= 400 => {
-                error_responses.push((*code, response_ref));
-            }
-            _ => {}
         }
     }
 
@@ -413,12 +411,15 @@ fn generate_response_handling(
 /// Determines the concrete return type for a single successful response variant.
 fn get_response_type_for_single(
     operation_name: &str,
-    response_ref: &openapiv3::ReferenceOr<openapiv3::Response>,
+    response_ref: &openapiv3::ObjectOrReference<openapiv3::Response>,
 ) -> Result<TokenStream, String> {
     use heck::ToUpperCamelCase;
 
     match response_ref {
-        openapiv3::ReferenceOr::Reference { reference } => {
+        openapiv3::ObjectOrReference::Ref {
+            ref_path: reference,
+            ..
+        } => {
             // Referenced response - extract schema name
             let schema_name = reference
                 .strip_prefix("#/components/responses/")
@@ -427,12 +428,15 @@ fn get_response_type_for_single(
             let type_ident = Ident::new(schema_name, Span::call_site());
             Ok(quote! { #type_ident })
         }
-        openapiv3::ReferenceOr::Item(response) => {
+        openapiv3::ObjectOrReference::Object(response) => {
             // Check if response has content with a schema
             if let Some(media_type) = crate::preferred_response_media_type(&response.content) {
                 if let Some(schema_ref) = &media_type.schema {
                     match schema_ref {
-                        openapiv3::ReferenceOr::Reference { reference } => {
+                        openapiv3::ObjectOrReference::Ref {
+                            ref_path: reference,
+                            ..
+                        } => {
                             // Schema reference - use that
                             let schema_name =
                                 reference.strip_prefix("#/components/schemas/").ok_or_else(
@@ -441,7 +445,7 @@ fn get_response_type_for_single(
                             let type_ident = Ident::new(schema_name, Span::call_site());
                             Ok(quote! { #type_ident })
                         }
-                        openapiv3::ReferenceOr::Item(_) => {
+                        openapiv3::ObjectOrReference::Object(_) => {
                             // Inline schema - use generated Response type
                             let response_type_name =
                                 format!("{}Response", operation_name.to_upper_camel_case());
@@ -490,19 +494,19 @@ fn build_operation_doc_comment(operation: &openapiv3::Operation) -> Option<Token
     }
 
     let mut response_lines = Vec::new();
-    for (status_code, response_ref) in &operation.responses.responses {
-        let openapiv3::StatusCode::Code(code) = status_code else {
+    for (status_code, response_ref) in operation.responses.iter().flatten() {
+        let Ok(code) = status_code.parse::<u16>() else {
             continue;
         };
         let response = match response_ref {
-            openapiv3::ReferenceOr::Item(response) => response,
-            openapiv3::ReferenceOr::Reference { .. } => continue,
+            openapiv3::ObjectOrReference::Object(response) => response,
+            openapiv3::ObjectOrReference::Ref { .. } => continue,
         };
-        let description = response.description.trim();
+        let description = response.description.as_deref().unwrap_or_default().trim();
         if description.is_empty() {
             continue;
         }
-        response_lines.extend(format_response_doc_lines(*code, description));
+        response_lines.extend(format_response_doc_lines(code, description));
     }
 
     if !response_lines.is_empty() {
@@ -681,8 +685,8 @@ fn status_code_to_variant_name(status: u16) -> String {
 fn generate_error_handling(
     operation_name: &str,
     operation_origin: &str,
-    error_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
-    spec: &openapiv3::OpenAPI,
+    error_responses: &[(u16, &openapiv3::ObjectOrReference<openapiv3::Response>)],
+    spec: &OpenAPI,
     symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<ErrorGeneration, String> {
     if error_responses.is_empty() {
@@ -794,23 +798,31 @@ fn generate_error_handling(
 }
 
 fn extract_error_schema_ident(
-    response_ref: &openapiv3::ReferenceOr<openapiv3::Response>,
-    spec: &openapiv3::OpenAPI,
+    response_ref: &openapiv3::ObjectOrReference<openapiv3::Response>,
+    spec: &OpenAPI,
 ) -> Option<Ident> {
     match response_ref {
-        openapiv3::ReferenceOr::Reference { reference } => {
+        openapiv3::ObjectOrReference::Ref {
+            ref_path: reference,
+            ..
+        } => {
             if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
                 Some(Ident::new(schema_name, Span::call_site()))
             } else if let Some(response_name) = reference.strip_prefix("#/components/responses/") {
                 let components = spec.components.as_ref()?;
                 let response_entry = components.responses.get(response_name)?;
                 match response_entry {
-                    openapiv3::ReferenceOr::Item(response) => {
+                    openapiv3::ObjectOrReference::Object(response) => {
                         extract_schema_from_response(response)
                     }
-                    openapiv3::ReferenceOr::Reference { reference } => {
-                        let nested_ref = openapiv3::ReferenceOr::Reference {
-                            reference: reference.clone(),
+                    openapiv3::ObjectOrReference::Ref {
+                        ref_path: reference,
+                        ..
+                    } => {
+                        let nested_ref = openapiv3::ObjectOrReference::Ref {
+                            ref_path: reference.clone(),
+                            summary: None,
+                            description: None,
                         };
                         extract_error_schema_ident(&nested_ref, spec)
                     }
@@ -819,7 +831,7 @@ fn extract_error_schema_ident(
                 None
             }
         }
-        openapiv3::ReferenceOr::Item(response) => extract_schema_from_response(response),
+        openapiv3::ObjectOrReference::Object(response) => extract_schema_from_response(response),
     }
 }
 
@@ -827,21 +839,27 @@ fn extract_schema_from_response(response: &openapiv3::Response) -> Option<Ident>
     let media_type = crate::preferred_response_media_type(&response.content)?;
     let schema_ref = media_type.schema.as_ref()?;
     match schema_ref {
-        openapiv3::ReferenceOr::Reference { reference } => {
+        openapiv3::ObjectOrReference::Ref {
+            ref_path: reference,
+            ..
+        } => {
             let schema_name = reference.strip_prefix("#/components/schemas/")?;
             Some(Ident::new(schema_name, Span::call_site()))
         }
-        openapiv3::ReferenceOr::Item(_) => None,
+        openapiv3::ObjectOrReference::Object(_) => None,
     }
 }
 
 fn response_has_content(
-    response_ref: &openapiv3::ReferenceOr<openapiv3::Response>,
-    spec: &openapiv3::OpenAPI,
+    response_ref: &openapiv3::ObjectOrReference<openapiv3::Response>,
+    spec: &OpenAPI,
 ) -> bool {
     match response_ref {
-        openapiv3::ReferenceOr::Item(response) => !response.content.is_empty(),
-        openapiv3::ReferenceOr::Reference { reference } => {
+        openapiv3::ObjectOrReference::Object(response) => !response.content.is_empty(),
+        openapiv3::ObjectOrReference::Ref {
+            ref_path: reference,
+            ..
+        } => {
             let Some(response_name) = reference.strip_prefix("#/components/responses/") else {
                 return false;
             };
@@ -882,15 +900,15 @@ fn generate_no_success_response_handling(
 /// Produces response handling logic for operations with one successful status code.
 fn generate_single_response_handling(
     operation_name: &str,
-    (status, response_ref): &(u16, &openapiv3::ReferenceOr<openapiv3::Response>),
+    (status, response_ref): &(u16, &openapiv3::ObjectOrReference<openapiv3::Response>),
     error_generation: &ErrorGeneration,
 ) -> Result<TokenStream, String> {
     let status_code = *status;
     let status_const = status_code_to_constant(status_code);
 
     let has_content = match response_ref {
-        openapiv3::ReferenceOr::Reference { .. } => true,
-        openapiv3::ReferenceOr::Item(response) => response
+        openapiv3::ObjectOrReference::Ref { .. } => true,
+        openapiv3::ObjectOrReference::Object(response) => response
             .content
             .get("application/problem+json")
             .or_else(|| response.content.get("application/json"))
@@ -936,7 +954,7 @@ fn generate_single_response_handling(
 /// Emits response handling that deserializes into an enum for multi-status operations.
 fn generate_multi_response_handling(
     operation_name: &str,
-    success_responses: &[(u16, &openapiv3::ReferenceOr<openapiv3::Response>)],
+    success_responses: &[(u16, &openapiv3::ObjectOrReference<openapiv3::Response>)],
     error_generation: &ErrorGeneration,
 ) -> Result<TokenStream, String> {
     use heck::ToUpperCamelCase;
@@ -952,7 +970,10 @@ fn generate_multi_response_handling(
 
         // Determine the actual type for this response
         let (has_content, inner_type) = match response_ref {
-            openapiv3::ReferenceOr::Reference { reference } => {
+            openapiv3::ObjectOrReference::Ref {
+                ref_path: reference,
+                ..
+            } => {
                 // Referenced response - extract schema name
                 let schema_name = reference
                     .strip_prefix("#/components/responses/")
@@ -961,12 +982,15 @@ fn generate_multi_response_handling(
                 let type_ident = Ident::new(schema_name, Span::call_site());
                 (true, quote! { #type_ident })
             }
-            openapiv3::ReferenceOr::Item(resp) => {
+            openapiv3::ObjectOrReference::Object(resp) => {
                 // Check if response has content with a schema
                 if let Some(media_type) = crate::preferred_response_media_type(&resp.content) {
                     if let Some(schema_ref) = &media_type.schema {
                         match schema_ref {
-                            openapiv3::ReferenceOr::Reference { reference } => {
+                            openapiv3::ObjectOrReference::Ref {
+                                ref_path: reference,
+                                ..
+                            } => {
                                 // Schema reference - use that
                                 let schema_name =
                                     reference.strip_prefix("#/components/schemas/").ok_or_else(
@@ -975,7 +999,7 @@ fn generate_multi_response_handling(
                                 let type_ident = Ident::new(schema_name, Span::call_site());
                                 (true, quote! { #type_ident })
                             }
-                            openapiv3::ReferenceOr::Item(_) => {
+                            openapiv3::ObjectOrReference::Object(_) => {
                                 // Inline schema - use generated Response{status} type
                                 let inner_type_name = format!(
                                     "{}Response{}",

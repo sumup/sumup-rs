@@ -18,6 +18,82 @@ pub struct Amount {
     /// Example: `1000`
     pub value: i64,
 }
+/// Reader Checkout
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CreateReaderCheckoutRequest {
+    /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
+    /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aade: Option<CreateReaderCheckoutRequestAade>,
+    /// Affiliate metadata for the transaction.
+    /// It is a field that allow for integrators to track the source of the transaction.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub affiliate: Option<crate::Nullable<CreateReaderCheckoutRequestAffiliate>>,
+    /// The card type of the card used for the transaction.
+    /// Is is required only for some countries (e.g: Brazil).
+    ///
+    /// Example: `credit`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub card_type: Option<CreateReaderCheckoutRequestCardType>,
+    /// Description of the checkout to be shown in the Merchant Sales
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Number of installments for the transaction.
+    /// It may vary according to the merchant country.
+    /// For example, in Brazil, the maximum number of installments is 12.
+    ///
+    /// Omit if the merchant country does support installments.
+    /// Otherwise, the checkout will be rejected.
+    ///
+    /// Constraints:
+    /// - value >= 1
+    ///
+    /// Example: `1`
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::nullable::deserialize"
+    )]
+    pub installments: Option<crate::Nullable<i64>>,
+    /// Webhook URL to which the payment result will be sent.
+    /// It must be a HTTPS url.
+    ///
+    /// Constraints:
+    /// - format: `uri`
+    ///
+    /// Example: `https://www.example.com`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub return_url: Option<String>,
+    /// List of tipping rates to be displayed to the cardholder.
+    /// The rates are in percentage and should be between 0.01 and 0.99.
+    /// The list should be sorted in ascending order.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tip_rates: Option<Vec<f32>>,
+    /// Time in seconds the cardholder has to select a tip rate.
+    /// If not provided, the default value is 30 seconds.
+    ///
+    /// It can only be set if `tip_rates` is provided.
+    ///
+    /// **Note**: If the target device is a Solo, it must be in version 3.3.38.0 or higher.
+    ///
+    /// Constraints:
+    /// - value >= 30
+    /// - value <= 120
+    ///
+    /// Example: `30`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tip_timeout: Option<i64>,
+    /// Amount structure.
+    ///
+    /// The amount is represented as an integer value altogether with the currency and the minor unit.
+    ///
+    /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
+    pub total_amount: CreateReaderCheckoutRequestTotalAmount,
+}
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutResponse {
     pub data: CreateReaderCheckoutResponseData,
@@ -29,12 +105,15 @@ pub struct GetReaderCheckoutResponse {
 /// A physical card reader device that can accept in-person payments.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Reader {
-    pub id: ReaderId,
-    pub name: ReaderName,
-    pub status: ReaderStatus,
+    /// The timestamp of when the reader was created.
+    ///
+    /// Example: `2023-01-18T15:16:17Z`
+    pub created_at: crate::datetime::DateTime,
     pub device: ReaderDevice,
+    pub id: ReaderId,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
+    pub name: ReaderName,
     /// Identifier of the system-managed service account associated with this reader.
     /// Present only for readers that are already paired.
     /// This field is currently in beta and may change.
@@ -43,10 +122,7 @@ pub struct Reader {
     /// - format: `uuid`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service_account_id: Option<String>,
-    /// The timestamp of when the reader was created.
-    ///
-    /// Example: `2023-01-18T15:16:17Z`
-    pub created_at: crate::datetime::DateTime,
+    pub status: ReaderStatus,
     /// The timestamp of when the reader was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
@@ -64,9 +140,44 @@ pub struct ReaderDevice {
     /// Example: `solo`
     pub model: ReaderDeviceModel,
 }
+/// Unique identifier of the reader that the payment is initiated on.
+///
+/// Constraints:
+/// - min length: 30
+/// - max length: 30
+///
+/// Example: `rdr_3MSAFM23CK82VSTT4BN6RWSQ65`
 pub type ReaderId = String;
+/// Custom human-readable, user-defined name for easier identification of the reader.
+///
+/// Constraints:
+/// - max length: 500
+///
+/// Example: `Frontdesk`
 pub type ReaderName = String;
+/// The pairing code is a 8 or 9 character alphanumeric string that is displayed on a SumUp Device after initiating the pairing. It is used to link the physical device to the created pairing.
+///
+/// Constraints:
+/// - min length: 8
+/// - max length: 9
+///
+/// Example: `4WLFDSBF`
 pub type ReaderPairingCode = String;
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ReaderPaymentRequestParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub affiliate: Option<Affiliate>,
+    /// Caller-supplied correlation identifier, used as the idempotency key.
+    ///
+    /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
+    pub client_transaction_id: String,
+    /// Optional tip amount in minor units, added on top of total_amount.
+    ///
+    /// Example: `100`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tip_amount: Option<i64>,
+    pub total_amount: Amount,
+}
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReaderPaymentResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -112,6 +223,99 @@ pub enum ReaderStatus {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct StatusResponse {
     pub data: StatusResponseData,
+}
+/// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
+/// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CreateReaderCheckoutRequestAade {
+    /// The identifier of the AADE signature provider.
+    ///
+    /// Example: `123`
+    pub provider_id: String,
+    /// The base64 encoded signature of the transaction data.
+    ///
+    /// Example: `QjcxRDdBNTU1MDcyRTNFRTREMkZEM0Y0NTdBMjkxMTU4MzBFNkNCQTs7MjAyNTExMTIyMTQ3MTM7Nzk2OzEwNDs5MDA7OTAwOzU0ODg5MDM5`
+    pub signature: String,
+    /// The string containing the signed transaction data.
+    ///
+    /// Example: `B71D7A555072E3EE4D2FD3F457A29115830E6CBA;;20251112214713;796;104;900;900;54889039`
+    pub signature_data: String,
+}
+/// Additional metadata for the transaction.
+/// It is key-value object that can be associated with the transaction.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CreateReaderCheckoutRequestAffiliateTags {
+    #[serde(
+        flatten,
+        default,
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
+}
+/// Affiliate metadata for the transaction.
+/// It is a field that allow for integrators to track the source of the transaction.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CreateReaderCheckoutRequestAffiliate {
+    /// Application ID of the affiliate.
+    /// It is a unique identifier for the application and should be set by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    ///
+    /// Example: `com.example.app`
+    pub app_id: String,
+    /// Foreign transaction ID of the affiliate.
+    /// It is a unique identifier for the transaction.
+    /// It can be used later to fetch the transaction details via the [Transactions API](https://developer.sumup.com/api/transactions/get).
+    ///
+    /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
+    pub foreign_transaction_id: String,
+    /// Key of the affiliate.
+    /// It is a unique identifier for the key  and should be generated by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    ///
+    /// Example: `123e4567-e89b-12d3-a456-426614174000`
+    pub key: String,
+    /// Additional metadata for the transaction.
+    /// It is key-value object that can be associated with the transaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<serde_json::Value>,
+}
+/// The card type of the card used for the transaction.
+/// Is is required only for some countries (e.g: Brazil).
+///
+/// Example: `credit`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CreateReaderCheckoutRequestCardType {
+    #[serde(rename = "credit")]
+    Credit,
+    #[serde(rename = "debit")]
+    Debit,
+    #[serde(untagged)]
+    Other(String),
+}
+/// Amount structure.
+///
+/// The amount is represented as an integer value altogether with the currency and the minor unit.
+///
+/// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CreateReaderCheckoutRequestTotalAmount {
+    /// Currency ISO 4217 code
+    ///
+    /// Example: `EUR`
+    pub currency: String,
+    /// The minor units of the currency.
+    /// It represents the number of decimals of the currency. For the currencies CLP, COP and HUF, the minor unit is 0.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `2`
+    pub minor_unit: i64,
+    /// Integer value of the amount.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `1000`
+    pub value: i64,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutResponseData {
@@ -389,7 +593,7 @@ pub struct CreateCheckoutRequestAffiliate {
     /// Additional metadata for the transaction.
     /// It is key-value object that can be associated with the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<CreateCheckoutRequestAffiliateTags>,
+    pub tags: Option<serde_json::Value>,
 }
 /// The card type of the card used for the transaction.
 /// Is is required only for some countries (e.g: Brazil).
@@ -438,17 +642,17 @@ pub struct ListResponse {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateRequest {
-    pub pairing_code: ReaderPairingCode,
-    pub name: ReaderName,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
+    pub name: ReaderName,
+    pub pairing_code: ReaderPairingCode,
 }
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UpdateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<ReaderName>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<ReaderName>,
 }
 /// A checkout initial attributes
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]

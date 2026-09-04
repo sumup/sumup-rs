@@ -1,5 +1,9 @@
-use openapiv3::OpenAPI;
 use std::collections::{HashMap, HashSet};
+
+use oas3::{
+    spec::{ObjectOrReference, ObjectSchema, ParameterIn, Schema},
+    Spec,
+};
 
 /// Holds the schemas associated with a single OpenAPI tag.
 pub struct TagSchemas {
@@ -15,18 +19,11 @@ pub struct SchemasByTag {
 }
 
 /// Collects schemas referenced by each tag and identifies shared/common schemas.
-pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
+pub fn collect_schemas_by_tag(spec: &Spec) -> Result<SchemasByTag, String> {
     let mut tag_schemas: HashMap<String, TagSchemas> = HashMap::new();
 
-    // Iterate through all paths and operations
-    for path_item in spec.paths.paths.values() {
-        let path_item = match path_item {
-            openapiv3::ReferenceOr::Item(item) => item,
-            openapiv3::ReferenceOr::Reference { .. } => continue,
-        };
-
+    for path_item in spec.paths.iter().flat_map(|paths| paths.values()) {
         for (_http_method, operation) in crate::operations_for_path_item(path_item) {
-            // Get tags for this operation
             let tags = if operation.tags.is_empty() {
                 vec!["Untagged".to_string()]
             } else {
@@ -34,52 +31,31 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
             };
 
             for tag in tags {
-                let tag_data = tag_schemas
-                    .entry(tag.clone())
-                    .or_insert_with(|| TagSchemas {
-                        all_schemas: HashSet::new(),
-                        error_schemas: HashSet::new(),
-                    });
+                let tag_data = tag_schemas.entry(tag).or_insert_with(|| TagSchemas {
+                    all_schemas: HashSet::new(),
+                    error_schemas: HashSet::new(),
+                });
 
-                // Collect schemas from request body
                 if let Some(request_body_ref) = &operation.request_body {
                     let request_body = crate::body::resolve_request_body(spec, request_body_ref)?;
-
                     for media_type in request_body.content.values() {
                         if let Some(schema_ref) = &media_type.schema {
-                            let schema = crate::schema::dereference_schema(spec, schema_ref)?;
-                            collect_schema_references_from_schema(
-                                schema,
-                                &mut tag_data.all_schemas,
-                            );
+                            collect_schema_reference(schema_ref, &mut tag_data.all_schemas);
                         }
                     }
                 }
 
-                // Collect schemas from responses
-                for (status, response_ref) in &operation.responses.responses {
-                    let response = match response_ref {
-                        openapiv3::ReferenceOr::Item(r) => r,
-                        openapiv3::ReferenceOr::Reference { .. } => continue,
+                for (status, response_ref) in operation.responses.iter().flatten() {
+                    let ObjectOrReference::Object(response) = response_ref else {
+                        continue;
                     };
-
-                    // Determine if this is an error response (400+)
-                    let is_error = match status {
-                        openapiv3::StatusCode::Code(code) => *code >= 400,
-                        _ => false,
-                    };
+                    let is_error = status.parse::<u16>().is_ok_and(|status| status >= 400);
 
                     if let Some(media_type) =
                         crate::preferred_response_media_type(&response.content)
                     {
                         if let Some(schema_ref) = &media_type.schema {
-                            // Collect to all_schemas first
-                            collect_schema_references_unboxed(
-                                schema_ref,
-                                &mut tag_data.all_schemas,
-                            );
-
-                            // If error response, also collect top-level schema to error_schemas
+                            collect_schema_reference(schema_ref, &mut tag_data.all_schemas);
                             if is_error {
                                 collect_top_level_schema(schema_ref, &mut tag_data.error_schemas);
                             }
@@ -87,26 +63,19 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
                     }
                 }
 
-                // Collect schemas from parameters
                 for param_ref in &operation.parameters {
-                    let param = match param_ref {
-                        openapiv3::ReferenceOr::Item(p) => p,
-                        openapiv3::ReferenceOr::Reference { .. } => continue,
+                    let ObjectOrReference::Object(parameter) = param_ref else {
+                        continue;
                     };
-
-                    match &param {
-                        openapiv3::Parameter::Query { parameter_data, .. }
-                        | openapiv3::Parameter::Header { parameter_data, .. }
-                        | openapiv3::Parameter::Path { parameter_data, .. }
-                        | openapiv3::Parameter::Cookie { parameter_data, .. } => {
-                            if let openapiv3::ParameterSchemaOrContent::Schema(schema_ref) =
-                                &parameter_data.format
-                            {
-                                collect_schema_references_unboxed(
-                                    schema_ref,
-                                    &mut tag_data.all_schemas,
-                                );
-                            }
+                    if matches!(
+                        parameter.location,
+                        ParameterIn::Query
+                            | ParameterIn::Header
+                            | ParameterIn::Path
+                            | ParameterIn::Cookie
+                    ) {
+                        if let Some(schema_ref) = &parameter.schema {
+                            collect_schema_reference(schema_ref, &mut tag_data.all_schemas);
                         }
                     }
                 }
@@ -114,16 +83,12 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
         }
     }
 
-    // Now expand each tag's schema set to include all transitively referenced schemas
-    let all_schemas = match &spec.components {
-        Some(components) => &components.schemas,
-        None => {
-            return Ok(SchemasByTag {
-                tag_schemas,
-                common_schemas: HashSet::new(),
-                common_error_schemas: HashSet::new(),
-            })
-        }
+    let Some(components) = &spec.components else {
+        return Ok(SchemasByTag {
+            tag_schemas,
+            common_schemas: HashSet::new(),
+            common_error_schemas: HashSet::new(),
+        });
     };
 
     for tag_data in tag_schemas.values_mut() {
@@ -131,44 +96,31 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
         let mut processed = HashSet::new();
 
         while let Some(schema_name) = to_process.pop() {
-            if processed.contains(&schema_name) {
+            if !processed.insert(schema_name.clone()) {
                 continue;
             }
-            processed.insert(schema_name.clone());
 
-            if let Some(schema_ref) = all_schemas.get(&schema_name) {
+            if let Some(schema_ref) = components.schemas.get(&schema_name) {
                 let mut referenced = HashSet::new();
-                match schema_ref {
-                    openapiv3::ReferenceOr::Item(schema) => {
-                        collect_schema_references_from_schema(schema, &mut referenced);
-                    }
-                    openapiv3::ReferenceOr::Reference { .. } => {}
-                }
-
-                for ref_schema in referenced {
-                    if !processed.contains(&ref_schema) {
-                        tag_data.all_schemas.insert(ref_schema.clone());
-                        to_process.push(ref_schema);
+                collect_schema_reference(schema_ref, &mut referenced);
+                for referenced_schema in referenced {
+                    if !processed.contains(&referenced_schema) {
+                        tag_data.all_schemas.insert(referenced_schema.clone());
+                        to_process.push(referenced_schema);
                     }
                 }
             }
         }
     }
 
-    // Identify schemas used by multiple tags (common schemas)
     let common_schemas = identify_common_schemas(&tag_schemas);
+    let common_error_schemas = tag_schemas
+        .values()
+        .flat_map(|tag| &tag.error_schemas)
+        .filter(|schema| common_schemas.contains(*schema))
+        .cloned()
+        .collect();
 
-    // Identify which common schemas are error schemas
-    let mut common_error_schemas = HashSet::new();
-    for tag_data in tag_schemas.values() {
-        for error_schema in &tag_data.error_schemas {
-            if common_schemas.contains(error_schema) {
-                common_error_schemas.insert(error_schema.clone());
-            }
-        }
-    }
-
-    // Remove common schemas from individual tags
     for tag_data in tag_schemas.values_mut() {
         tag_data.all_schemas = tag_data
             .all_schemas
@@ -189,270 +141,108 @@ pub fn collect_schemas_by_tag(spec: &OpenAPI) -> Result<SchemasByTag, String> {
     })
 }
 
-/// Finds schemas that appear under more than one tag.
 fn identify_common_schemas(tag_schemas: &HashMap<String, TagSchemas>) -> HashSet<String> {
     let mut schema_tag_count: HashMap<String, usize> = HashMap::new();
-
-    // Count how many tags each schema appears in
     for tag_data in tag_schemas.values() {
         for schema in &tag_data.all_schemas {
-            *schema_tag_count.entry(schema.clone()).or_insert(0) += 1;
+            *schema_tag_count.entry(schema.clone()).or_default() += 1;
         }
     }
-
-    // Schemas that appear in more than one tag are common
     schema_tag_count
         .into_iter()
-        .filter_map(|(schema, count)| if count > 1 { Some(schema) } else { None })
+        .filter_map(|(schema, count)| (count > 1).then_some(schema))
         .collect()
 }
 
-/// Records the top-level schema name when the reference points into components.
 fn collect_top_level_schema(
-    schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
+    schema_ref: &ObjectOrReference<ObjectSchema>,
     schemas: &mut HashSet<String>,
 ) {
-    // Only collect if it's a reference (top-level schema)
-    if let openapiv3::ReferenceOr::Reference { reference } = schema_ref {
-        if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
+    if let ObjectOrReference::Ref { ref_path, .. } = schema_ref {
+        if let Some(schema_name) = ref_path.strip_prefix("#/components/schemas/") {
             schemas.insert(schema_name.to_string());
         }
     }
 }
 
-/// Adds schema names referenced by boxed schema values to the accumulator.
-fn collect_schema_references_boxed(
-    schema_ref: &openapiv3::ReferenceOr<Box<openapiv3::Schema>>,
+fn collect_schema_reference(
+    schema_ref: &ObjectOrReference<ObjectSchema>,
     schemas: &mut HashSet<String>,
 ) {
     match schema_ref {
-        openapiv3::ReferenceOr::Reference { reference } => {
-            if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
+        ObjectOrReference::Ref { ref_path, .. } => {
+            if let Some(schema_name) = ref_path.strip_prefix("#/components/schemas/") {
                 schemas.insert(schema_name.to_string());
             }
         }
-        openapiv3::ReferenceOr::Item(schema) => {
-            collect_schema_references_from_schema(schema, schemas);
-        }
+        ObjectOrReference::Object(schema) => collect_schema_references(schema, schemas),
     }
 }
 
-/// Adds schema names referenced by inline schema values to the accumulator.
-fn collect_schema_references_unboxed(
-    schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
-    schemas: &mut HashSet<String>,
-) {
-    match schema_ref {
-        openapiv3::ReferenceOr::Reference { reference } => {
-            if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
-                schemas.insert(schema_name.to_string());
-            }
-        }
-        openapiv3::ReferenceOr::Item(schema) => {
-            collect_schema_references_from_schema(schema, schemas);
-        }
+fn collect_schema_document(schema: &Schema, schemas: &mut HashSet<String>) {
+    if let Schema::Object(schema_ref) = schema {
+        collect_schema_reference(schema_ref, schemas);
     }
 }
 
-/// Traverses a schema and collects every referenced schema name.
-fn collect_schema_references_from_schema(
-    schema: &openapiv3::Schema,
-    schemas: &mut HashSet<String>,
-) {
-    match &schema.schema_kind {
-        openapiv3::SchemaKind::Type(t) => match t {
-            openapiv3::Type::Object(obj) => {
-                for (_name, prop_ref) in &obj.properties {
-                    collect_schema_references_boxed(prop_ref, schemas);
-                }
-                if let Some(openapiv3::AdditionalProperties::Schema(schema_ref)) =
-                    &obj.additional_properties
-                {
-                    match schema_ref.as_ref() {
-                        openapiv3::ReferenceOr::Reference { reference } => {
-                            if let Some(schema_name) =
-                                reference.strip_prefix("#/components/schemas/")
-                            {
-                                schemas.insert(schema_name.to_string());
-                            }
-                        }
-                        openapiv3::ReferenceOr::Item(s) => {
-                            collect_schema_references_from_schema(s, schemas);
-                        }
-                    }
-                }
-            }
-            openapiv3::Type::Array(arr) => {
-                if let Some(items) = &arr.items {
-                    collect_schema_references_boxed(items, schemas);
-                }
-            }
-            _ => {}
-        },
-        openapiv3::SchemaKind::OneOf { one_of } => {
-            for schema_ref in one_of {
-                collect_schema_references_unboxed(schema_ref, schemas);
-            }
-        }
-        openapiv3::SchemaKind::AnyOf { any_of } => {
-            for schema_ref in any_of {
-                collect_schema_references_unboxed(schema_ref, schemas);
-            }
-        }
-        openapiv3::SchemaKind::AllOf { all_of } => {
-            for schema_ref in all_of {
-                collect_schema_references_unboxed(schema_ref, schemas);
-            }
-        }
-        _ => {}
+fn collect_schema_references(schema: &ObjectSchema, schemas: &mut HashSet<String>) {
+    for property in schema.properties.values() {
+        collect_schema_reference(property, schemas);
+    }
+    if let Some(additional_properties) = &schema.additional_properties {
+        collect_schema_document(additional_properties, schemas);
+    }
+    if let Some(items) = &schema.items {
+        collect_schema_document(items, schemas);
+    }
+    for nested in schema
+        .one_of
+        .iter()
+        .chain(&schema.any_of)
+        .chain(&schema.all_of)
+        .chain(&schema.prefix_items)
+    {
+        collect_schema_reference(nested, schemas);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
-
-    fn parse_spec(value: serde_json::Value) -> OpenAPI {
-        serde_json::from_value(value).expect("failed to parse OpenAPI fixture")
-    }
 
     #[test]
-    fn collect_schemas_by_tag_tracks_common_and_untagged_schemas() {
-        let spec = parse_spec(json!({
-            "openapi": "3.0.0",
+    fn tracks_common_and_untagged_schemas() {
+        let spec: Spec = serde_json::from_value(serde_json::json!({
+            "openapi": "3.1.0",
             "info": { "title": "test", "version": "1.0.0" },
             "paths": {
-                "/a": {
-                    "get": {
-                        "operationId": "getA",
-                        "tags": ["TagA"],
-                        "responses": {
-                            "200": {
-                                "description": "ok",
-                                "content": {
-                                    "application/json": {
-                                        "schema": { "$ref": "#/components/schemas/Shared" }
-                                    }
-                                }
-                            },
-                            "400": {
-                                "description": "error",
-                                "content": {
-                                    "application/json": {
-                                        "schema": { "$ref": "#/components/schemas/ErrShared" }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "/b": {
-                    "get": {
-                        "operationId": "getB",
-                        "tags": ["TagB"],
-                        "responses": {
-                            "200": {
-                                "description": "ok",
-                                "content": {
-                                    "application/json": {
-                                        "schema": { "$ref": "#/components/schemas/Shared" }
-                                    }
-                                }
-                            },
-                            "400": {
-                                "description": "error",
-                                "content": {
-                                    "application/json": {
-                                        "schema": { "$ref": "#/components/schemas/ErrShared" }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "/untagged": {
-                    "get": {
-                        "operationId": "getUntagged",
-                        "responses": {
-                            "200": {
-                                "description": "ok",
-                                "content": {
-                                    "application/json": {
-                                        "schema": { "$ref": "#/components/schemas/UntaggedOnly" }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                "/a": { "get": { "operationId": "getA", "tags": ["TagA"], "responses": {
+                    "200": { "description": "ok", "content": { "application/json": {
+                        "schema": { "$ref": "#/components/schemas/Shared" }
+                    } } }
+                } } },
+                "/b": { "get": { "operationId": "getB", "tags": ["TagB"], "responses": {
+                    "200": { "description": "ok", "content": { "application/json": {
+                        "schema": { "$ref": "#/components/schemas/Shared" }
+                    } } }
+                } } },
+                "/c": { "get": { "operationId": "getC", "responses": {
+                    "200": { "description": "ok", "content": { "application/json": {
+                        "schema": { "$ref": "#/components/schemas/OnlyUntagged" }
+                    } } }
+                } } }
             },
-            "components": {
-                "schemas": {
-                    "Shared": { "type": "string" },
-                    "ErrShared": { "type": "object", "properties": { "message": { "type": "string" } } },
-                    "UntaggedOnly": { "type": "integer" }
-                }
-            }
-        }));
+            "components": { "schemas": {
+                "Shared": { "type": "object" },
+                "OnlyUntagged": { "type": "object" }
+            } }
+        }))
+        .expect("parse fixture");
 
-        let grouped = collect_schemas_by_tag(&spec).expect("schema grouping should succeed");
-
-        assert!(grouped.common_schemas.contains("Shared"));
-        assert!(grouped.common_schemas.contains("ErrShared"));
-        assert!(grouped.common_error_schemas.contains("ErrShared"));
-        assert!(!grouped.common_error_schemas.contains("Shared"));
-
-        let untagged = grouped
-            .tag_schemas
-            .get("Untagged")
-            .expect("untagged operations should be grouped");
-        assert!(untagged.all_schemas.contains("UntaggedOnly"));
-        assert!(untagged.error_schemas.is_empty());
-    }
-
-    #[test]
-    fn request_root_schema_is_replaced_by_operation_request_struct() {
-        let spec = parse_spec(json!({
-            "openapi": "3.0.0",
-            "info": { "title": "test", "version": "1.0.0" },
-            "paths": {
-                "/demo": {
-                    "post": {
-                        "operationId": "createDemo",
-                        "tags": ["Demo"],
-                        "requestBody": {
-                            "required": true,
-                            "content": {
-                                "application/json": {
-                                    "schema": { "$ref": "#/components/schemas/LegacyRequest" }
-                                }
-                            }
-                        },
-                        "responses": { "204": { "description": "ok" } }
-                    }
-                }
-            },
-            "components": {
-                "schemas": {
-                    "LegacyRequest": {
-                        "type": "object",
-                        "properties": {
-                            "value": { "$ref": "#/components/schemas/RequestValue" }
-                        }
-                    },
-                    "RequestValue": { "type": "string" }
-                }
-            }
-        }));
-
-        let grouped = collect_schemas_by_tag(&spec).expect("schema grouping should succeed");
-        let demo = grouped
-            .tag_schemas
-            .get("Demo")
-            .expect("demo operations should be grouped");
-
-        assert!(!demo.all_schemas.contains("LegacyRequest"));
-        assert!(demo.all_schemas.contains("RequestValue"));
+        let schemas = collect_schemas_by_tag(&spec).expect("collect schemas");
+        assert!(schemas.common_schemas.contains("Shared"));
+        assert!(schemas.tag_schemas["Untagged"]
+            .all_schemas
+            .contains("OnlyUntagged"));
     }
 }

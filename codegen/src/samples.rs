@@ -1,7 +1,10 @@
 use heck::ToSnakeCase;
-use openapiv3::{
-    Example, MediaType, OpenAPI, Operation, Parameter, ReferenceOr, RequestBody, Schema,
-    SchemaKind, Type, VariantOrUnknownOrEmpty,
+use oas3::{
+    spec::{
+        self as openapiv3, MediaType, ObjectOrReference as ReferenceOr, ObjectSchema, Operation,
+        ParameterIn, RequestBody, Schema, SchemaType,
+    },
+    Spec as OpenAPI,
 };
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -60,12 +63,7 @@ pub fn generate_code_samples(
 ) -> Result<CodeSampleCatalog, String> {
     let mut samples = Vec::new();
 
-    for (path, path_item_ref) in &spec.paths.paths {
-        let path_item = match path_item_ref {
-            ReferenceOr::Item(path_item) => path_item,
-            ReferenceOr::Reference { .. } => continue,
-        };
-
+    for (path, path_item) in spec.paths.iter().flatten() {
         for (http_method, operation) in crate::operations_for_path_item(path_item) {
             let operation_id = operation
                 .operation_id
@@ -141,17 +139,19 @@ fn request_examples(spec: &OpenAPI, operation: &Operation) -> Vec<RequestExample
         return vec![empty_example()];
     };
 
-    if !media_type.examples.is_empty() {
+    if media_type
+        .examples
+        .as_ref()
+        .is_some_and(|examples| !examples.is_empty())
+    {
         let mut examples = media_type
-            .examples
-            .iter()
-            .filter_map(|(name, example)| {
-                resolve_example(spec, example).map(|example| RequestExample {
-                    name: Some(name.clone()),
-                    summary: example.summary.clone(),
-                    description: example.description.clone(),
-                    value: example.value.clone(),
-                })
+            .examples(spec)
+            .into_iter()
+            .map(|(name, example)| RequestExample {
+                name: Some(name),
+                summary: example.summary,
+                description: example.description,
+                value: example.value,
             })
             .collect::<Vec<_>>();
         examples.sort_by(|left, right| left.name.cmp(&right.name));
@@ -160,12 +160,17 @@ fn request_examples(spec: &OpenAPI, operation: &Operation) -> Vec<RequestExample
         }
     }
 
-    let value = media_type.example.clone().or_else(|| {
-        media_type
-            .schema
-            .as_ref()
-            .and_then(|schema| schema_value(spec, schema, 0))
-    });
+    let value = media_type
+        .examples(spec)
+        .into_values()
+        .next()
+        .and_then(|example| example.value)
+        .or_else(|| {
+            media_type
+                .schema
+                .as_ref()
+                .and_then(|schema| schema_value(spec, schema, 0))
+        });
     vec![RequestExample {
         value,
         ..empty_example()
@@ -186,28 +191,20 @@ fn resolve_request_body<'a>(
     request_body: &'a ReferenceOr<RequestBody>,
 ) -> Option<&'a RequestBody> {
     match request_body {
-        ReferenceOr::Item(body) => Some(body),
-        ReferenceOr::Reference { reference } => reference
+        ReferenceOr::Object(body) => Some(body),
+        ReferenceOr::Ref {
+            ref_path: reference,
+            ..
+        } => reference
             .strip_prefix("#/components/requestBodies/")
             .and_then(|name| spec.components.as_ref()?.request_bodies.get(name))
             .and_then(|body| resolve_request_body(spec, body)),
     }
 }
 
-fn resolve_example<'a>(
-    spec: &'a OpenAPI,
-    example: &'a ReferenceOr<Example>,
-) -> Option<&'a Example> {
-    match example {
-        ReferenceOr::Item(example) => Some(example),
-        ReferenceOr::Reference { reference } => reference
-            .strip_prefix("#/components/examples/")
-            .and_then(|name| spec.components.as_ref()?.examples.get(name))
-            .and_then(|example| resolve_example(spec, example)),
-    }
-}
-
-fn preferred_request_media_type(content: &openapiv3::Content) -> Option<&MediaType> {
+fn preferred_request_media_type(
+    content: &std::collections::BTreeMap<String, MediaType>,
+) -> Option<&MediaType> {
     content
         .get("application/json")
         .or_else(|| content.values().next())
@@ -226,11 +223,11 @@ fn render_program(
     let mut arguments = Vec::new();
 
     for parameter in path_item.parameters.iter().chain(&operation.parameters) {
-        let ReferenceOr::Item(Parameter::Path { parameter_data, .. }) = parameter else {
+        let ReferenceOr::Object(parameter) = parameter else {
             continue;
         };
-        if parameter_data.required {
-            arguments.push(format!("{:?}", path_parameter_value(&parameter_data.name)));
+        if parameter.location == ParameterIn::Path && parameter.required.unwrap_or(false) {
+            arguments.push(format!("{:?}", path_parameter_value(&parameter.name)));
         }
     }
 
@@ -241,7 +238,7 @@ fn render_program(
         .and_then(|body| {
             preferred_request_media_type(&body.content)
                 .and_then(|media_type| media_type.schema.as_ref())
-                .map(|schema| (body.required, schema))
+                .map(|schema| (body.required.unwrap_or(false), schema))
         });
     let mut body_declaration = String::new();
     if let Some((required, schema)) = body {
@@ -260,7 +257,7 @@ fn render_program(
     if operation
         .parameters
         .iter()
-        .any(|parameter| matches!(parameter, ReferenceOr::Item(Parameter::Query { .. })))
+        .any(|parameter| matches!(parameter, ReferenceOr::Object(parameter) if parameter.location == ParameterIn::Query))
     {
         arguments.push("Default::default()".to_string());
     }
@@ -293,135 +290,92 @@ fn path_parameter_value(name: &str) -> &str {
     }
 }
 
-fn schema_value(spec: &OpenAPI, schema_ref: &ReferenceOr<Schema>, depth: usize) -> Option<Value> {
+fn schema_value(
+    spec: &OpenAPI,
+    schema_ref: &ReferenceOr<ObjectSchema>,
+    depth: usize,
+) -> Option<Value> {
     if depth > 20 {
         return None;
     }
     match schema_ref {
-        ReferenceOr::Reference { reference } => reference
+        ReferenceOr::Ref {
+            ref_path: reference,
+            ..
+        } => reference
             .strip_prefix("#/components/schemas/")
             .and_then(|name| spec.components.as_ref()?.schemas.get(name))
             .and_then(|schema| schema_value(spec, schema, depth + 1)),
-        ReferenceOr::Item(schema) => {
-            if let Some(example) = &schema.schema_data.example {
+        ReferenceOr::Object(schema) => {
+            if let Some(example) = crate::oas::schema_example(schema) {
                 return Some(example.clone());
             }
-            if let Some(default) = &schema.schema_data.default {
+            if let Some(default) = &schema.default {
                 return Some(default.clone());
             }
-            schema_kind_value(spec, &schema.schema_kind, depth + 1)
+            schema_object_value(spec, schema, depth + 1)
         }
     }
 }
 
-fn boxed_schema_value(
-    spec: &OpenAPI,
-    schema_ref: &ReferenceOr<Box<Schema>>,
-    depth: usize,
-) -> Option<Value> {
-    match schema_ref {
-        ReferenceOr::Reference { reference } => schema_value(
-            spec,
-            &ReferenceOr::Reference {
-                reference: reference.clone(),
-            },
-            depth,
-        ),
-        ReferenceOr::Item(schema) => {
-            schema_value(spec, &ReferenceOr::Item((**schema).clone()), depth)
-        }
-    }
-}
-
-fn schema_kind_value(spec: &OpenAPI, kind: &SchemaKind, depth: usize) -> Option<Value> {
-    match kind {
-        SchemaKind::Type(Type::String(string)) => string
-            .enumeration
-            .iter()
-            .flatten()
-            .next()
-            .cloned()
-            .map(Value::String)
-            .or_else(|| Some(Value::String(string_example(&string.format).to_string()))),
-        SchemaKind::Type(Type::Number(number)) => number
-            .enumeration
-            .iter()
-            .flatten()
-            .next()
-            .or(number.minimum.as_ref())
-            .and_then(|value| serde_json::Number::from_f64(*value))
-            .map(Value::Number)
-            .or_else(|| Some(Value::from(1.0))),
-        SchemaKind::Type(Type::Integer(integer)) => Some(Value::from(
-            integer
-                .enumeration
-                .iter()
-                .flatten()
-                .next()
-                .copied()
-                .or(integer.minimum)
-                .unwrap_or(1),
-        )),
-        SchemaKind::Type(Type::Boolean(_)) => Some(Value::Bool(true)),
-        SchemaKind::Type(Type::Array(array)) => {
-            let item = array
-                .items
-                .as_ref()
-                .and_then(|item| boxed_schema_value(spec, item, depth + 1));
-            Some(item.into_iter().collect())
-        }
-        SchemaKind::Type(Type::Object(object)) => Some(object_value(
-            spec,
-            &object.properties,
-            &object.required,
-            depth + 1,
-        )),
-        SchemaKind::AllOf { all_of } => {
-            let mut combined = Map::new();
-            for schema in all_of {
-                if let Some(Value::Object(values)) = schema_value(spec, schema, depth + 1) {
-                    combined.extend(values);
-                }
-            }
-            Some(Value::Object(combined))
-        }
-        SchemaKind::OneOf { one_of } => one_of
-            .first()
-            .and_then(|schema| schema_value(spec, schema, depth + 1)),
-        SchemaKind::AnyOf { any_of } => any_of
-            .first()
-            .and_then(|schema| schema_value(spec, schema, depth + 1)),
-        SchemaKind::Not { .. } => None,
-        SchemaKind::Any(any) => any_schema_value(spec, any, depth + 1),
-    }
-}
-
-fn any_schema_value(spec: &OpenAPI, any: &openapiv3::AnySchema, depth: usize) -> Option<Value> {
-    if let Some(value) = any.enumeration.first() {
+fn schema_object_value(spec: &OpenAPI, schema: &ObjectSchema, depth: usize) -> Option<Value> {
+    if let Some(value) = schema.enum_values.iter().find(|value| !value.is_null()) {
         return Some(value.clone());
     }
-    if !any.properties.is_empty() {
-        return Some(object_value(
-            spec,
-            &any.properties,
-            &any.required,
-            depth + 1,
-        ));
+    if !schema.all_of.is_empty() {
+        let mut combined = Map::new();
+        for part in &schema.all_of {
+            if let Some(Value::Object(values)) = schema_value(spec, part, depth + 1) {
+                combined.extend(values);
+            }
+        }
+        return Some(Value::Object(combined));
     }
-    if let Some(schema) = any
-        .all_of
+    if let Some(value) = schema
+        .one_of
         .first()
-        .or_else(|| any.one_of.first())
-        .or_else(|| any.any_of.first())
+        .and_then(|schema| schema_value(spec, schema, depth + 1))
     {
-        return schema_value(spec, schema, depth + 1);
+        return Some(value);
     }
-    Some(Value::Object(Map::new()))
+    if let Some(value) = schema
+        .any_of
+        .first()
+        .and_then(|schema| schema_value(spec, schema, depth + 1))
+    {
+        return Some(value);
+    }
+    match crate::oas::schema_type(schema) {
+        Some(SchemaType::String) => Some(Value::String(
+            string_example(schema.format.as_deref()).to_string(),
+        )),
+        Some(SchemaType::Number | SchemaType::Integer) => schema
+            .minimum
+            .clone()
+            .map(Value::Number)
+            .or_else(|| Some(Value::from(1))),
+        Some(SchemaType::Boolean) => Some(Value::Bool(true)),
+        Some(SchemaType::Array) => {
+            let item = schema.items.as_deref().and_then(|item| match item {
+                Schema::Object(item) => schema_value(spec, item, depth + 1),
+                Schema::Boolean(_) => None,
+            });
+            Some(item.into_iter().collect())
+        }
+        Some(SchemaType::Object) | None if !schema.properties.is_empty() => Some(object_value(
+            spec,
+            &schema.properties,
+            &schema.required,
+            depth + 1,
+        )),
+        Some(SchemaType::Null) => Some(Value::Null),
+        _ => Some(Value::Object(Map::new())),
+    }
 }
 
 fn object_value(
     spec: &OpenAPI,
-    properties: &indexmap::IndexMap<String, ReferenceOr<Box<Schema>>>,
+    properties: &std::collections::BTreeMap<String, ReferenceOr<ObjectSchema>>,
     required: &[String],
     depth: usize,
 ) -> Value {
@@ -429,7 +383,7 @@ fn object_value(
     for name in required {
         if let Some(value) = properties
             .get(name)
-            .and_then(|schema| boxed_schema_value(spec, schema, depth + 1))
+            .and_then(|schema| schema_value(spec, schema, depth + 1))
         {
             values.insert(name.clone(), value);
         }
@@ -437,11 +391,11 @@ fn object_value(
     Value::Object(values)
 }
 
-fn string_example(format: &VariantOrUnknownOrEmpty<openapiv3::StringFormat>) -> &'static str {
+fn string_example(format: Option<&str>) -> &'static str {
     match format {
-        VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::DateTime) => "2024-01-01T00:00:00Z",
-        VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Date) => "2024-01-01",
-        VariantOrUnknownOrEmpty::Unknown(format) if format == "uri" => "https://example.com",
+        Some("date-time") => "2024-01-01T00:00:00Z",
+        Some("date") => "2024-01-01",
+        Some("uri") => "https://example.com",
         _ => "example",
     }
 }

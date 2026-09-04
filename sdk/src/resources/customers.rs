@@ -6,40 +6,6 @@
 //!
 //! Depending on the needs you can allow, creating, listing or deactivating payment instruments & creating, retrieving and updating customers.
 use super::common::*;
-/// Profile's personal address information.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct AddressLegacy {
-    /// City name from the address.
-    ///
-    /// Example: `Berlin`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub city: Option<String>,
-    /// Two letter country code formatted according to [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
-    ///
-    /// Example: `DE`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub country: Option<String>,
-    /// First line of the address with details of the street name and number.
-    ///
-    /// Example: `Sample street`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub line_1: Option<String>,
-    /// Second line of the address with details of the building, unit, apartment, and floor numbers.
-    ///
-    /// Example: `ap. 5`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub line_2: Option<String>,
-    /// Postal code from the address.
-    ///
-    /// Example: `10115`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub postal_code: Option<String>,
-    /// State name or abbreviation from the address.
-    ///
-    /// Example: `Berlin`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub state: Option<String>,
-}
 /// Saved customer details.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Customer {
@@ -53,6 +19,22 @@ pub struct Customer {
 /// Details of a saved payment instrument.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PaymentInstrumentResponse {
+    /// Indicates whether the payment instrument is active and can be used for payments. To deactivate it, send a `DELETE` request to the resource endpoint.
+    ///
+    /// Constraints:
+    /// - read-only
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active: Option<bool>,
+    /// Details of the payment card.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub card: Option<PaymentInstrumentResponseCard>,
+    /// The timestamp of when the payment instrument was created.
+    ///
+    /// Example: `2021-03-30T10:06:07.000+00:00`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<crate::datetime::DateTime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mandate: Option<MandateResponse>,
     /// Unique token identifying the saved payment card for a customer.
     ///
     /// Constraints:
@@ -61,77 +43,12 @@ pub struct PaymentInstrumentResponse {
     /// Example: `bcfc8e5f-3b47-4cb9-854b-3b7a4cce7be3`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
-    /// Indicates whether the payment instrument is active and can be used for payments. To deactivate it, send a `DELETE` request to the resource endpoint.
-    ///
-    /// Constraints:
-    /// - read-only
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub active: Option<bool>,
     /// Type of the payment instrument.
     ///
     /// Example: `card`
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<PaymentInstrumentResponseType>,
-    /// Details of the payment card.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub card: Option<PaymentInstrumentResponseCard>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mandate: Option<MandateResponse>,
-    /// The timestamp of when the payment instrument was created.
-    ///
-    /// Example: `2021-03-30T10:06:07.000+00:00`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<crate::datetime::DateTime>,
-}
-/// Personal details for the customer.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct PersonalDetails {
-    /// First name of the customer.
-    ///
-    /// Example: `John`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub first_name: Option<String>,
-    /// Last name of the customer.
-    ///
-    /// Example: `Doe`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_name: Option<String>,
-    /// Email address of the customer.
-    ///
-    /// Example: `user@example.com`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
-    /// Phone number of the customer.
-    ///
-    /// Example: `+491635559723`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub phone: Option<String>,
-    /// Date of birth of the customer.
-    ///
-    /// Example: `1993-12-31`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub birth_date: Option<crate::datetime::Date>,
-    /// Identification number used for tax purposes, such as a CPF in Brazil.
-    ///
-    /// Constraints:
-    /// - max length: 255
-    ///
-    /// Example: `423.378.593-47`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tax_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub address: Option<AddressLegacy>,
-}
-/// Type of the payment instrument.
-///
-/// Example: `card`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum PaymentInstrumentResponseType {
-    #[serde(rename = "card")]
-    Card,
-    #[serde(untagged)]
-    Other(String),
 }
 /// Details of the payment card.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -149,6 +66,16 @@ pub struct PaymentInstrumentResponseCard {
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<CardType>,
+}
+/// Type of the payment instrument.
+///
+/// Example: `card`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum PaymentInstrumentResponseType {
+    #[serde(rename = "card")]
+    Card,
+    #[serde(untagged)]
+    Other(String),
 }
 /// Details of the customer.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]

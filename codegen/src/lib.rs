@@ -6,7 +6,10 @@ use std::{
 };
 
 use heck::{ToSnakeCase, ToUpperCamelCase};
-use openapiv3::OpenAPI;
+use oas3::{
+    spec::{MediaType, ObjectOrReference, ObjectSchema, Operation, Parameter, PathItem, Schema},
+    Spec as OpenAPI,
+};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
@@ -14,6 +17,7 @@ use operation::GeneratedClientMethods;
 
 pub mod body;
 pub mod client;
+mod oas;
 pub mod operation;
 pub mod samples;
 pub mod schema;
@@ -32,13 +36,13 @@ pub use tag::{collect_schemas_by_tag, SchemasByTag, TagSchemas};
 pub struct TaggedOperation<'a> {
     pub path: &'a str,
     pub http_method: &'static str,
-    pub operation: &'a openapiv3::Operation,
-    pub path_parameters: &'a [openapiv3::ReferenceOr<openapiv3::Parameter>],
+    pub operation: &'a Operation,
+    pub path_parameters: &'a [ObjectOrReference<Parameter>],
 }
 
 /// Returns the canonical operation name for code generation.
 /// Prefers `x-codegen.method_name`, falling back to `operation_id` or "unknown".
-pub fn operation_name(operation: &openapiv3::Operation) -> String {
+pub fn operation_name(operation: &Operation) -> String {
     if let Some(name) = operation_codegen_method_name(operation) {
         return name.to_string();
     }
@@ -50,10 +54,10 @@ pub fn operation_name(operation: &openapiv3::Operation) -> String {
         .unwrap_or_else(|| "unknown".to_string())
 }
 
-fn operation_codegen_method_name(operation: &openapiv3::Operation) -> Option<&str> {
+fn operation_codegen_method_name(operation: &Operation) -> Option<&str> {
     operation
         .extensions
-        .get("x-codegen")
+        .get("codegen")
         .and_then(serde_json::Value::as_object)
         .and_then(|codegen_obj| codegen_obj.get("method_name"))
         .and_then(serde_json::Value::as_str)
@@ -63,12 +67,7 @@ fn operation_codegen_method_name(operation: &openapiv3::Operation) -> Option<&st
 pub fn collect_tagged_operations<'a>(spec: &'a OpenAPI, tag: &str) -> Vec<TaggedOperation<'a>> {
     let mut operations = Vec::new();
 
-    for (path, path_item_ref) in &spec.paths.paths {
-        let path_item = match path_item_ref {
-            openapiv3::ReferenceOr::Item(item) => item,
-            openapiv3::ReferenceOr::Reference { .. } => continue,
-        };
-
+    for (path, path_item) in spec.paths.iter().flat_map(|paths| paths.iter()) {
         for (http_method, operation) in operations_for_path_item(path_item) {
             if !operation
                 .tags
@@ -96,8 +95,8 @@ pub fn collect_tagged_operations<'a>(spec: &'a OpenAPI, tag: &str) -> Vec<Tagged
 }
 
 pub(crate) fn operations_for_path_item(
-    path_item: &openapiv3::PathItem,
-) -> impl Iterator<Item = (&'static str, &openapiv3::Operation)> {
+    path_item: &PathItem,
+) -> impl Iterator<Item = (&'static str, &Operation)> {
     [
         ("delete", path_item.delete.as_ref()),
         ("get", path_item.get.as_ref()),
@@ -110,8 +109,8 @@ pub(crate) fn operations_for_path_item(
 }
 
 pub(crate) fn preferred_response_media_type(
-    content: &openapiv3::Content,
-) -> Option<&openapiv3::MediaType> {
+    content: &std::collections::BTreeMap<String, MediaType>,
+) -> Option<&MediaType> {
     content
         .get("application/problem+json")
         .or_else(|| content.get("application/json"))
@@ -513,8 +512,8 @@ pub fn does_reference_common_schemas(
     for schema_name in schemas {
         if let Some(schema_ref) = all_schemas.get(schema_name) {
             let schema = match schema_ref {
-                openapiv3::ReferenceOr::Item(s) => s,
-                openapiv3::ReferenceOr::Reference { .. } => continue,
+                ObjectOrReference::Object(schema) => schema,
+                ObjectOrReference::Ref { .. } => continue,
             };
 
             if references_common_in_schema(schema, common_schemas) {
@@ -549,10 +548,15 @@ pub fn does_tag_operations_reference_common(
             }
         }
 
-        for response_ref in tagged_operation.operation.responses.responses.values() {
+        for response_ref in tagged_operation
+            .operation
+            .responses
+            .iter()
+            .flat_map(|responses| responses.values())
+        {
             let response = match response_ref {
-                openapiv3::ReferenceOr::Item(r) => r,
-                openapiv3::ReferenceOr::Reference { .. } => continue,
+                ObjectOrReference::Object(response) => response,
+                ObjectOrReference::Ref { .. } => continue,
             };
 
             if let Some(media_type) = preferred_response_media_type(&response.content) {
@@ -570,16 +574,16 @@ pub fn does_tag_operations_reference_common(
 
 /// Returns true when the schema reference resolves to one of the common schemas.
 fn references_common_schema_ref(
-    schema_ref: &openapiv3::ReferenceOr<openapiv3::Schema>,
+    schema_ref: &ObjectOrReference<ObjectSchema>,
     common_schemas: &std::collections::HashSet<String>,
 ) -> bool {
     match schema_ref {
-        openapiv3::ReferenceOr::Reference { reference } => {
-            if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
+        ObjectOrReference::Ref { ref_path, .. } => {
+            if let Some(schema_name) = ref_path.strip_prefix("#/components/schemas/") {
                 return common_schemas.contains(schema_name);
             }
         }
-        openapiv3::ReferenceOr::Item(schema) => {
+        ObjectOrReference::Object(schema) => {
             return references_common_in_schema(schema, common_schemas);
         }
     }
@@ -588,86 +592,42 @@ fn references_common_schema_ref(
 
 /// Walks the schema tree to determine whether it references any common schema.
 fn references_common_in_schema(
-    schema: &openapiv3::Schema,
+    schema: &ObjectSchema,
     common_schemas: &std::collections::HashSet<String>,
 ) -> bool {
-    use openapiv3::{ReferenceOr, SchemaKind, Type};
-
-    match &schema.schema_kind {
-        SchemaKind::Type(Type::Object(obj)) => {
-            for (_name, prop_ref) in &obj.properties {
-                match prop_ref {
-                    ReferenceOr::Reference { reference } => {
-                        if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
-                            if common_schemas.contains(schema_name) {
-                                return true;
-                            }
-                        }
-                    }
-                    ReferenceOr::Item(s) => {
-                        if references_common_in_schema(s, common_schemas) {
-                            return true;
-                        }
-                    }
-                }
+    fn reference_matches(
+        schema_ref: &ObjectOrReference<ObjectSchema>,
+        common_schemas: &std::collections::HashSet<String>,
+    ) -> bool {
+        match schema_ref {
+            ObjectOrReference::Ref { ref_path, .. } => ref_path
+                .strip_prefix("#/components/schemas/")
+                .is_some_and(|name| common_schemas.contains(name)),
+            ObjectOrReference::Object(schema) => {
+                references_common_in_schema(schema, common_schemas)
             }
-            false
         }
-        SchemaKind::Type(Type::Array(arr)) => {
-            if let Some(items) = &arr.items {
-                match items {
-                    ReferenceOr::Reference { reference } => {
-                        if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
-                            return common_schemas.contains(schema_name);
-                        }
-                    }
-                    ReferenceOr::Item(s) => {
-                        return references_common_in_schema(s, common_schemas);
-                    }
-                }
-            }
-            false
-        }
-        SchemaKind::OneOf { one_of } | SchemaKind::AnyOf { any_of: one_of } => {
-            for schema_ref in one_of {
-                match schema_ref {
-                    ReferenceOr::Reference { reference } => {
-                        if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
-                            if common_schemas.contains(schema_name) {
-                                return true;
-                            }
-                        }
-                    }
-                    ReferenceOr::Item(s) => {
-                        if references_common_in_schema(s, common_schemas) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            false
-        }
-        SchemaKind::AllOf { all_of } => {
-            for schema_ref in all_of {
-                match schema_ref {
-                    ReferenceOr::Reference { reference } => {
-                        if let Some(schema_name) = reference.strip_prefix("#/components/schemas/") {
-                            if common_schemas.contains(schema_name) {
-                                return true;
-                            }
-                        }
-                    }
-                    ReferenceOr::Item(s) => {
-                        if references_common_in_schema(s, common_schemas) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            false
-        }
-        _ => false,
     }
+
+    schema
+        .properties
+        .values()
+        .chain(&schema.one_of)
+        .chain(&schema.any_of)
+        .chain(&schema.all_of)
+        .chain(&schema.prefix_items)
+        .any(|schema_ref| reference_matches(schema_ref, common_schemas))
+        || schema.items.as_deref().is_some_and(|schema| match schema {
+            Schema::Boolean(_) => false,
+            Schema::Object(schema_ref) => reference_matches(schema_ref, common_schemas),
+        })
+        || schema
+            .additional_properties
+            .as_ref()
+            .is_some_and(|schema| match schema {
+                Schema::Boolean(_) => false,
+                Schema::Object(schema_ref) => reference_matches(schema_ref, common_schemas),
+            })
 }
 
 #[cfg(test)]
@@ -1169,12 +1129,9 @@ mod tests {
             }
         }))
         .paths
-        .paths
+        .expect("fixture should contain paths")
         .values()
-        .find_map(|path_item_ref| match path_item_ref {
-            openapiv3::ReferenceOr::Item(path_item) => path_item.get.as_ref(),
-            openapiv3::ReferenceOr::Reference { .. } => None,
-        })
+        .find_map(|path_item| path_item.get.as_ref())
         .expect("fixture should contain operation")
         .clone();
 
@@ -1183,13 +1140,13 @@ mod tests {
 
     #[test]
     fn operation_name_falls_back_to_operation_id_and_unknown() {
-        let with_operation_id = openapiv3::Operation {
+        let with_operation_id = oas3::spec::Operation {
             operation_id: Some("listDemo".to_string()),
             ..Default::default()
         };
         assert_eq!(operation_name(&with_operation_id), "listDemo");
 
-        let without_name = openapiv3::Operation::default();
+        let without_name = oas3::spec::Operation::default();
         assert_eq!(operation_name(&without_name), "unknown");
     }
 
