@@ -15,23 +15,23 @@
 //! redirect the user back to your host, e.g. `https://example.com/callback`.
 
 use axum::{
+    Json, Router,
     extract::{Query, State},
     response::Redirect,
     routing::get,
-    Json, Router,
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use oauth2::reqwest;
-use oauth2::{basic::BasicClient, EndpointNotSet, EndpointSet};
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
     PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
+use oauth2::{EndpointNotSet, EndpointSet, basic::BasicClient};
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use sumup::{resources::merchants::Merchant, Authorization, Client};
+use sumup::{Authorization, Client, resources::merchants::Merchant};
 
 #[derive(Clone)]
 struct AppState {

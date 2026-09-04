@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use oas3::{
-    spec::{ObjectOrReference, ObjectSchema, ParameterIn, Schema},
     Spec,
+    spec::{ObjectOrReference, ObjectSchema, ParameterIn, Schema},
 };
 
 /// Holds the schemas associated with a single OpenAPI tag.
@@ -241,8 +241,10 @@ mod tests {
 
         let schemas = collect_schemas_by_tag(&spec).expect("collect schemas");
         assert!(schemas.common_schemas.contains("Shared"));
-        assert!(schemas.tag_schemas["Untagged"]
-            .all_schemas
-            .contains("OnlyUntagged"));
+        assert!(
+            schemas.tag_schemas["Untagged"]
+                .all_schemas
+                .contains("OnlyUntagged")
+        );
     }
 }

@@ -17,7 +17,7 @@
 
 ## Code Style & Naming Conventions
 
-- Target Rust 1.82, edition 2021, four-space indents, and no `unsafe`.
+- Target Rust 1.85, edition 2024, four-space indents, and no `unsafe`.
 - Lean on existing client helpers for building requests; keep module-level docs current for new endpoints.
 - `cargo fmt` and `cargo clippy` are the single sources of truth for formatting and linting.
 

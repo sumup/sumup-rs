@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, HashSet};
 
 use heck::ToUpperCamelCase;
 use oas3::{
-    spec::{BooleanSchema, ObjectOrReference, ObjectSchema, Schema, SchemaType},
     Spec as OpenAPI,
+    spec::{BooleanSchema, ObjectOrReference, ObjectSchema, Schema, SchemaType},
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;

@@ -1,5 +1,5 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
-use oas3::{spec as openapiv3, Spec as OpenAPI};
+use oas3::{Spec as OpenAPI, spec as openapiv3};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 

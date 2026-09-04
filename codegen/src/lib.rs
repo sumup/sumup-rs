@@ -7,8 +7,8 @@ use std::{
 
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use oas3::{
-    spec::{MediaType, ObjectOrReference, ObjectSchema, Operation, Parameter, PathItem, Schema},
     Spec as OpenAPI,
+    spec::{MediaType, ObjectOrReference, ObjectSchema, Operation, Parameter, PathItem, Schema},
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
@@ -27,9 +27,9 @@ pub mod tag;
 pub use body::generate_operation_bodies;
 pub use client::generate_client_file;
 pub use operation::generate_client_methods;
-pub use samples::{generate_code_samples, CodeSample, CodeSampleCatalog};
+pub use samples::{CodeSample, CodeSampleCatalog, generate_code_samples};
 pub use schema::{generate_module_doc_comment, generate_structs_for_schemas};
-pub use tag::{collect_schemas_by_tag, SchemasByTag, TagSchemas};
+pub use tag::{SchemasByTag, TagSchemas, collect_schemas_by_tag};
 
 /// A single operation selected for a given tag, along with traversal context.
 #[derive(Clone, Copy)]
@@ -421,7 +421,7 @@ fn format_with_rustfmt(code: &str) -> Result<String, std::io::Error> {
     use std::process::{Command, Stdio};
 
     let mut child = Command::new("rustfmt")
-        .arg("--edition=2021")
+        .arg("--edition=2024")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -1063,8 +1063,10 @@ mod tests {
     fn format_generated_code_falls_back_for_non_file_token_streams() {
         let tokens = TokenStream::from_str("not valid rust syntax").expect("valid token stream");
         let formatted = format_generated_code(tokens);
-        assert!(formatted
-            .starts_with("// The contents of this file are generated; do not modify them."));
+        assert!(
+            formatted
+                .starts_with("// The contents of this file are generated; do not modify them.")
+        );
         assert!(formatted.contains("not valid rust syntax"));
     }
 

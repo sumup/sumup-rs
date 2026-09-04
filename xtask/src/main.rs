@@ -189,7 +189,7 @@ fn compile_code_samples(root: &Path, samples: &[codegen::CodeSample]) -> Result<
 
     let sdk_path = root.join("sdk").display().to_string().replace('\\', "\\\\");
     let manifest = format!(
-        "[package]\nname = \"sumup-generated-code-samples\"\nversion = \"0.0.0\"\nedition = \"2021\"\npublish = false\n\n[workspace]\n\n[dependencies]\nsumup = {{ path = \"{sdk_path}\", default-features = false, features = [\"chrono\"] }}\nserde_json = \"1.0\"\ntokio = {{ version = \"1\", features = [\"macros\", \"rt-multi-thread\"] }}\n"
+        "[package]\nname = \"sumup-generated-code-samples\"\nversion = \"0.0.0\"\nedition = \"2024\"\npublish = false\n\n[workspace]\n\n[dependencies]\nsumup = {{ path = \"{sdk_path}\", default-features = false, features = [\"chrono\"] }}\nserde_json = \"1.0\"\ntokio = {{ version = \"1\", features = [\"macros\", \"rt-multi-thread\"] }}\n"
     );
     std::fs::write(temporary.join("Cargo.toml"), manifest)
         .map_err(|error| format!("Failed to write sample manifest: {error}"))?;

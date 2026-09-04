@@ -1,10 +1,10 @@
 use heck::ToSnakeCase;
 use oas3::{
+    Spec as OpenAPI,
     spec::{
         self as openapiv3, MediaType, ObjectOrReference as ReferenceOr, ObjectSchema, Operation,
         ParameterIn, RequestBody, Schema, SchemaType,
     },
-    Spec as OpenAPI,
 };
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -425,10 +425,12 @@ mod tests {
         assert_eq!(generated.sdk.version, "test");
         assert!(!generated.open_api_version.is_empty());
         assert!(!generated.samples.is_empty());
-        assert!(generated
-            .samples
-            .windows(2)
-            .all(|samples| samples[0].id < samples[1].id));
+        assert!(
+            generated
+                .samples
+                .windows(2)
+                .all(|samples| samples[0].id < samples[1].id)
+        );
         assert_eq!(generated, catalog());
 
         for sample in &generated.samples {

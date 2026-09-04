@@ -16,7 +16,7 @@ The [Rust](https://rust-lang.org/) SDK for the SumUp [API](https://developer.sum
 
 ## Requirements
 
-Rust 1.82.0 or higher. We follow [Firefox MSRV policy](https://firefox-source-docs.mozilla.org/writing-rust-code/update-policy.html).
+Rust 1.85.0 or higher. We follow [Firefox MSRV policy](https://firefox-source-docs.mozilla.org/writing-rust-code/update-policy.html).
 
 ## Installation
 
