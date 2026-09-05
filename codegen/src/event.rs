@@ -187,16 +187,16 @@ fn generate_events_tokens(definitions: &[EventDefinition]) -> TokenStream {
         //! Event receivers should read the HTTP request body as raw bytes. Most
         //! integrations can register typed async callbacks with the generated
         //! `on_*` methods on [`EventsHandler`] and pass the body together with the
-        //! `X-SumUp-Webhook-Signature` and `X-SumUp-Webhook-Timestamp` headers to
+        //! `X-SumUp-Webhook-Signature` header to
         //! [`EventsHandler::handle`]. Use [`crate::Client::parse_event_notification`]
         //! when direct matching is a better fit. Both paths verify the signature
-        //! and timestamp before dispatching or returning an event.
+        //! and enforces a fixed five-minute clock skew before dispatching or returning an event.
 
         pub use crate::event::{
             verify_signature, Event, EventCallbackError, EventError,
             EventHandlerRegistrationError, EventHandlingError, EventObject, EventSpec,
             EventsHandler, FetchObject, IntoEventHandlerResult, UnknownEvent,
-            DEFAULT_TOLERANCE, SIGNATURE_HEADER, SIGNATURE_VERSION, TIMESTAMP_HEADER,
+            SIGNATURE_HEADER, SIGNATURE_VERSION,
         };
         pub(crate) use crate::event::RawEvent;
 

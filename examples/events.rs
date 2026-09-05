@@ -3,7 +3,7 @@
 //! This example shows the recommended event flow:
 //! 1. register typed async callbacks and an unhandled-event fallback
 //! 2. read the raw request body
-//! 3. verify `X-SumUp-Webhook-Signature` and `X-SumUp-Webhook-Timestamp`
+//! 3. verify `X-SumUp-Webhook-Signature` (including its signing timestamp)
 //! 4. route the notification to the matching callback
 //! 5. optionally resolve the thin event into the latest resource state
 //!
@@ -30,7 +30,7 @@ use sumup::{
     Client, SdkError, Secret,
     events::{
         EventError, EventHandlingError, EventNotification, EventsHandler, FetchObject,
-        SIGNATURE_HEADER, TIMESTAMP_HEADER,
+        SIGNATURE_HEADER,
     },
     members::MemberUpdatedEvent,
     readers::ReaderCreatedEvent,
@@ -74,15 +74,7 @@ async fn handle_event(
         Err(_) => return (StatusCode::BAD_REQUEST, "invalid signature header").into_response(),
     };
 
-    let Some(timestamp) = headers.get(TIMESTAMP_HEADER) else {
-        return (StatusCode::BAD_REQUEST, "missing timestamp header").into_response();
-    };
-    let timestamp = match timestamp.to_str() {
-        Ok(value) => value,
-        Err(_) => return (StatusCode::BAD_REQUEST, "invalid timestamp header").into_response(),
-    };
-
-    match handler.handle(body.as_ref(), signature, timestamp).await {
+    match handler.handle(body.as_ref(), signature).await {
         Ok(()) => StatusCode::OK.into_response(),
         Err(EventHandlingError::Event(
             EventError::MissingSignature

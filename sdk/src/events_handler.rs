@@ -3,7 +3,7 @@
 //! Most integrations should create an [`EventsHandler`] through
 //! [`crate::Client::events_handler`], register typed callbacks with
 //! the generated `on_*` methods, and pass the raw HTTP request body and SumUp signature
-//! headers to [`EventsHandler::handle`].
+//! header to [`EventsHandler::handle`].
 
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -16,32 +16,29 @@ use std::{
 
 type HmacSha256 = Hmac<Sha256>;
 
-/// HTTP header containing the event payload signature.
+/// HTTP header containing `t=<unix timestamp>,v1=<hex HMAC>`.
 pub const SIGNATURE_HEADER: &str = "X-SumUp-Webhook-Signature";
-
-/// HTTP header containing the Unix timestamp used for signature verification.
-pub const TIMESTAMP_HEADER: &str = "X-SumUp-Webhook-Timestamp";
 
 /// Event signature scheme version accepted by the SDK.
 pub const SIGNATURE_VERSION: &str = "v1";
 
-/// Default maximum allowed clock skew for event signature verification.
-pub const DEFAULT_TOLERANCE: Duration = Duration::from_secs(5 * 60);
+// Fixed maximum allowed clock skew for event signature verification.
+const SIGNATURE_TOLERANCE: Duration = Duration::from_secs(5 * 60);
 
 /// Error returned when an event cannot be verified or parsed.
 #[derive(Debug)]
 pub enum EventError {
     /// The signature header was missing or empty.
     MissingSignature,
-    /// The timestamp header was missing or empty.
+    /// The signature timestamp was missing or empty.
     MissingTimestamp,
     /// The signature header did not use the expected versioned hex format.
     InvalidSignatureHeader,
-    /// The timestamp header was not a valid Unix timestamp.
+    /// The signature timestamp was not a valid Unix timestamp.
     InvalidTimestampHeader(std::num::ParseIntError),
     /// The signature did not match the raw request body.
     InvalidSignature,
-    /// The timestamp was outside the configured tolerance window.
+    /// The timestamp was outside the five-minute tolerance window.
     SignatureExpired,
     /// The request body was not valid JSON for the expected event shape.
     InvalidPayload(serde_json::Error),
@@ -51,10 +48,10 @@ impl std::fmt::Display for EventError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::MissingSignature => write!(f, "missing event signature header"),
-            Self::MissingTimestamp => write!(f, "missing event timestamp header"),
+            Self::MissingTimestamp => write!(f, "missing event signature timestamp"),
             Self::InvalidSignatureHeader => write!(f, "invalid event signature header"),
             Self::InvalidTimestampHeader(err) => {
-                write!(f, "invalid event timestamp header: {}", err)
+                write!(f, "invalid event signature timestamp: {}", err)
             }
             Self::InvalidSignature => write!(f, "invalid event signature"),
             Self::SignatureExpired => write!(f, "event timestamp outside allowed tolerance"),
@@ -196,7 +193,6 @@ type EventCallback =
 pub struct EventsHandler {
     client: crate::Client,
     secret: Vec<u8>,
-    tolerance: Duration,
     fallback: Box<EventCallback>,
     registered_handlers: BTreeMap<&'static str, Box<EventCallback>>,
 }
@@ -204,7 +200,6 @@ pub struct EventsHandler {
 impl std::fmt::Debug for EventsHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("EventsHandler")
-            .field("tolerance", &self.tolerance)
             .field("registered_event_types", &self.registered_event_types())
             .finish_non_exhaustive()
     }
@@ -235,7 +230,6 @@ impl EventsHandler {
         Self {
             client: client.clone(),
             secret: secret.as_ref().to_vec(),
-            tolerance: DEFAULT_TOLERANCE,
             fallback,
             registered_handlers: BTreeMap::new(),
         }
@@ -244,15 +238,6 @@ impl EventsHandler {
     /// Returns the client used for parsing and follow-up API calls.
     pub fn client(&self) -> &crate::Client {
         &self.client
-    }
-
-    /// Overrides the allowed clock skew for event signature verification.
-    ///
-    /// The default tolerance is [`DEFAULT_TOLERANCE`]. Prefer a short tolerance
-    /// in production so old signed requests cannot be replayed indefinitely.
-    pub fn with_tolerance(mut self, tolerance: Duration) -> Self {
-        self.tolerance = tolerance;
-        self
     }
 
     pub(crate) fn register<EventType, HandlerFuture>(
@@ -297,15 +282,8 @@ impl EventsHandler {
         &self,
         payload: &[u8],
         signature_header: impl AsRef<str>,
-        timestamp_header: impl AsRef<str>,
     ) -> Result<(), EventHandlingError> {
-        verify_signature_with_tolerance(
-            &self.secret,
-            payload,
-            signature_header,
-            timestamp_header,
-            self.tolerance,
-        )?;
+        verify_signature(&self.secret, payload, signature_header)?;
 
         let event = parse_raw_event(payload)?;
         let callback = self
@@ -376,16 +354,15 @@ where
 impl crate::Client {
     /// Verifies and parses an event notification using this client.
     ///
-    /// Pass the raw HTTP request body and the `X-SumUp-Webhook-Signature` and
-    /// `X-SumUp-Webhook-Timestamp` header values from the same request.
+    /// Pass the raw HTTP request body and the `X-SumUp-Webhook-Signature`
+    /// header value from the same request.
     pub fn parse_event_notification(
         &self,
         secret: impl AsRef<[u8]>,
         payload: &[u8],
         signature_header: impl AsRef<str>,
-        timestamp_header: impl AsRef<str>,
     ) -> Result<crate::events::EventNotification, EventError> {
-        verify_signature(secret, payload, signature_header, timestamp_header)?;
+        verify_signature(secret, payload, signature_header)?;
         parse_event_notification(self, payload)
     }
 
@@ -402,7 +379,8 @@ impl crate::Client {
     }
 }
 
-/// Verifies that event signature headers match the raw request body.
+/// Verifies the raw request body and enforces a fixed five-minute clock skew.
+/// The header must have the format `t=<unix timestamp>,v1=<hex HMAC>`.
 ///
 /// This is useful when your integration wants to verify the request before
 /// handing the body to another component. If you want a typed SDK event, prefer
@@ -411,42 +389,42 @@ pub fn verify_signature(
     secret: impl AsRef<[u8]>,
     payload: &[u8],
     signature_header: impl AsRef<str>,
-    timestamp_header: impl AsRef<str>,
 ) -> Result<(), EventError> {
-    verify_signature_with_tolerance(
-        secret,
-        payload,
-        signature_header,
-        timestamp_header,
-        DEFAULT_TOLERANCE,
-    )
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock should be after unix epoch")
+        .as_secs();
+    verify_signature_at(secret, payload, signature_header, now)
 }
 
-fn verify_signature_with_tolerance(
+fn verify_signature_at(
     secret: impl AsRef<[u8]>,
     payload: &[u8],
     signature_header: impl AsRef<str>,
-    timestamp_header: impl AsRef<str>,
-    tolerance: Duration,
+    now: u64,
 ) -> Result<(), EventError> {
     let signature = signature_header.as_ref().trim();
     if signature.is_empty() {
         return Err(EventError::MissingSignature);
     }
 
-    let timestamp = timestamp_header.as_ref().trim();
+    let (stamp, signature) = signature
+        .split_once(',')
+        .ok_or(EventError::InvalidSignatureHeader)?;
+    let timestamp = stamp
+        .strip_prefix("t=")
+        .ok_or(EventError::MissingTimestamp)?;
     if timestamp.is_empty() {
         return Err(EventError::MissingTimestamp);
     }
-    let timestamp = timestamp
+    if timestamp.starts_with('+') {
+        return Err(EventError::InvalidSignatureHeader);
+    }
+    let timestamp_value = timestamp
         .parse::<u64>()
         .map_err(EventError::InvalidTimestampHeader)?;
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system clock should be after unix epoch")
-        .as_secs();
-    if now.abs_diff(timestamp) > tolerance.as_secs() {
+    if now.abs_diff(timestamp_value) > SIGNATURE_TOLERANCE.as_secs() {
         return Err(EventError::SignatureExpired);
     }
 
@@ -482,7 +460,7 @@ mod tests {
         signed.extend_from_slice(payload);
         mac.update(&signed);
         format!(
-            "{}={}",
+            "t={timestamp},{}={}",
             SIGNATURE_VERSION,
             hex::encode(mac.finalize().into_bytes())
         )
@@ -534,23 +512,63 @@ mod tests {
     #[test]
     fn verifies_fixed_signature_fixture() {
         // Generated independently with OpenSSL over v1:1234567890:{"id":"evt_123"}.
-        let signature = "v1=02e9076b318aadab2e3d14549950465512b32a100ea122b5bcb815f13d4b3153";
+        let signature =
+            "t=1234567890,v1=02e9076b318aadab2e3d14549950465512b32a100ea122b5bcb815f13d4b3153";
         for (payload, valid) in [
             (br#"{"id":"evt_123"}"#.as_slice(), true),
             (br#"{"id":"evt_124"}"#.as_slice(), false),
         ] {
-            let result = verify_signature_with_tolerance(
-                "test-secret",
-                payload,
-                signature,
-                "1234567890",
-                Duration::MAX,
-            );
+            let result = verify_signature_at("test-secret", payload, signature, 1234567890);
             if valid {
                 result.expect("verify independently signed fixture");
             } else {
                 assert!(matches!(result, Err(EventError::InvalidSignature)));
             }
+        }
+    }
+
+    #[test]
+    fn enforces_fixed_five_minute_skew() {
+        let payload = br#"{"id":"evt_123"}"#;
+        let now = 1234567890;
+        for skew in [-301_i64, -300, 0, 300, 301] {
+            let timestamp = (now as i64 + skew) as u64;
+            let signature = signature_for("test-secret", timestamp, payload);
+            let result = verify_signature_at("test-secret", payload, signature, now);
+            if skew.abs() <= 300 {
+                result.expect("accept timestamp within five minutes");
+            } else {
+                assert!(matches!(result, Err(EventError::SignatureExpired)));
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_tampered_timestamp_and_malformed_headers() {
+        let payload = br#"{"id":"evt_123"}"#;
+        let now = 1234567890;
+        let header = signature_for("test-secret", now, payload);
+        let (_, signature) = header.split_once(',').unwrap();
+        let tampered = header.replacen("1234567890", "1234567891", 1);
+        assert!(matches!(
+            verify_signature_at("test-secret", payload, tampered, now),
+            Err(EventError::InvalidSignature)
+        ));
+        for malformed in [
+            String::new(),
+            signature.to_owned(),
+            format!("t=,{signature}"),
+            format!("t=-1,{signature}"),
+            format!("t=+1234567890,{signature}"),
+            format!("t=18446744073709551616,{signature}"),
+            format!("{header},t={now}"),
+            format!("{header},{signature}"),
+            header.replace("v1=", "v2="),
+        ] {
+            assert!(
+                verify_signature_at("test-secret", payload, &malformed, now).is_err(),
+                "accepted malformed header: {malformed}"
+            );
         }
     }
 
@@ -561,7 +579,7 @@ mod tests {
         let secret = test_secret();
         let signature = signature_for(&secret, timestamp, &payload);
 
-        let result = verify_signature(&secret, &payload, signature, timestamp.to_string());
+        let result = verify_signature(&secret, &payload, signature);
 
         assert!(result.is_ok());
     }
@@ -572,7 +590,7 @@ mod tests {
         let timestamp = current_timestamp();
         let secret = test_secret();
 
-        let result = verify_signature(&secret, &payload, "v1=deadbeef", timestamp.to_string());
+        let result = verify_signature(&secret, &payload, format!("t={timestamp},v1=deadbeef"));
 
         assert!(matches!(result, Err(EventError::InvalidSignature)));
     }
@@ -580,10 +598,9 @@ mod tests {
     #[test]
     fn rejects_invalid_signature_header_format() {
         let payload = member_payload("https://api.sumup.com", "members.updated");
-        let timestamp = current_timestamp();
         let secret = test_secret();
 
-        let result = verify_signature(&secret, &payload, "not-hex", timestamp.to_string());
+        let result = verify_signature(&secret, &payload, "not-hex");
 
         assert!(matches!(result, Err(EventError::InvalidSignatureHeader)));
     }
@@ -595,26 +612,25 @@ mod tests {
         let secret = test_secret();
         let signature = signature_for(&secret, timestamp, &payload);
 
-        let result = verify_signature(&secret, &payload, signature, "not-a-timestamp");
+        let result = verify_signature(
+            &secret,
+            &payload,
+            signature.replacen(&format!("t={timestamp}"), "t=not-a-timestamp", 1),
+        );
 
         assert!(matches!(result, Err(EventError::InvalidTimestampHeader(_))));
     }
 
     #[tokio::test]
-    async fn events_handler_honors_custom_tolerance() {
+    async fn events_handler_rejects_expired_signature() {
         let payload = member_payload("https://api.sumup.com", "members.updated");
         let now = current_timestamp();
-        let tolerance = Duration::from_secs(1);
-        let timestamp = now - tolerance.as_secs() - 1;
+        let timestamp = now - SIGNATURE_TOLERANCE.as_secs() - 1;
         let secret = test_secret();
         let signature = signature_for(&secret, timestamp, &payload);
 
-        let handler = crate::Client::default()
-            .events_handler(&secret, |_, _| async {})
-            .with_tolerance(tolerance);
-        let result = handler
-            .handle(&payload, signature, timestamp.to_string())
-            .await;
+        let handler = crate::Client::default().events_handler(&secret, |_, _| async {});
+        let result = handler.handle(&payload, signature).await;
 
         assert!(matches!(
             result,
@@ -631,7 +647,7 @@ mod tests {
         let signature = signature_for(&secret, timestamp, &payload);
 
         let event = client
-            .parse_event_notification(&secret, &payload, signature, timestamp.to_string())
+            .parse_event_notification(&secret, &payload, signature)
             .expect("verify and parse event");
 
         assert!(matches!(
@@ -689,28 +705,28 @@ mod tests {
         let typed_payload = member_payload("https://api.sumup.com", "members.updated");
         let typed_signature = signature_for(&secret, timestamp, &typed_payload);
         handler
-            .handle(&typed_payload, typed_signature, timestamp.to_string())
+            .handle(&typed_payload, typed_signature)
             .await
             .expect("handle registered event");
 
         let reader_payload = reader_payload("https://api.sumup.com", "readers.created");
         let reader_signature = signature_for(&secret, timestamp, &reader_payload);
         handler
-            .handle(&reader_payload, reader_signature, timestamp.to_string())
+            .handle(&reader_payload, reader_signature)
             .await
             .expect("handle registered reader event");
 
         let known_payload = member_payload("https://api.sumup.com", "members.created");
         let known_signature = signature_for(&secret, timestamp, &known_payload);
         handler
-            .handle(&known_payload, known_signature, timestamp.to_string())
+            .handle(&known_payload, known_signature)
             .await
             .expect("handle known unregistered event");
 
         let unknown_payload = member_payload("https://api.sumup.com", "merchant.updated");
         let unknown_signature = signature_for(&secret, timestamp, &unknown_payload);
         handler
-            .handle(&unknown_payload, unknown_signature, timestamp.to_string())
+            .handle(&unknown_payload, unknown_signature)
             .await
             .expect("handle unknown event");
 
@@ -765,7 +781,7 @@ mod tests {
 
         let payload = member_payload("https://api.sumup.com", "members.updated");
         let error = handler
-            .handle(&payload, "v1=deadbeef", current_timestamp().to_string())
+            .handle(&payload, format!("t={},v1=deadbeef", current_timestamp()))
             .await
             .expect_err("reject invalid signature");
 
@@ -797,7 +813,7 @@ mod tests {
         let timestamp = current_timestamp();
         let signature = signature_for(&secret, timestamp, &payload);
         handler
-            .handle(&payload, signature, timestamp.to_string())
+            .handle(&payload, signature)
             .await
             .expect("handle event");
 
@@ -810,7 +826,7 @@ mod tests {
         let payload = reader_payload("https://api.sumup.com", "readers.created");
         let signature = signature_for(&secret, timestamp, &payload);
         let error = handler
-            .handle(&payload, signature, timestamp.to_string())
+            .handle(&payload, signature)
             .await
             .expect_err("new callback is invoked");
         assert!(matches!(error, EventHandlingError::Callback(_)));
@@ -832,7 +848,7 @@ mod tests {
         let timestamp = current_timestamp();
         let signature = signature_for(&secret, timestamp, &payload);
         let error = handler
-            .handle(&payload, signature, timestamp.to_string())
+            .handle(&payload, signature)
             .await
             .expect_err("surface fallback error");
 
@@ -867,7 +883,7 @@ mod tests {
         let timestamp = current_timestamp();
         let signature = signature_for(&secret, timestamp, &payload);
         let error = handler
-            .handle(&payload, signature, timestamp.to_string())
+            .handle(&payload, signature)
             .await
             .expect_err("surface callback error");
 

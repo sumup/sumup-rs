@@ -6,14 +6,13 @@
 //! asynchronous payment state, and keep local records in sync with SumUp.
 //!
 //! Event receivers should read the HTTP request body as raw bytes and pass it
-//! together with the `X-SumUp-Webhook-Signature` and
-//! `X-SumUp-Webhook-Timestamp` headers to
+//! together with the `X-SumUp-Webhook-Signature` header to
 //! [`crate::Client::parse_event_notification`]. The SDK verifies the signature
 //! and timestamp before deserializing the payload.
 //!
 //! ```no_run
 //! # use sumup::{Client, Secret};
-//! # use sumup::events::{EventNotification, SIGNATURE_HEADER, TIMESTAMP_HEADER};
+//! # use sumup::events::{EventNotification, SIGNATURE_HEADER};
 //! # use axum::{body::Bytes, http::HeaderMap};
 //! # fn header<'a>(headers: &'a HeaderMap, name: &str) -> &'a str {
 //! #     headers.get(name).and_then(|value| value.to_str().ok()).unwrap()
@@ -24,7 +23,6 @@
 //!     secret.secret(),
 //!     body.as_ref(),
 //!     header(&headers, SIGNATURE_HEADER),
-//!     header(&headers, TIMESTAMP_HEADER),
 //! )?;
 //!
 //! match event {
@@ -47,9 +45,8 @@
 //! be idempotent and safe to run more than once.
 
 pub use crate::events_handler::{
-    DEFAULT_TOLERANCE, EventCallbackError, EventError, EventHandlerRegistrationError,
-    EventHandlingError, EventsHandler, IntoEventHandlerResult, SIGNATURE_HEADER, SIGNATURE_VERSION,
-    TIMESTAMP_HEADER, verify_signature,
+    EventCallbackError, EventError, EventHandlerRegistrationError, EventHandlingError,
+    EventsHandler, IntoEventHandlerResult, SIGNATURE_HEADER, SIGNATURE_VERSION, verify_signature,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
