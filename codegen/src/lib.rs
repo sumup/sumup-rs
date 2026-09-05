@@ -17,6 +17,7 @@ use operation::GeneratedClientMethods;
 
 pub mod body;
 pub mod client;
+pub mod event;
 mod oas;
 pub mod operation;
 pub mod samples;
@@ -26,6 +27,7 @@ pub mod tag;
 
 pub use body::generate_operation_bodies;
 pub use client::generate_client_file;
+pub use event::{generate_events_file, generate_tag_event_tokens};
 pub use operation::generate_client_methods;
 pub use samples::{CodeSample, CodeSampleCatalog, generate_code_samples};
 pub use schema::{generate_module_doc_comment, generate_structs_for_schemas};
@@ -149,6 +151,7 @@ impl Generator {
         self.generate_api_version_file()?;
         self.generate_common_module()?;
         self.generate_tag_modules()?;
+        self.generate_events_module()?;
         self.generate_client_module()?;
         self.generate_mod_rs()?;
 
@@ -218,6 +221,7 @@ impl Generator {
         let body_tokens =
             body::generate_operation_bodies_with_registry(&self.spec, tag, &mut symbols)?;
         let client_tokens = generate_tag_client_with_registry(&self.spec, tag, &mut symbols)?;
+        let event_tokens = generate_tag_event_tokens(&self.spec, tag)?;
         let module_doc_comment = tag_description(&self.spec, tag)
             .map(generate_module_doc_comment)
             .unwrap_or_default();
@@ -234,6 +238,8 @@ impl Generator {
             #module_doc_comment
 
             #use_common
+
+            #event_tokens
 
             #schema_tokens
 
@@ -273,6 +279,11 @@ impl Generator {
     fn generate_client_module(&self) -> Result<(), String> {
         Self::log("[generate sdk] generating client.rs ...");
         generate_client_file(&self.out_path, &self.spec, &self.schemas_by_tag.tag_schemas)
+    }
+
+    fn generate_events_module(&self) -> Result<(), String> {
+        Self::log("[generate sdk] generating events.rs ...");
+        generate_events_file(&self.out_path, &self.spec)
     }
 
     fn generate_api_version_file(&self) -> Result<(), String> {

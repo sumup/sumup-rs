@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 /// Generic SDK error type for SumUp API operations.
 #[derive(Debug)]
 pub enum SdkError<E = UnknownApiBody> {
+    /// The request was rejected locally before it could be sent.
+    InvalidRequest(String),
     /// Errors originating from the underlying HTTP client (network, TLS, etc.).
     Network(reqwest::Error),
     /// The server returned an API response with an expected error payload.
@@ -36,7 +38,7 @@ impl<E> SdkError<E> {
         match self {
             Self::Network(err) => err.status(),
             Self::Unexpected(status, _) => Some(*status),
-            Self::Api(_) => None,
+            Self::Api(_) | Self::InvalidRequest(_) => None,
         }
     }
 
@@ -77,6 +79,7 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::InvalidRequest(reason) => write!(f, "invalid request: {reason}"),
             Self::Network(err) => write!(f, "network error: {}", err),
             Self::Api(body) => write!(f, "API error: {:?}", body),
             Self::Unexpected(status, body) => {
@@ -148,6 +151,21 @@ pub type SdkResult<T, E = UnknownApiBody> = std::result::Result<T, SdkError<E>>;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn invalid_request_has_no_response_or_source() {
+        let error = SdkError::<UnknownApiBody>::InvalidRequest("invalid event object URL".into());
+
+        assert_eq!(
+            error.to_string(),
+            "invalid request: invalid event object URL"
+        );
+        assert_eq!(error.status(), None);
+        assert_eq!(error.body(), None);
+        assert_eq!(error.unexpected_body(), None);
+        assert!(std::error::Error::source(&error).is_none());
+        assert_eq!(error.into_body(), None);
+    }
 
     #[test]
     fn unknown_api_body_parses_json_payloads() {

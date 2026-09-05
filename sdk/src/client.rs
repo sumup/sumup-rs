@@ -90,6 +90,20 @@ impl Client {
     pub(crate) fn runtime_headers(&self) -> &[(&'static str, String)] {
         &self.runtime_info
     }
+    /// Creates a verified events handler with an unhandled-event fallback.
+    pub fn events_handler<Handler, HandlerFuture>(
+        &self,
+        secret: impl AsRef<[u8]>,
+        fallback: Handler,
+    ) -> crate::events::EventsHandler
+    where
+        Handler:
+            Fn(crate::events::EventNotification, Self) -> HandlerFuture + Send + Sync + 'static,
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: crate::events::IntoEventHandlerResult + 'static,
+    {
+        crate::events::EventsHandler::new(self, secret, fallback)
+    }
     /// Returns a client for the Checkouts API endpoints.
     pub fn checkouts(&self) -> crate::resources::checkouts::CheckoutsClient<'_> {
         crate::resources::checkouts::CheckoutsClient::new(self)

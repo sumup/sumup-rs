@@ -134,7 +134,8 @@
 //! `SdkError::Api` containing an endpoint-specific payload (e.g. a `Unauthorized`
 //! enum variant). Any undocumented status codes fall back to
 //! `SdkError::Unexpected`, which preserves the HTTP status and best-effort body
-//! parsing. You can inspect failures like this:
+//! parsing. Requests rejected by local validation return `SdkError::InvalidRequest`.
+//! You can inspect failures like this:
 //!
 //! ```no_run
 //! # use sumup::{Client, error::SdkError};
@@ -150,6 +151,7 @@
 //!         eprintln!("unexpected {} response: {}", status, body);
 //!     }
 //!     Err(SdkError::Network(err)) => panic!("network error: {}", err),
+//!     Err(SdkError::InvalidRequest(reason)) => eprintln!("invalid request: {}", reason),
 //! }
 //! # }
 //! ```
@@ -178,6 +180,9 @@ pub mod auth;
 pub mod client;
 pub mod datetime;
 pub mod error;
+mod event;
+pub mod events;
+mod events_handler;
 pub mod nullable;
 pub mod secret;
 pub mod version;
