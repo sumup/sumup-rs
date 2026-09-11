@@ -13,4 +13,4 @@ quote = "1.0"
 proc-macro2 = "1.0"
 prettyplease = "0.3"
 syn = { version = "3.0", features = ["full"] }
-oas3 = "0.21"
+oas3 = "0.22"

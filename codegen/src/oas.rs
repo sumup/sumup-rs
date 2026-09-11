@@ -10,3 +10,13 @@ pub(crate) fn schema_type(schema: &ObjectSchema) -> Option<Type> {
 pub(crate) fn schema_example(schema: &ObjectSchema) -> Option<&serde_json::Value> {
     schema.example.as_ref().or_else(|| schema.examples.first())
 }
+
+/// Returns the object or reference part of a JSON Schema, if present.
+pub(crate) fn schema_object(
+    schema: &oas3::spec::Schema,
+) -> Option<&oas3::spec::ObjectOrReference<ObjectSchema>> {
+    match schema {
+        oas3::spec::Schema::Object(object) => Some(object),
+        oas3::spec::Schema::Boolean(_) => None,
+    }
+}

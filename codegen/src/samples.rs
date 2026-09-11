@@ -162,7 +162,8 @@ fn request_examples(spec: &OpenAPI, operation: &Operation) -> Vec<RequestExample
 
     let value = media_type
         .examples(spec)
-        .into_values()
+        .into_iter()
+        .map(|(_, value)| value)
         .next()
         .and_then(|example| example.value)
         .or_else(|| {
@@ -202,9 +203,7 @@ fn resolve_request_body<'a>(
     }
 }
 
-fn preferred_request_media_type(
-    content: &std::collections::BTreeMap<String, MediaType>,
-) -> Option<&MediaType> {
+fn preferred_request_media_type(content: &oas3::Map<String, MediaType>) -> Option<&MediaType> {
     content
         .get("application/json")
         .or_else(|| content.values().next())
@@ -290,14 +289,11 @@ fn path_parameter_value(name: &str) -> &str {
     }
 }
 
-fn schema_value(
-    spec: &OpenAPI,
-    schema_ref: &ReferenceOr<ObjectSchema>,
-    depth: usize,
-) -> Option<Value> {
+fn schema_value(spec: &OpenAPI, schema_ref: &Schema, depth: usize) -> Option<Value> {
     if depth > 20 {
         return None;
     }
+    let schema_ref = crate::oas::schema_object(schema_ref)?;
     match schema_ref {
         ReferenceOr::Ref {
             ref_path: reference,
@@ -356,10 +352,10 @@ fn schema_object_value(spec: &OpenAPI, schema: &ObjectSchema, depth: usize) -> O
             .or_else(|| Some(Value::from(1))),
         Some(SchemaType::Boolean) => Some(Value::Bool(true)),
         Some(SchemaType::Array) => {
-            let item = schema.items.as_deref().and_then(|item| match item {
-                Schema::Object(item) => schema_value(spec, item, depth + 1),
-                Schema::Boolean(_) => None,
-            });
+            let item = schema
+                .items
+                .as_deref()
+                .and_then(|item| schema_value(spec, item, depth + 1));
             Some(item.into_iter().collect())
         }
         Some(SchemaType::Object) | None if !schema.properties.is_empty() => Some(object_value(
@@ -375,7 +371,7 @@ fn schema_object_value(spec: &OpenAPI, schema: &ObjectSchema, depth: usize) -> O
 
 fn object_value(
     spec: &OpenAPI,
-    properties: &std::collections::BTreeMap<String, ReferenceOr<ObjectSchema>>,
+    properties: &oas3::Map<String, Schema>,
     required: &[String],
     depth: usize,
 ) -> Value {

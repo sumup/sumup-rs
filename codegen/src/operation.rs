@@ -228,7 +228,11 @@ fn generate_operation_method(
             let param_name = &query_param.name;
 
             // Check if this parameter is nullable
-            let is_nullable = if let Some(schema_ref) = &query_param.schema {
+            let is_nullable = if let Some(schema_ref) = query_param
+                .schema
+                .as_ref()
+                .and_then(crate::oas::schema_object)
+            {
                 match schema_ref {
                     openapiv3::ObjectOrReference::Object(schema) => {
                         schema.is_nullable().unwrap_or(false)
@@ -431,7 +435,11 @@ fn get_response_type_for_single(
         openapiv3::ObjectOrReference::Object(response) => {
             // Check if response has content with a schema
             if let Some(media_type) = crate::preferred_response_media_type(&response.content) {
-                if let Some(schema_ref) = &media_type.schema {
+                if let Some(schema_ref) = media_type
+                    .schema
+                    .as_ref()
+                    .and_then(crate::oas::schema_object)
+                {
                     match schema_ref {
                         openapiv3::ObjectOrReference::Ref {
                             ref_path: reference,
@@ -837,7 +845,7 @@ fn extract_error_schema_ident(
 
 fn extract_schema_from_response(response: &openapiv3::Response) -> Option<Ident> {
     let media_type = crate::preferred_response_media_type(&response.content)?;
-    let schema_ref = media_type.schema.as_ref()?;
+    let schema_ref = crate::oas::schema_object(media_type.schema.as_ref()?)?;
     match schema_ref {
         openapiv3::ObjectOrReference::Ref {
             ref_path: reference,
@@ -985,7 +993,11 @@ fn generate_multi_response_handling(
             openapiv3::ObjectOrReference::Object(resp) => {
                 // Check if response has content with a schema
                 if let Some(media_type) = crate::preferred_response_media_type(&resp.content) {
-                    if let Some(schema_ref) = &media_type.schema {
+                    if let Some(schema_ref) = media_type
+                        .schema
+                        .as_ref()
+                        .and_then(crate::oas::schema_object)
+                    {
                         match schema_ref {
                             openapiv3::ObjectOrReference::Ref {
                                 ref_path: reference,

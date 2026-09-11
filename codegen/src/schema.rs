@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 
 use heck::ToUpperCamelCase;
 use oas3::{
@@ -8,7 +8,7 @@ use oas3::{
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
-type Properties = BTreeMap<String, ObjectOrReference<ObjectSchema>>;
+type Properties = oas3::Map<String, Schema>;
 type FlattenedObject = Option<(Properties, Vec<String>, Option<Schema>)>;
 
 pub(crate) fn should_emit_free_form_object_alias(p: &Properties, a: Option<&Schema>) -> bool {
@@ -266,7 +266,9 @@ pub(crate) fn generate_structs_for_schemas_with_registry(
         if skipped.contains(name.as_str()) {
             continue;
         }
-        let Some(ObjectOrReference::Object(s)) = c.schemas.get(name) else {
+        let Some(ObjectOrReference::Object(s)) =
+            c.schemas.get(name).and_then(crate::oas::schema_object)
+        else {
             continue;
         };
         let type_name = name.to_upper_camel_case();
@@ -348,15 +350,11 @@ fn collect_mixins(spec: &OpenAPI, names: &HashSet<String>) -> HashSet<String> {
     }
     out
 }
-fn mixin_refs(
-    sr: &ObjectOrReference<ObjectSchema>,
-    names: &HashSet<String>,
-    out: &mut HashSet<String>,
-) {
-    let ObjectOrReference::Object(s) = sr else {
+fn mixin_refs(sr: &Schema, names: &HashSet<String>, out: &mut HashSet<String>) {
+    let Some(ObjectOrReference::Object(s)) = crate::oas::schema_object(sr) else {
         return;
     };
-    for v in &s.all_of {
+    for v in s.all_of.iter().filter_map(crate::oas::schema_object) {
         match v {
             ObjectOrReference::Ref { ref_path, .. } => {
                 if let Some(n) = ref_path.strip_prefix("#/components/schemas/")
@@ -366,9 +364,11 @@ fn mixin_refs(
                     out.insert(n.into());
                 }
             }
-            ObjectOrReference::Object(s) => {
-                mixin_refs(&ObjectOrReference::Object(s.clone()), names, out)
-            }
+            ObjectOrReference::Object(s) => mixin_refs(
+                &Schema::Object(Box::new(ObjectOrReference::Object(s.clone()))),
+                names,
+                out,
+            ),
         }
     }
 }
@@ -403,8 +403,8 @@ pub(crate) fn collect_nested_schemas_with_registry(
     out: &mut Vec<TokenStream>,
     symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<(), String> {
-    for (field, sr) in p {
-        let ObjectOrReference::Object(s) = sr else {
+    for (field, sr) in p.iter().collect::<std::collections::BTreeMap<_, _>>() {
+        let Some(ObjectOrReference::Object(s)) = crate::oas::schema_object(sr) else {
             continue;
         };
         if crate::oas::schema_type(s) == Some(SchemaType::Array) {
@@ -467,13 +467,13 @@ fn nested(
 
 pub(crate) fn flatten_all_of_object(
     spec: &OpenAPI,
-    all: &[ObjectOrReference<ObjectSchema>],
+    all: &[Schema],
 ) -> Result<FlattenedObject, String> {
     let mut p = Properties::new();
     let mut r = Vec::new();
     let mut a = None;
     let mut found = false;
-    for sr in all {
+    for sr in all.iter().filter_map(crate::oas::schema_object) {
         let s = dereference_schema(spec, sr)?;
         if let Some((np, nr, na)) = object_parts(spec, s)? {
             found = true;
@@ -518,7 +518,11 @@ pub(crate) fn dereference_schema<'a>(
                 .schemas
                 .get(n)
                 .ok_or_else(|| format!("Referenced schema '{n}' not found"))?;
-            dereference_schema(spec, t)
+            dereference_schema(
+                spec,
+                crate::oas::schema_object(t)
+                    .ok_or_else(|| format!("Referenced schema '{n}' is a boolean schema"))?,
+            )
         }
     }
 }
@@ -528,7 +532,7 @@ pub fn can_fields_derive_default(p: &Properties, r: &[String]) -> bool {
         if !r.contains(n) {
             return true;
         }
-        let ObjectOrReference::Object(s) = sr else {
+        let Some(ObjectOrReference::Object(s)) = crate::oas::schema_object(sr) else {
             return false;
         };
         matches!(
@@ -544,7 +548,7 @@ pub fn generate_struct_fields(
     r: &[String],
     additional: Option<&Schema>,
 ) -> Vec<TokenStream> {
-    let mut fields=p.iter().map(|(name,sr)|{let id=make_rust_field_ident(name);let req=r.contains(name);let(ty,doc,dep,nullable,num)=match sr{ObjectOrReference::Ref{ref_path,..}=>{let n=ref_path.split('/').next_back().unwrap_or("Unknown").to_upper_camel_case();let t=Ident::new(&n,Span::call_site());(if req{quote!{#t}}else{quote!{Option<#t>}},None,quote!{},false,false)},ObjectOrReference::Object(s)=>{let nul=s.is_nullable().unwrap_or(false);(infer_rust_type(req,nul,Some((parent,name)),sr),s.description.as_deref().map(|v|generate_schema_doc_comment(Some(v),s)),deprecation(s),nul,string_numeric(s).is_some())}};let rename=(name!=&id.to_string()).then(||quote!{#[serde(rename=#name)]});let attrs=if !req&&nullable{if num{quote!{#[serde(default,skip_serializing_if="Option::is_none",deserialize_with="crate::nullable::deserialize_string_or_number")]}}else{quote!{#[serde(default,skip_serializing_if="Option::is_none",deserialize_with="crate::nullable::deserialize")]}}}else if !req&&num{quote!{#[serde(default,skip_serializing_if="Option::is_none",deserialize_with="crate::string_or_number::deserialize_option")]}}else if !req{quote!{#[serde(skip_serializing_if="Option::is_none")]}}else if num{quote!{#[serde(deserialize_with="crate::string_or_number::deserialize")]}}else{quote!{}};quote!{#doc #dep #rename #attrs pub #id:#ty,}}).collect::<Vec<_>>();
+    let mut fields=p.iter().collect::<std::collections::BTreeMap<_, _>>().into_iter().map(|(name,sr)|{let id=make_rust_field_ident(name);let req=r.contains(name);let(ty,doc,dep,nullable,num)=match crate::oas::schema_object(sr){None=>(if req{quote!{serde_json::Value}}else{quote!{Option<serde_json::Value>}},None,quote!{},false,false),Some(ObjectOrReference::Ref{ref_path,..})=>{let n=ref_path.split('/').next_back().unwrap_or("Unknown").to_upper_camel_case();let t=Ident::new(&n,Span::call_site());(if req{quote!{#t}}else{quote!{Option<#t>}},None,quote!{},false,false)},Some(sr @ ObjectOrReference::Object(s))=>{let nul=s.is_nullable().unwrap_or(false);(infer_rust_type(req,nul,Some((parent,name)),sr),s.description.as_deref().map(|v|generate_schema_doc_comment(Some(v),s)),deprecation(s),nul,string_numeric(s).is_some())}};let rename=(name!=&id.to_string()).then(||quote!{#[serde(rename=#name)]});let attrs=if !req&&nullable{if num{quote!{#[serde(default,skip_serializing_if="Option::is_none",deserialize_with="crate::nullable::deserialize_string_or_number")]}}else{quote!{#[serde(default,skip_serializing_if="Option::is_none",deserialize_with="crate::nullable::deserialize")]}}}else if !req&&num{quote!{#[serde(default,skip_serializing_if="Option::is_none",deserialize_with="crate::string_or_number::deserialize_option")]}}else if !req{quote!{#[serde(skip_serializing_if="Option::is_none")]}}else if num{quote!{#[serde(deserialize_with="crate::string_or_number::deserialize")]}}else{quote!{}};quote!{#doc #dep #rename #attrs pub #id:#ty,}}).collect::<Vec<_>>();
     if let Some(v) = additional_field(p, additional) {
         fields.push(v)
     }
@@ -856,6 +860,39 @@ mod tests {
             infer_rust_type(false, true, None, &schema_ref).to_string(),
             "Option < crate :: Nullable < String >>"
         );
+    }
+
+    #[test]
+    fn generates_schema_properties_in_alphabetical_order() {
+        let schema: ObjectSchema = serde_json::from_value(serde_json::json!({
+            "type": "object",
+            "properties": {
+                "zebra": {"$ref": "#/components/schemas/Zebra"},
+                "metadata": true,
+                "alpha": {"type": "string"}
+            },
+            "required": ["zebra", "metadata", "alpha"]
+        }))
+        .expect("parse schema");
+        let fields = generate_struct_fields("Example", &schema.properties, &schema.required, None);
+        let item: syn::ItemStruct = syn::parse2(quote! { pub struct Example { #(#fields)* } })
+            .expect("valid generated struct");
+        let fields = item.fields.iter().collect::<Vec<_>>();
+        assert_eq!(
+            fields
+                .iter()
+                .map(|field| field.ident.as_ref().unwrap().to_string())
+                .collect::<Vec<_>>(),
+            ["alpha", "metadata", "zebra"]
+        );
+        let types = fields
+            .iter()
+            .map(|field| {
+                let ty = &field.ty;
+                quote! { #ty }.to_string()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(types, ["String", "serde_json :: Value", "Zebra"]);
     }
 
     #[test]

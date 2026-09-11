@@ -152,21 +152,18 @@ fn identify_common_schemas(tag_schemas: &HashMap<String, TagSchemas>) -> HashSet
         .collect()
 }
 
-fn collect_top_level_schema(
-    schema_ref: &ObjectOrReference<ObjectSchema>,
-    schemas: &mut HashSet<String>,
-) {
-    if let ObjectOrReference::Ref { ref_path, .. } = schema_ref
+fn collect_top_level_schema(schema_ref: &Schema, schemas: &mut HashSet<String>) {
+    if let Some(ObjectOrReference::Ref { ref_path, .. }) = crate::oas::schema_object(schema_ref)
         && let Some(schema_name) = ref_path.strip_prefix("#/components/schemas/")
     {
         schemas.insert(schema_name.to_string());
     }
 }
 
-fn collect_schema_reference(
-    schema_ref: &ObjectOrReference<ObjectSchema>,
-    schemas: &mut HashSet<String>,
-) {
+fn collect_schema_reference(schema_ref: &Schema, schemas: &mut HashSet<String>) {
+    let Some(schema_ref) = crate::oas::schema_object(schema_ref) else {
+        return;
+    };
     match schema_ref {
         ObjectOrReference::Ref { ref_path, .. } => {
             if let Some(schema_name) = ref_path.strip_prefix("#/components/schemas/") {
@@ -177,21 +174,15 @@ fn collect_schema_reference(
     }
 }
 
-fn collect_schema_document(schema: &Schema, schemas: &mut HashSet<String>) {
-    if let Schema::Object(schema_ref) = schema {
-        collect_schema_reference(schema_ref, schemas);
-    }
-}
-
 fn collect_schema_references(schema: &ObjectSchema, schemas: &mut HashSet<String>) {
     for property in schema.properties.values() {
         collect_schema_reference(property, schemas);
     }
     if let Some(additional_properties) = &schema.additional_properties {
-        collect_schema_document(additional_properties, schemas);
+        collect_schema_reference(additional_properties, schemas);
     }
     if let Some(items) = &schema.items {
-        collect_schema_document(items, schemas);
+        collect_schema_reference(items, schemas);
     }
     for nested in schema
         .one_of
