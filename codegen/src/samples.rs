@@ -9,6 +9,8 @@ use oas3::{
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+mod values;
+
 const CATALOG_SCHEMA_VERSION: u8 = 1;
 const SDK_CRATE: &str = "sumup";
 
@@ -62,6 +64,7 @@ pub fn generate_code_samples(
     sdk_version: impl Into<String>,
 ) -> Result<CodeSampleCatalog, String> {
     let mut samples = Vec::new();
+    let types = values::SampleTypes::new(spec)?;
 
     for (path, path_item) in spec.paths.iter().flatten() {
         for (http_method, operation) in crate::operations_for_path_item(path_item) {
@@ -89,8 +92,14 @@ pub fn generate_code_samples(
                 let summary = preferred_text(example.summary, operation.summary.clone());
                 let description =
                     preferred_text(example.description, operation.description.clone());
-                let sample =
-                    render_program(spec, path_item, operation, tag, example.value.as_ref())?;
+                let sample = render_program(
+                    spec,
+                    path_item,
+                    operation,
+                    tag,
+                    example.value.as_ref(),
+                    &types,
+                )?;
 
                 samples.push(CodeSample {
                     id,
@@ -215,6 +224,7 @@ fn render_program(
     operation: &Operation,
     tag: &str,
     example: Option<&Value>,
+    types: &values::SampleTypes,
 ) -> Result<String, String> {
     let operation_name = crate::operation_name(operation);
     let method = operation_name.to_snake_case();
@@ -245,11 +255,11 @@ fn render_program(
             .cloned()
             .or_else(|| schema_value(spec, schema, 0))
             .unwrap_or_else(|| Value::Object(Map::new()));
-        let json = serde_json::to_string_pretty(&value)
-            .map_err(|error| format!("serialize request body example: {error}"))?;
-        body_declaration = format!(
-            "    let body = serde_json::from_value(serde_json::json!({json}))\n        .expect(\"build request body\");\n"
-        );
+        let body_type = crate::body::operation_request_type_ident(&operation_name);
+        let expression = types
+            .render(&resource, &body_type, &value)
+            .map_err(|error| format!("render request body for {operation_name}: {error}"))?;
+        body_declaration = format!("    let body = {expression};\n");
         arguments.push(if required { "body" } else { "Some(body)" }.to_string());
     }
 
@@ -430,6 +440,7 @@ mod tests {
         assert_eq!(generated, catalog());
 
         for sample in &generated.samples {
+            assert!(!sample.sample.contains("serde_json::from_value"));
             syn::parse_file(&sample.sample)
                 .unwrap_or_else(|error| panic!("invalid sample {}: {error}", sample.id));
         }
@@ -474,7 +485,75 @@ mod tests {
 
         let generated = generate_code_samples(&spec, "test").expect("generate samples");
         let sample = &generated.samples[0].sample;
+        assert!(sample.contains("sumup::resources::samples::CreateSampleRequest {"));
         assert!(sample.contains("request-selected"));
         assert!(!sample.contains("property-"));
+    }
+
+    #[test]
+    fn renders_nested_request_types_and_nullable_values() {
+        let spec: OpenAPI = serde_json::from_value(serde_json::json!({
+            "openapi": "3.1.0",
+            "info": { "title": "Samples", "version": "1.0.0" },
+            "paths": {
+                "/samples": { "post": {
+                    "operationId": "CreateSample",
+                    "tags": ["Samples"],
+                    "requestBody": { "required": true, "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/Payload" },
+                            "example": {
+                                "items": [{ "type": "card", "amount": "12.50" }],
+                                "clear": null,
+                                "update": "new value",
+                                "metadata": { "key": [1, true] },
+                                "custom": "extra"
+                            }
+                        }
+                    } },
+                    "responses": { "204": { "description": "Created" } }
+                } }
+            },
+            "components": { "schemas": { "Payload": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                    "items": { "type": "array", "items": {
+                        "type": "object",
+                        "required": ["type", "amount"],
+                        "properties": {
+                            "type": { "type": "string", "enum": ["card", "cash"] },
+                            "amount": { "type": "string", "format": "float" }
+                        }
+                    } },
+                    "clear": { "type": ["string", "null"] },
+                    "update": { "type": ["string", "null"] },
+                    "absent": { "type": ["string", "null"] },
+                    "metadata": { "type": "object" }
+                },
+                "additionalProperties": { "type": "string" }
+            } } }
+        }))
+        .expect("parse fixture");
+        let generated = generate_code_samples(&spec, "test").expect("generate samples");
+        let sample = &generated.samples[0].sample;
+        let compact = sample.split_whitespace().collect::<String>();
+        for expected in [
+            "CreateSampleRequest {",
+            "CreateSampleRequestItemsItem {",
+            "r#type: sumup::resources::samples::CreateSampleRequestItemsItemType::Card",
+            "amount: 12.50f32",
+            "clear: Some(sumup::Nullable::Null)",
+            "sumup::Nullable::Value(\"new value\".to_string())",
+            "..Default::default()",
+            "serde_json::json!",
+            "(\"custom\".to_string(), \"extra\".to_string())",
+        ] {
+            assert!(
+                compact.contains(&expected.split_whitespace().collect::<String>()),
+                "missing {expected} in {sample}"
+            );
+        }
+        assert!(!sample.contains("absent:"));
     }
 }
