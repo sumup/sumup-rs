@@ -5,7 +5,7 @@
 //! the generated `on_*` methods, and pass the raw HTTP request body and SumUp signature
 //! header to [`EventsHandler::handle`].
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 use std::{
     collections::BTreeMap,
