@@ -111,7 +111,7 @@ pub(crate) fn operations_for_path_item(
 }
 
 pub(crate) fn preferred_response_media_type(
-    content: &std::collections::BTreeMap<String, MediaType>,
+    content: &oas3::Map<String, MediaType>,
 ) -> Option<&MediaType> {
     content
         .get("application/problem+json")
@@ -521,7 +521,10 @@ pub fn does_reference_common_schemas(
     };
 
     for schema_name in schemas {
-        if let Some(schema_ref) = all_schemas.get(schema_name) {
+        if let Some(schema_ref) = all_schemas
+            .get(schema_name)
+            .and_then(crate::oas::schema_object)
+        {
             let schema = match schema_ref {
                 ObjectOrReference::Object(schema) => schema,
                 ObjectOrReference::Ref { .. } => continue,
@@ -570,7 +573,10 @@ pub fn does_tag_operations_reference_common(
             };
 
             if let Some(media_type) = preferred_response_media_type(&response.content)
-                && let Some(schema_ref) = &media_type.schema
+                && let Some(schema_ref) = media_type
+                    .schema
+                    .as_ref()
+                    .and_then(crate::oas::schema_object)
                 && references_common_schema_ref(schema_ref, common_schemas)
             {
                 return true;
@@ -625,6 +631,7 @@ fn references_common_in_schema(
         .chain(&schema.any_of)
         .chain(&schema.all_of)
         .chain(&schema.prefix_items)
+        .filter_map(crate::oas::schema_object)
         .any(|schema_ref| reference_matches(schema_ref, common_schemas))
         || schema.items.as_deref().is_some_and(|schema| match schema {
             Schema::Boolean(_) => false,

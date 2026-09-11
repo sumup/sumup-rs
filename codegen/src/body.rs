@@ -140,7 +140,11 @@ fn generate_query_params_struct(
         let original_name = &param_data.name;
 
         // Determine field type based on schema
-        let (field_type, is_nullable) = if let Some(schema_ref) = &param_data.schema {
+        let (field_type, is_nullable) = if let Some(schema_ref) = param_data
+            .schema
+            .as_ref()
+            .and_then(crate::oas::schema_object)
+        {
             infer_param_type(
                 operation_name,
                 &field_name.to_string(),
@@ -169,7 +173,11 @@ fn generate_query_params_struct(
             quote! {}
         };
 
-        let description = match &param_data.schema {
+        let description = match param_data
+            .schema
+            .as_ref()
+            .and_then(crate::oas::schema_object)
+        {
             Some(openapiv3::ObjectOrReference::Object(schema)) => {
                 let doc = crate::schema::generate_schema_doc_comment(
                     param_data.description.as_deref(),
@@ -329,7 +337,7 @@ fn generate_query_param_types(
             continue;
         }
 
-        let Some(schema_ref) = &param.schema else {
+        let Some(schema_ref) = param.schema.as_ref().and_then(crate::oas::schema_object) else {
             continue;
         };
 
@@ -562,6 +570,7 @@ pub(crate) fn request_body_schema(
         .get("application/json")
         .or_else(|| request_body.content.values().next())
         .and_then(|media_type| media_type.schema.as_ref())
+        .and_then(crate::oas::schema_object)
 }
 
 /// Creates response body representations for the operation's successful responses.
@@ -569,9 +578,7 @@ fn generate_response_body_structs(
     spec: &OpenAPI,
     operation_name: &str,
     operation_origin: &str,
-    responses: Option<
-        &std::collections::BTreeMap<String, openapiv3::ObjectOrReference<openapiv3::Response>>,
-    >,
+    responses: Option<&oas3::Map<String, openapiv3::ObjectOrReference<openapiv3::Response>>>,
     nested_schemas: &mut Vec<TokenStream>,
     symbols: &mut crate::symbol::SymbolRegistry,
 ) -> Result<Option<Vec<TokenStream>>, String> {
@@ -606,7 +613,10 @@ fn generate_response_body_structs(
         };
 
         if let Some(media_type) = crate::preferred_response_media_type(&response.content)
-            && let Some(schema_ref) = &media_type.schema
+            && let Some(schema_ref) = media_type
+                .schema
+                .as_ref()
+                .and_then(crate::oas::schema_object)
         {
             match schema_ref {
                 openapiv3::ObjectOrReference::Ref { .. } => {
@@ -683,7 +693,11 @@ fn generate_response_body_structs(
                     if let Some(media_type) =
                         crate::preferred_response_media_type(&response.content)
                     {
-                        if let Some(schema_ref) = &media_type.schema {
+                        if let Some(schema_ref) = media_type
+                            .schema
+                            .as_ref()
+                            .and_then(crate::oas::schema_object)
+                        {
                             match schema_ref {
                                 openapiv3::ObjectOrReference::Ref {
                                     ref_path: reference,
