@@ -59,6 +59,7 @@ pub struct CreateRequest {
     /// User's permissions.
     ///
     /// Constraints:
+    /// - min items: 1
     /// - max items: 100
     pub permissions: Vec<String>,
 }
@@ -77,6 +78,7 @@ pub struct UpdateRequest {
     /// User's permissions.
     ///
     /// Constraints:
+    /// - min items: 1
     /// - max items: 100
     #[serde(skip_serializing_if = "Option::is_none")]
     pub permissions: Option<Vec<String>>,
@@ -315,7 +317,9 @@ impl<'a> RolesClient<'a> {
     }
     /// Update a role
     ///
-    /// Update a custom role.
+    /// Updates a custom role's name, description, or permissions and returns the updated role.
+    ///
+    /// Providing `permissions` replaces the role's permission list and changes the access granted to members assigned to that role. Omitted fields remain unchanged.
     ///
     /// Responses:
     /// - 200: Returns the updated Role object if the update succeeded.
