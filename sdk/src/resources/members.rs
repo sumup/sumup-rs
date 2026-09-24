@@ -188,10 +188,6 @@ pub struct ListParams {
     #[serde(rename = "user.id")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
-    /// Filter the returned members by user type. Repeat this parameter to include multiple user types.
-    #[serde(rename = "user.type")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_type: Option<Vec<UserType>>,
     /// Filter the returned members by the membership status.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<MembershipStatus>,
@@ -238,6 +234,7 @@ pub struct CreateRequest {
     /// List of roles to assign to the new member.
     ///
     /// Constraints:
+    /// - min items: 1
     /// - max items: 124
     pub roles: Vec<String>,
 }
@@ -334,9 +331,6 @@ impl<'a> MembersClient<'a> {
         if let Some(ref value) = params.user_id {
             request = request.query(&[("user.id", value)]);
         }
-        if let Some(ref value) = params.user_type {
-            request = request.query(&[("user.type", value)]);
-        }
         if let Some(ref value) = params.status {
             request = request.query(&[("status", value)]);
         }
@@ -363,7 +357,10 @@ impl<'a> MembersClient<'a> {
     }
     /// Create a member
     ///
-    /// Create a merchant member.
+    /// Adds a member to the merchant account with the specified roles.
+    ///
+    /// By default, sends an invitation email to the provided address. The recipient must accept the invitation to join the account.
+    /// When `is_managed_user` is `true`, creates a managed user with the provided password and optional nickname and assigns the roles directly, without sending an invitation.
     ///
     /// Responses:
     /// - 201: Returns the Member object if the creation succeeded.
@@ -523,7 +520,10 @@ impl<'a> MembersClient<'a> {
     }
     /// Update a member
     ///
-    /// Update the merchant member.
+    /// Updates a merchant member and returns the updated member.
+    ///
+    /// Providing `roles` replaces the member's assigned roles and can grant or revoke access. Providing `metadata` replaces the entire metadata object.
+    /// For managed users, `user.nickname` changes the display name and `user.password` replaces the password. Updating the password also enables the managed user account.
     ///
     /// Responses:
     /// - 200: Returns the updated Member object if the update succeeded.

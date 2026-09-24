@@ -1032,7 +1032,9 @@ impl<'a> ReadersClient<'a> {
     }
     /// Update a Reader
     ///
-    /// Update a Reader.
+    /// Updates a reader's name or metadata and returns the updated reader.
+    ///
+    /// Providing `metadata` replaces the entire metadata object; include all entries that should be retained. Omitted fields remain unchanged.
     ///
     /// Responses:
     /// - 200: Returns the updated Reader object if the update succeeded.
