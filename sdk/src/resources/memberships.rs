@@ -121,19 +121,15 @@ pub struct ListParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resource_id: Option<String>,
     /// Filter memberships by the parent of the resource the membership is in.
-    /// When filtering by parent both `resource.parent.id` and `resource.parent.type` must be present. Pass explicit null to filter for resources without a parent.
+    /// Omit both `resource.parent.id` and `resource.parent.type` to skip parent filtering. When filtering by parent, both parameters must be present. To select resources without a parent, set each parameter to an empty value. Otherwise, both parameters must identify a parent.
     #[serde(rename = "resource.parent.id")]
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "crate::nullable::deserialize"
-    )]
-    pub resource_parent_id: Option<crate::Nullable<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_parent_id: Option<String>,
     /// Filter memberships by the parent of the resource the membership is in.
-    /// When filtering by parent both `resource.parent.id` and `resource.parent.type` must be present. Pass explicit null to filter for resources without a parent.
+    /// Omit both `resource.parent.id` and `resource.parent.type` to skip parent filtering. When filtering by parent, both parameters must be present. To select resources without a parent, set each parameter to an empty value. Otherwise, both parameters must identify a parent.
     #[serde(rename = "resource.parent.type")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub resource_parent_type: Option<String>,
+    pub resource_parent_type: Option<ResourceType>,
     /// Filter the returned memberships by role.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub roles: Option<Vec<String>>,
@@ -214,14 +210,7 @@ impl<'a> MembershipsClient<'a> {
             request = request.query(&[("resource.id", value)]);
         }
         if let Some(ref value) = params.resource_parent_id {
-            match value {
-                crate::Nullable::Null => {
-                    request = request.query(&[("resource.parent.id", "null")]);
-                }
-                crate::Nullable::Value(v) => {
-                    request = request.query(&[("resource.parent.id", v)]);
-                }
-            }
+            request = request.query(&[("resource.parent.id", value)]);
         }
         if let Some(ref value) = params.resource_parent_type {
             request = request.query(&[("resource.parent.type", value)]);
