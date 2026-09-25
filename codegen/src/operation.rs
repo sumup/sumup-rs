@@ -227,39 +227,9 @@ fn generate_operation_method(
                 crate::schema::make_rust_field_ident(&query_param.name.to_snake_case());
             let param_name = &query_param.name;
 
-            // Check if this parameter is nullable
-            let is_nullable = if let Some(schema_ref) = query_param
-                .schema
-                .as_ref()
-                .and_then(crate::oas::schema_object)
-            {
-                match schema_ref {
-                    openapiv3::ObjectOrReference::Object(schema) => {
-                        schema.is_nullable().unwrap_or(false)
-                    }
-                    openapiv3::ObjectOrReference::Ref { .. } => false,
-                }
-            } else {
-                false
-            };
-
             if query_param.required.unwrap_or(false) {
                 query_field_additions.push(quote! {
                     request = request.query(&[(#param_name, &params.#field_name)]);
-                });
-            } else if is_nullable {
-                // For nullable parameters, handle Nullable::Null explicitly
-                query_field_additions.push(quote! {
-                    if let Some(ref value) = params.#field_name {
-                        match value {
-                            crate::Nullable::Null => {
-                                request = request.query(&[(#param_name, "null")]);
-                            }
-                            crate::Nullable::Value(v) => {
-                                request = request.query(&[(#param_name, v)]);
-                            }
-                        }
-                    }
                 });
             } else {
                 query_field_additions.push(quote! {

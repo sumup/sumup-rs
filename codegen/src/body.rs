@@ -140,7 +140,7 @@ fn generate_query_params_struct(
         let original_name = &param_data.name;
 
         // Determine field type based on schema
-        let (field_type, is_nullable) = if let Some(schema_ref) = param_data
+        let field_type = if let Some(schema_ref) = param_data
             .schema
             .as_ref()
             .and_then(crate::oas::schema_object)
@@ -152,9 +152,9 @@ fn generate_query_params_struct(
                 param_data.required.unwrap_or(false),
             )
         } else if param_data.required.unwrap_or(false) {
-            (quote! { String }, false)
+            quote! { String }
         } else {
-            (quote! { Option<String> }, false)
+            quote! { Option<String> }
         };
 
         let rename_attr = if original_name != &field_name.to_string() {
@@ -164,11 +164,7 @@ fn generate_query_params_struct(
         };
 
         let skip_attr = if !param_data.required.unwrap_or(false) {
-            if is_nullable {
-                quote! { #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "crate::nullable::deserialize")] }
-            } else {
-                quote! { #[serde(skip_serializing_if = "Option::is_none")] }
-            }
+            quote! { #[serde(skip_serializing_if = "Option::is_none")] }
         } else {
             quote! {}
         };
@@ -211,112 +207,100 @@ fn generate_query_params_struct(
     }))
 }
 
-/// Infers the Rust type for a query parameter schema and reports whether it is nullable.
-/// Returns a tuple of (field_type, is_nullable).
+/// Infers the Rust type for a query parameter schema.
 fn infer_param_type(
     operation_name: &str,
     field_name: &str,
     schema_ref: &openapiv3::ObjectOrReference<openapiv3::ObjectSchema>,
     required: bool,
-) -> (TokenStream, bool) {
-    let (base_type, is_nullable) = match schema_ref {
+) -> TokenStream {
+    let base_type = match schema_ref {
         openapiv3::ObjectOrReference::Ref {
             ref_path: reference,
             ..
         } => {
             let type_name = reference.split('/').next_back().unwrap_or("Unknown");
             let type_ident = Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
-            (quote! { #type_ident }, false)
+            quote! { #type_ident }
         }
-        openapiv3::ObjectOrReference::Object(schema) => {
-            let is_nullable = schema.is_nullable().unwrap_or(false);
-            let base = match crate::oas::schema_type(schema) {
-                Some(openapiv3::SchemaType::String) => {
-                    if !schema.enum_values.is_empty() {
-                        let type_ident = query_param_type_ident(operation_name, field_name);
-                        quote! { #type_ident }
-                    } else {
-                        match schema.format.as_deref() {
-                            Some("date-time") => {
-                                quote! { crate::datetime::DateTime }
-                            }
-                            Some("date") => {
-                                quote! { crate::datetime::Date }
-                            }
-                            Some("password") => {
-                                quote! { crate::secret::Secret }
-                            }
-                            _ => quote! { String },
+        openapiv3::ObjectOrReference::Object(schema) => match crate::oas::schema_type(schema) {
+            Some(openapiv3::SchemaType::String) => {
+                if !schema.enum_values.is_empty() {
+                    let type_ident = query_param_type_ident(operation_name, field_name);
+                    quote! { #type_ident }
+                } else {
+                    match schema.format.as_deref() {
+                        Some("date-time") => {
+                            quote! { crate::datetime::DateTime }
                         }
+                        Some("date") => {
+                            quote! { crate::datetime::Date }
+                        }
+                        Some("password") => {
+                            quote! { crate::secret::Secret }
+                        }
+                        _ => quote! { String },
                     }
                 }
-                Some(openapiv3::SchemaType::Number) => quote! { f64 },
-                Some(openapiv3::SchemaType::Integer) => quote! { i64 },
-                Some(openapiv3::SchemaType::Boolean) => quote! { bool },
-                Some(openapiv3::SchemaType::Array) => {
-                    if let Some(openapiv3::Schema::Object(items)) = schema.items.as_deref() {
-                        let item_type = match items.as_ref() {
-                            openapiv3::ObjectOrReference::Ref {
-                                ref_path: reference,
-                                ..
-                            } => {
-                                let type_name =
-                                    reference.split('/').next_back().unwrap_or("Unknown");
-                                let type_ident =
-                                    Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
-                                quote! { #type_ident }
-                            }
-                            openapiv3::ObjectOrReference::Object(inner_schema) => {
-                                match crate::oas::schema_type(inner_schema) {
-                                    Some(openapiv3::SchemaType::String) => {
-                                        if !inner_schema.enum_values.is_empty() {
-                                            let type_ident = query_param_item_type_ident(
-                                                operation_name,
-                                                field_name,
-                                            );
-                                            quote! { #type_ident }
-                                        } else {
-                                            match inner_schema.format.as_deref() {
-                                                Some("date-time") => {
-                                                    quote! { crate::datetime::DateTime }
-                                                }
-                                                Some("date") => {
-                                                    quote! { crate::datetime::Date }
-                                                }
-                                                _ => quote! { String },
+            }
+            Some(openapiv3::SchemaType::Number) => quote! { f64 },
+            Some(openapiv3::SchemaType::Integer) => quote! { i64 },
+            Some(openapiv3::SchemaType::Boolean) => quote! { bool },
+            Some(openapiv3::SchemaType::Array) => {
+                if let Some(openapiv3::Schema::Object(items)) = schema.items.as_deref() {
+                    let item_type = match items.as_ref() {
+                        openapiv3::ObjectOrReference::Ref {
+                            ref_path: reference,
+                            ..
+                        } => {
+                            let type_name = reference.split('/').next_back().unwrap_or("Unknown");
+                            let type_ident =
+                                Ident::new(&type_name.to_upper_camel_case(), Span::call_site());
+                            quote! { #type_ident }
+                        }
+                        openapiv3::ObjectOrReference::Object(inner_schema) => {
+                            match crate::oas::schema_type(inner_schema) {
+                                Some(openapiv3::SchemaType::String) => {
+                                    if !inner_schema.enum_values.is_empty() {
+                                        let type_ident =
+                                            query_param_item_type_ident(operation_name, field_name);
+                                        quote! { #type_ident }
+                                    } else {
+                                        match inner_schema.format.as_deref() {
+                                            Some("date-time") => {
+                                                quote! { crate::datetime::DateTime }
                                             }
+                                            Some("date") => {
+                                                quote! { crate::datetime::Date }
+                                            }
+                                            _ => quote! { String },
                                         }
                                     }
-                                    Some(openapiv3::SchemaType::Integer) => {
-                                        quote! { i64 }
-                                    }
-                                    Some(openapiv3::SchemaType::Number) => {
-                                        quote! { f64 }
-                                    }
-                                    _ => quote! { String },
                                 }
+                                Some(openapiv3::SchemaType::Integer) => {
+                                    quote! { i64 }
+                                }
+                                Some(openapiv3::SchemaType::Number) => {
+                                    quote! { f64 }
+                                }
+                                _ => quote! { String },
                             }
-                        };
-                        quote! { Vec<#item_type> }
-                    } else {
-                        quote! { Vec<String> }
-                    }
+                        }
+                    };
+                    quote! { Vec<#item_type> }
+                } else {
+                    quote! { Vec<String> }
                 }
-                _ => quote! { String },
-            };
-            (base, is_nullable)
-        }
+            }
+            _ => quote! { String },
+        },
     };
 
-    let field_type = if required {
+    if required {
         base_type
-    } else if is_nullable {
-        quote! { Option<crate::Nullable<#base_type>> }
     } else {
         quote! { Option<#base_type> }
-    };
-
-    (field_type, is_nullable)
+    }
 }
 
 fn generate_query_param_types(
@@ -897,6 +881,36 @@ mod tests {
 
     fn parse_spec(value: serde_json::Value) -> OpenAPI {
         serde_json::from_value(value).expect("failed to parse OpenAPI fixture")
+    }
+
+    #[test]
+    fn allow_empty_query_parameters_use_plain_strings() {
+        let operation = serde_json::from_value(serde_json::json!({
+            "parameters": [
+                {
+                    "name": "optional_filter",
+                    "in": "query",
+                    "allowEmptyValue": true,
+                    "schema": { "type": "string" }
+                },
+                {
+                    "name": "required_filter",
+                    "in": "query",
+                    "required": true,
+                    "allowEmptyValue": true,
+                    "schema": { "type": "string" }
+                }
+            ],
+            "responses": { "204": { "description": "ok" } }
+        }))
+        .unwrap();
+        let mut symbols = crate::symbol::SymbolRegistry::new("test");
+        let tokens = generate_query_params_struct(&operation, "List", "GET /items", &mut symbols)
+            .unwrap()
+            .unwrap();
+        let code = crate::format_generated_code(tokens);
+        assert!(code.contains("pub optional_filter: Option<String>"));
+        assert!(code.contains("pub required_filter: String"));
     }
 
     #[test]
