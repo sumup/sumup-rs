@@ -105,7 +105,6 @@ pub enum CardType {
 /// Example: `EUR`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Currency {
-    BGN,
     BRL,
     CHF,
     CLP,
