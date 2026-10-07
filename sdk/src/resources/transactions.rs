@@ -32,6 +32,11 @@ pub struct CardResponse {
     /// Example: `3456`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_4_digits: Option<String>,
+    /// PAR (Payment account reference) if available for the card.
+    ///
+    /// Example: `5665ABCDEFGHIJKLMNOPQRSTUVWXY`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_account_reference: Option<String>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<CardType>,
