@@ -1,8 +1,8 @@
 // The contents of this file are generated; do not modify them.
 
-//! The Receipts model obtains receipt-like details for specific transactions.
+//! Retrieve structured receipt data for a transaction, including payment, merchant, and acquirer details. Use this data to display a receipt in your application. The response is JSON, rather than a rendered receipt document.
 use super::common::*;
-/// Receipt details for a transaction.
+/// Structured receipt details for a transaction. The transaction's `amount`, `vat_amount`, and `tip_amount`, as well as event amounts, are returned as decimal strings in major currency units, for example `"10.10"` for EUR 10.10.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Receipt {
     /// Acquirer-specific metadata related to the card authorization.
@@ -444,7 +444,7 @@ impl<'a> ReceiptsClient<'a> {
     }
     /// Retrieve receipt details
     ///
-    /// Retrieves receipt specific data for a transaction.
+    /// Retrieves structured receipt data for a transaction belonging to the merchant specified by `mid`. The path accepts either the SumUp transaction ID or transaction code. Provide `tx_event_id` to include a specific transaction event, such as a refund, on the receipt.
     ///
     /// Responses:
     /// - 200: Returns receipt details for the requested transaction.

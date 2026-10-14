@@ -32,7 +32,9 @@ pub struct CardResponse {
     /// Example: `3456`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_4_digits: Option<String>,
-    /// PAR (Payment account reference) if available for the card.
+    /// Payment Account Reference (PAR) defined by [EMVCo](https://www.emvco.com/emv-technologies/payment-tokenisation/). It links a card's primary account number (PAN) with its affiliated payment tokens, allowing transactions made with the physical card and tokenized versions of that card, such as digital wallets, to be correlated when PAR is available.
+    ///
+    /// This reference cannot be used to initiate a payment and is separate from the saved payment instrument `token` used to process checkouts. Returned only when available for the card; integrations must handle its absence.
     ///
     /// Example: `5665ABCDEFGHIJKLMNOPQRSTUVWXY`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -144,7 +146,7 @@ pub type HorizontalAccuracy = f32;
 /// Latitude value from the coordinates of the payment location (as received from the payment terminal reader).
 ///
 /// Constraints:
-/// - value >= 0
+/// - value >= -90
 /// - value <= 90
 ///
 /// Example: `52.520008`
@@ -185,7 +187,7 @@ pub struct Link {
 /// Longitude value from the coordinates of the payment location (as received from the payment terminal reader).
 ///
 /// Constraints:
-/// - value >= 0
+/// - value >= -180
 /// - value <= 180
 ///
 /// Example: `13.404954`
@@ -256,7 +258,7 @@ pub struct Product {
     /// Example: `19`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vat_amount: Option<f64>,
-    /// VAT rate applied to the product price.
+    /// VAT rate as a decimal fraction, for example `0.19` for 19%.
     ///
     /// Constraints:
     /// - format: `decimal`
@@ -268,7 +270,7 @@ pub struct Product {
 /// Detailed information about a transaction event.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionEvent {
-    /// Amount of the event.
+    /// Amount of the event in major units of the associated transaction's currency.
     ///
     /// Constraints:
     /// - format: `decimal`
@@ -290,7 +292,7 @@ pub struct TransactionEvent {
     pub event_type: Option<TransactionEventType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<TransactionEventId>,
-    /// Consecutive number of the installment that is paid. Applicable only payout events, i.e. `event_type = PAYOUT`.
+    /// Consecutive number of the installment that is paid. Applicable only to payout events, i.e. `event_type = PAYOUT`.
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -306,7 +308,7 @@ pub struct TransactionEvent {
 /// Full transaction resource with checkout, payout, and event details.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFull {
-    /// Total amount of the transaction.
+    /// Total amount of the transaction in major units of `currency`, for example `10.1` for EUR 10.10.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -334,7 +336,7 @@ pub struct TransactionFull {
     /// Compact list of events related to the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub events: Option<Vec<Event>>,
-    /// Transaction SumUp total fee amount.
+    /// Total SumUp transaction fee in major units of the transaction's currency.
     ///
     /// Constraints:
     /// - format: `decimal`
@@ -460,12 +462,12 @@ pub struct TransactionFull {
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
-    /// Amount of the tip (out of the total transaction amount).
+    /// Tip included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `3`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_amount: Option<f32>,
-    /// Transaction code returned by the acquirer/processing entity after processing the transaction.
+    /// SumUp transaction code, for example `TEENSK4W2K`. Use it to look up the transaction with the `transaction_code` query parameter. This is separate from the transaction's `id` and the card issuer's `auth_code`.
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -481,7 +483,7 @@ pub struct TransactionFull {
     /// Example: `merchant@example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
-    /// Amount of the applicable VAT (out of the total transaction amount).
+    /// VAT included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `6`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -498,7 +500,7 @@ pub struct TransactionFull {
 /// Transaction entry returned in history listing responses.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionHistory {
-    /// Total amount of the transaction.
+    /// Total amount of the transaction in major units of `currency`, for example `10.1` for EUR 10.10.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -557,7 +559,7 @@ pub struct TransactionHistory {
     /// Example: `Purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub product_summary: Option<String>,
-    /// Total refunded amount.
+    /// Total amount refunded for this transaction, in major units of the transaction's currency.
     ///
     /// Constraints:
     /// - format: `decimal`
@@ -572,7 +574,7 @@ pub struct TransactionHistory {
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
-    /// Transaction code returned by the acquirer/processing entity after processing the transaction.
+    /// SumUp transaction code, for example `TEENSK4W2K`. Use it to look up the transaction with the `transaction_code` query parameter. This is separate from the transaction's `id` and the card issuer's `auth_code`.
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -597,11 +599,11 @@ pub struct TransactionHistory {
 /// Hypermedia link used for transaction history pagination.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionsHistoryLink {
-    /// Location.
+    /// Query string to use with the transaction history endpoint when requesting the linked page. Preserve the returned pagination references and query parameters.
     ///
     /// Example: `limit=10&oldest_ref=090df9bf-93b7-40f1-8181-fbdb236568a1&order=ascending`
     pub href: String,
-    /// Relation.
+    /// Pagination relation indicating which page the link retrieves, for example `next`.
     ///
     /// Example: `next`
     pub rel: String,
@@ -862,7 +864,7 @@ pub enum ListParamsTypesItem {
 /// Optional amount for partial refunds.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RefundRequest {
-    /// Amount to be refunded. Eligible amount can't exceed the amount of the transaction and varies based on country and currency. If you do not specify a value, the system performs a full refund of the transaction.
+    /// Amount to refund in major units of the transaction's currency, for example `5` for EUR 5.00. It must be greater than zero and cannot exceed the amount eligible for a refund. Eligibility depends on the transaction and country/currency rules. If omitted, the system requests a full refund.
     ///
     /// Example: `5`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -900,19 +902,19 @@ pub struct ListParams {
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_code: Option<String>,
-    /// Specifies the order in which the returned results are displayed.
+    /// Sort direction for the transaction history. Use `ascending` or `descending`; the default is `ascending`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<ListParamsOrder>,
-    /// Specifies the maximum number of results per page. Value must be a positive integer and if not specified, will return 10 results.
+    /// Maximum number of transactions per page. Must be a positive integer. Defaults to `10` when omitted; a page can contain fewer results.
     ///
     /// Example: `10`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<i64>,
-    /// Filters the returned results by user email.
+    /// Filters transactions by user email. For multiple values, repeat the query parameter, for example `users[]=first@example.com&users[]=second@example.com`.
     #[serde(rename = "users[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub users: Option<Vec<String>>,
-    /// Filters the returned results by the specified list of final statuses of the transactions.
+    /// Filters transactions by the listed final statuses. For multiple values, repeat the query parameter, for example `statuses[]=SUCCESSFUL&statuses[]=REFUNDED`.
     #[serde(rename = "statuses[]")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub statuses: Option<Vec<ListParamsStatusesItem>>,
@@ -938,7 +940,7 @@ pub struct ListParams {
     /// Example: `2019-08-29T09:00:00Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub newest_time: Option<crate::datetime::DateTime>,
-    /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *smaller* than the specified value. This parameters supersedes the `newest_time` parameter (if both are provided in the request).
+    /// Pagination reference that returns results before the specified reference. Use the value from a returned pagination link rather than constructing it yourself. This parameter takes precedence over `newest_time` when both are provided.
     ///
     /// Example: `090df9bf-93b7-40f1-8181-fbdb236568a1`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -948,7 +950,7 @@ pub struct ListParams {
     /// Example: `2019-08-28T09:00:00Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oldest_time: Option<crate::datetime::DateTime>,
-    /// Filters the results by the reference ID of transaction events and returns only transactions with events whose IDs are *greater* than the specified value. This parameters supersedes the `oldest_time` parameter (if both are provided in the request).
+    /// Pagination reference that returns results after the specified reference. Use the value from a returned pagination link rather than constructing it yourself. This parameter takes precedence over `oldest_time` when both are provided.
     ///
     /// Example: `090df9bf-93b7-40f1-8181-fbdb236568a1`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -998,7 +1000,9 @@ impl<'a> TransactionsClient<'a> {
     }
     /// Refund a transaction
     ///
-    /// Refunds an identified transaction either in full or partially.
+    /// Refunds a transaction identified by its SumUp transaction ID. Omit the request body to request a full refund, or provide `amount` for a partial refund in the transaction's currency.
+    ///
+    /// Retrieve the transaction afterwards to inspect its refunded amount and refund events. The transaction must be eligible for a refund; see the error responses for invalid amounts, permissions, and processing failures.
     ///
     /// Responses:
     /// - 201: The transaction was refunded in full or partially based on the request.
@@ -1143,7 +1147,9 @@ impl<'a> TransactionsClient<'a> {
     }
     /// List transactions
     ///
-    /// Lists detailed history of all transactions associated with the merchant profile.
+    /// Lists transaction history for the merchant, with optional filters for payment type, status, and date range. The response contains the current page in `items` and pagination query strings in `links`.
+    ///
+    /// To request another page, use the query string from the relevant link's `href` with this history endpoint. Use `changes_since` when retrieving transactions modified since a previous synchronization, including transactions created earlier whose status has changed.
     ///
     /// Responses:
     /// - 200: Returns a page of transaction history items.

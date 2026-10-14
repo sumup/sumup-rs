@@ -2,6 +2,36 @@
 
 //! Endpoints to manage custom roles. Custom roles allow you to tailor roles from individual permissions to match your needs. Once created, you can assign your custom roles to your merchant account members using the memberships.
 use super::common::*;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum RoleCreated {}
+impl crate::event::private::Sealed for RoleCreated {}
+impl crate::events::EventSpec for RoleCreated {
+    const EVENT_TYPE: &'static str = "roles.created";
+    type FetchedObject = Role;
+}
+/// Event notification for this event type.
+pub type RoleCreatedEvent = crate::events::Event<RoleCreated>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum RoleDeleted {}
+impl crate::event::private::Sealed for RoleDeleted {}
+impl crate::events::EventSpec for RoleDeleted {
+    const EVENT_TYPE: &'static str = "roles.deleted";
+    type FetchedObject = Role;
+}
+/// Event notification for this event type.
+pub type RoleDeletedEvent = crate::events::Event<RoleDeleted>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum RoleUpdated {}
+impl crate::event::private::Sealed for RoleUpdated {}
+impl crate::events::EventSpec for RoleUpdated {
+    const EVENT_TYPE: &'static str = "roles.updated";
+    type FetchedObject = Role;
+}
+/// Event notification for this event type.
+pub type RoleUpdatedEvent = crate::events::Event<RoleUpdated>;
 /// A custom role that can be used to assign set of permissions to members.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Role {

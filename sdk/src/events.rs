@@ -106,6 +106,57 @@ impl EventsHandler {
     {
         self.register::<crate::resources::readers::ReaderDeleted, _>(callback)
     }
+    /// Registers an async callback for `roles.created` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_role_created<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::roles::RoleCreatedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::roles::RoleCreated, _>(callback)
+    }
+    /// Registers an async callback for `roles.deleted` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_role_deleted<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::roles::RoleDeletedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::roles::RoleDeleted, _>(callback)
+    }
+    /// Registers an async callback for `roles.updated` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_role_updated<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::roles::RoleUpdatedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::roles::RoleUpdated, _>(callback)
+    }
 }
 /// Event notification parsed by the SDK.
 ///
@@ -121,6 +172,9 @@ pub enum EventNotification {
     MemberUpdated(crate::resources::members::MemberUpdatedEvent),
     ReaderCreated(crate::resources::readers::ReaderCreatedEvent),
     ReaderDeleted(crate::resources::readers::ReaderDeletedEvent),
+    RoleCreated(crate::resources::roles::RoleCreatedEvent),
+    RoleDeleted(crate::resources::roles::RoleDeletedEvent),
+    RoleUpdated(crate::resources::roles::RoleUpdatedEvent),
     Unknown(UnknownEvent),
 }
 impl EventNotification {
@@ -132,6 +186,9 @@ impl EventNotification {
             Self::MemberUpdated(event) => event.event_type(),
             Self::ReaderCreated(event) => event.event_type(),
             Self::ReaderDeleted(event) => event.event_type(),
+            Self::RoleCreated(event) => event.event_type(),
+            Self::RoleDeleted(event) => event.event_type(),
+            Self::RoleUpdated(event) => event.event_type(),
             Self::Unknown(event) => &event.event_type,
         }
     }
@@ -162,6 +219,21 @@ pub(crate) fn parse_known_event(client: crate::Client, event: RawEvent) -> Event
             EventNotification::ReaderDeleted(
                 crate::resources::readers::ReaderDeletedEvent::from_raw(client, event),
             )
+        }
+        <crate::resources::roles::RoleCreated as EventSpec>::EVENT_TYPE => {
+            EventNotification::RoleCreated(crate::resources::roles::RoleCreatedEvent::from_raw(
+                client, event,
+            ))
+        }
+        <crate::resources::roles::RoleDeleted as EventSpec>::EVENT_TYPE => {
+            EventNotification::RoleDeleted(crate::resources::roles::RoleDeletedEvent::from_raw(
+                client, event,
+            ))
+        }
+        <crate::resources::roles::RoleUpdated as EventSpec>::EVENT_TYPE => {
+            EventNotification::RoleUpdated(crate::resources::roles::RoleUpdatedEvent::from_raw(
+                client, event,
+            ))
         }
         _ => EventNotification::Unknown(UnknownEvent::from_raw(client, event)),
     }

@@ -1,15 +1,15 @@
 // The contents of this file are generated; do not modify them.
 
-//! Allow your regular customers to save their information with the Customers model.
+//! Customers represent payers in your integration. Create a customer with your own `customer_id` to associate their personal details and saved payment instruments with your business records.
 //!
-//! This will prevent re-entering payment instrument information for recurring payments on your platform.
+//! To save a card, create a checkout for that customer with `purpose = SETUP_RECURRING_PAYMENT`, then process it with the payer's consent and mandate details. See the [tokenization guide](https://developer.sumup.com/online-payments/guides/tokenization-with-payment-sdk/).
 //!
-//! Depending on the needs you can allow, creating, listing or deactivating payment instruments & creating, retrieving and updating customers.
+//! Use the Customers endpoints to create, retrieve, or update customer details and to list or deactivate saved payment instruments. For subsequent payments, process a new checkout with the saved instrument's `token` and its associated `customer_id`.
 use super::common::*;
-/// Saved customer details.
+/// Saved payer details identified by the `customer_id` supplied by your integration. A customer can have saved payment instruments for subsequent payments.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Customer {
-    /// Unique identifier of the customer.
+    /// Identifier you supply when creating the customer. Use an ID from your own system and retain it for subsequent customer, checkout, and saved-payment-instrument requests.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     pub customer_id: String,
@@ -35,7 +35,7 @@ pub struct PaymentInstrumentResponse {
     pub created_at: Option<crate::datetime::DateTime>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mandate: Option<MandateResponse>,
-    /// Unique token identifying the saved payment card for a customer.
+    /// Token identifying the customer's saved payment card. Pass it as `token`, together with the associated `customer_id` and `payment_type = card`, when processing a checkout with this instrument.
     ///
     /// Constraints:
     /// - read-only
@@ -80,7 +80,7 @@ pub enum PaymentInstrumentResponseType {
 /// Details of the customer.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateRequest {
-    /// Unique identifier of the customer.
+    /// Identifier you supply when creating the customer. Use an ID from your own system and retain it for subsequent customer, checkout, and saved-payment-instrument requests.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     pub customer_id: String,
@@ -143,7 +143,7 @@ impl<'a> CustomersClient<'a> {
     }
     /// Create a customer
     ///
-    /// Creates a new saved customer resource which you can later manipulate and save payment instruments to.
+    /// Creates a customer using the `customer_id` you supply. Choose an identifier that maps to the payer in your own system and reuse it when retrieving the customer or associating checkouts and saved payment instruments with them.
     ///
     /// Responses:
     /// - 201: Returns the customer resource.
@@ -209,7 +209,7 @@ impl<'a> CustomersClient<'a> {
     }
     /// Retrieve a customer
     ///
-    /// Retrieves an identified saved customer resource through the unique `customer_id` parameter, generated upon customer creation.
+    /// Retrieves a saved customer using the `customer_id` you supplied when creating the customer.
     ///
     /// Responses:
     /// - 200: Returns the customer resource.
