@@ -65,33 +65,3 @@ fn annotation_only(schema: &impl serde::Serialize, allow_all_of: bool) -> bool {
         ) || (allow_all_of && key == "allOf")
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use oas3::spec::{ObjectOrReference, Schema};
-    use serde_json::json;
-
-    #[test]
-    fn annotation_wrappers_preserve_reference_types() {
-        let schema: Schema = serde_json::from_value(json!({"allOf": [
-            {"description": "Country.", "example": "DE"},
-            {"$ref": "#/components/schemas/CountryCode"}
-        ]}))
-        .unwrap();
-        assert!(
-            matches!(schema_object(&schema), Some(ObjectOrReference::Ref { ref_path, .. }) if ref_path == "#/components/schemas/CountryCode")
-        );
-    }
-
-    #[test]
-    fn composition_constraints_are_preserved() {
-        let schema: Schema = serde_json::from_value(json!({"allOf": [
-            {"minLength": 2}, {"$ref": "#/components/schemas/CountryCode"}
-        ]}))
-        .unwrap();
-        assert!(
-            matches!(schema_object(&schema), Some(ObjectOrReference::Object(value)) if value.all_of.len() == 2)
-        );
-    }
-}

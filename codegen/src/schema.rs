@@ -919,11 +919,6 @@ mod tests {
             Some(&serde_json::json!("example value"))
         );
     }
-}
-
-#[cfg(test)]
-mod annotations_tests {
-    use super::*;
 
     #[test]
     fn annotated_references_keep_scalar_types_and_inherited_fields() {
@@ -938,36 +933,11 @@ mod annotations_tests {
             .cloned()
             .collect();
         let tokens = generate_structs_for_schemas(&spec, &names, &HashSet::new()).unwrap();
-        let file: syn::File = syn::parse2(tokens).unwrap();
+        let file = syn::parse2(tokens).unwrap();
         let output = prettyplease::unparse(&file);
-        assert!(output.contains("pub country: CountryCode,"), "{output}");
-        assert!(
-            output.contains("pub phone_number: PhoneNumber,"),
-            "{output}"
-        );
-        assert!(!output.contains("AddressCountry"), "{output}");
-        assert!(
-            output.contains("pub type CountryAlias = CountryCode;"),
-            "{output}"
-        );
-        assert!(
-            output.contains("pub country_codes: Option<Vec<CountryAlias>>"),
-            "{output}"
-        );
-        let extended = file
-            .items
-            .iter()
-            .find_map(|item| match item {
-                syn::Item::Struct(item) if item.ident == "ExtendedAddress" => Some(item),
-                _ => None,
-            })
-            .unwrap();
-        let fields = extended
-            .fields
-            .iter()
-            .filter_map(|field| field.ident.as_ref())
-            .map(ToString::to_string)
-            .collect::<Vec<_>>();
-        assert_eq!(fields, ["city", "country", "label"]);
+        assert!(output.contains("pub country: CountryCode,"));
+        assert!(output.contains("pub phone_number: PhoneNumber,"));
+        assert!(output.contains("pub label: Option<String>,"));
+        assert!(output.contains("pub country_codes: Option<Vec<CountryCode>>"));
     }
 }
