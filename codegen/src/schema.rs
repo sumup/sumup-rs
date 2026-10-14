@@ -266,10 +266,20 @@ pub(crate) fn generate_structs_for_schemas_with_registry(
         if skipped.contains(name.as_str()) {
             continue;
         }
-        let Some(ObjectOrReference::Object(s)) =
-            c.schemas.get(name).and_then(crate::oas::schema_object)
-        else {
+        let Some(Schema::Object(schema)) = c.schemas.get(name) else {
             continue;
+        };
+        let schema = schema.as_ref();
+        if let ObjectOrReference::Ref { .. } = schema {
+            let type_name = name.to_upper_camel_case();
+            symbols.reserve(type_name.clone(), format!("component schema `{name}`"))?;
+            let id = Ident::new(&type_name, Span::call_site());
+            let target = infer_rust_type(true, false, None, schema);
+            items.push(quote! { pub type #id = #target; });
+            continue;
+        }
+        let ObjectOrReference::Object(s) = schema else {
+            unreachable!()
         };
         let type_name = name.to_upper_camel_case();
         symbols.reserve(type_name.clone(), format!("component schema `{name}`"))?;
@@ -408,8 +418,8 @@ pub(crate) fn collect_nested_schemas_with_registry(
             continue;
         };
         if crate::oas::schema_type(s) == Some(SchemaType::Array) {
-            if let Some(Schema::Object(item)) = s.items.as_deref()
-                && let ObjectOrReference::Object(item) = item.as_ref()
+            if let Some(ObjectOrReference::Object(item)) =
+                s.items.as_deref().and_then(crate::oas::schema_object)
             {
                 nested(spec, parent, field, "Item", item, out, symbols)?
             }
@@ -559,7 +569,7 @@ fn additional_field(p: &Properties, a: Option<&Schema>) -> Option<TokenStream> {
     let ty = match a? {
         Schema::Boolean(BooleanSchema(true)) => quote! {serde_json::Value},
         Schema::Boolean(BooleanSchema(false)) => return None,
-        Schema::Object(sr) => match sr.as_ref() {
+        Schema::Object(sr) => match crate::oas::schema_reference(sr) {
             ObjectOrReference::Ref { ref_path, .. } => {
                 let n = ref_path
                     .split('/')
@@ -608,6 +618,7 @@ pub fn infer_rust_type(
     parent: Option<(&str, &str)>,
     sr: &ObjectOrReference<ObjectSchema>,
 ) -> TokenStream {
+    let sr = crate::oas::schema_reference(sr);
     let base = match sr {
         ObjectOrReference::Ref { ref_path, .. } => {
             let n = ref_path
@@ -676,7 +687,7 @@ pub fn infer_rust_type(
     }
 }
 fn array_item(sr: &ObjectOrReference<ObjectSchema>, parent: Option<(&str, &str)>) -> TokenStream {
-    match sr {
+    match crate::oas::schema_reference(sr) {
         ObjectOrReference::Ref { ref_path, .. } => {
             let n = ref_path
                 .split('/')
@@ -907,5 +918,26 @@ mod tests {
             crate::oas::schema_example(&schema),
             Some(&serde_json::json!("example value"))
         );
+    }
+
+    #[test]
+    fn annotated_references_keep_scalar_types_and_inherited_fields() {
+        let spec: OpenAPI =
+            serde_json::from_str(include_str!("../testdata/schema-annotations.json")).unwrap();
+        let names = spec
+            .components
+            .as_ref()
+            .unwrap()
+            .schemas
+            .keys()
+            .cloned()
+            .collect();
+        let tokens = generate_structs_for_schemas(&spec, &names, &HashSet::new()).unwrap();
+        let file = syn::parse2(tokens).unwrap();
+        let output = prettyplease::unparse(&file);
+        assert!(output.contains("pub country: CountryCode,"));
+        assert!(output.contains("pub phone_number: PhoneNumber,"));
+        assert!(output.contains("pub label: Option<String>,"));
+        assert!(output.contains("pub country_codes: Option<Vec<CountryCode>>"));
     }
 }
