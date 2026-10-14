@@ -186,14 +186,14 @@ pub type ReaderPairingCode = String;
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ReaderPaymentRequestParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub affiliate: Option<Affiliate>,
+    pub affiliate: Option<ReaderPaymentRequestParamsAffiliate>,
     /// Caller-supplied correlation identifier, used as the idempotency key.
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
     pub client_transaction_id: String,
-    /// Optional tip amount in minor units, added on top of total_amount.
+    /// Portion of total_amount that is a tip, in minor units.
     ///
-    /// Example: `100`
+    /// Example: `200`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_amount: Option<i64>,
     pub total_amount: Amount,
@@ -467,6 +467,11 @@ pub enum ReaderDeviceModel {
     #[serde(untagged)]
     Other(String),
 }
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ReaderPaymentRequestParamsAffiliate {
+    pub app_id: String,
+    pub key: String,
+}
 /// Type of connection used by the device
 ///
 /// Example: `Wi-Fi`
@@ -655,6 +660,11 @@ pub struct CreateCheckoutRequestTotalAmount {
     /// Example: `1000`
     pub value: i64,
 }
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CreateGoCheckoutRequestAffiliate {
+    pub app_id: String,
+    pub key: String,
+}
 /// Returns a list Reader objects.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ListResponse {
@@ -754,14 +764,14 @@ pub struct CreateCheckoutRequest {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateGoCheckoutRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub affiliate: Option<Affiliate>,
+    pub affiliate: Option<CreateGoCheckoutRequestAffiliate>,
     /// Caller-supplied correlation identifier, used as the idempotency key.
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
     pub client_transaction_id: String,
-    /// Optional tip amount in minor units, added on top of total_amount.
+    /// Portion of total_amount that is a tip, in minor units.
     ///
-    /// Example: `100`
+    /// Example: `200`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_amount: Option<i64>,
     pub total_amount: Amount,

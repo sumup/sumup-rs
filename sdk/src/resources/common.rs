@@ -53,6 +53,8 @@ pub enum CardType {
     Alelo,
     #[serde(rename = "AMEX")]
     Amex,
+    #[serde(rename = "BANCOMAT")]
+    Bancomat,
     #[serde(rename = "CONECS")]
     Conecs,
     #[serde(rename = "CUP")]
@@ -123,7 +125,7 @@ pub enum Currency {
     #[serde(untagged)]
     Other(String),
 }
-/// Entry mode of the payment details.
+/// How the payment details were captured, for example `CHIP` or `CONTACTLESS` for card-present payments and `CUSTOMER_ENTRY` for card details entered by the payer. For wallet and alternative payment methods, this can identify the method, such as `APPLE_PAY` or `BLIK`.
 ///
 /// Example: `CUSTOMER_ENTRY`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -321,7 +323,7 @@ pub struct Metadata {
     )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
-/// Payment type used for the transaction.
+/// Payment category recorded on a transaction, for example `POS` for a point-of-sale card payment, `ECOM` for an online card payment, or `RECURRING` for a recurring card payment. These reporting values are separate from the lowercase `payment_type` values used to process checkouts.
 ///
 /// Example: `ECOM`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -356,7 +358,7 @@ pub enum PaymentType {
 pub struct PersonalDetails {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<AddressLegacy>,
-    /// Date of birth of the customer.
+    /// Date of birth of the customer in `YYYY-MM-DD` format, without a time or timezone.
     ///
     /// Example: `1993-12-31`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -447,7 +449,7 @@ impl std::error::Error for Problem {}
 /// Core details shared by transaction resources.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TransactionBase {
-    /// Total amount of the transaction.
+    /// Total amount of the transaction in major units of `currency`, for example `10.1` for EUR 10.10.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -476,7 +478,7 @@ pub struct TransactionBase {
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<crate::datetime::DateTime>,
-    /// Transaction code returned by the acquirer/processing entity after processing the transaction.
+    /// SumUp transaction code, for example `TEENSK4W2K`. Use it to look up the transaction with the `transaction_code` query parameter. This is separate from the transaction's `id` and the card issuer's `auth_code`.
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -497,18 +499,18 @@ pub struct TransactionCheckoutInfo {
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merchant_code: Option<String>,
-    /// Amount of the tip (out of the total transaction amount).
+    /// Tip included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `3`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_amount: Option<f32>,
-    /// Amount of the applicable VAT (out of the total transaction amount).
+    /// VAT included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `6`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vat_amount: Option<f32>,
 }
-/// Unique identifier of the transaction event.
+/// Numeric identifier of a transaction event. Use it as `tx_event_id` when requesting receipt details for a specific event. This is separate from the transaction ID and the transaction history pagination references.
 ///
 /// Example: `9567461191`
 pub type TransactionEventId = i64;
@@ -544,7 +546,12 @@ pub enum TransactionEventStatus {
     #[serde(untagged)]
     Other(String),
 }
-/// Type of the transaction event.
+/// Financial event associated with a transaction.
+///
+/// - `PAYOUT`: Funds from the transaction being prepared for or included in a merchant payout. Check the event status to determine whether they have been paid out.
+/// - `REFUND`: Money returned to the payer.
+/// - `CHARGE_BACK`: A reversal of the payment following a chargeback.
+/// - `PAYOUT_DEDUCTION`: An amount deducted from a merchant payout, for example to cover a refund or chargeback.
 ///
 /// Example: `REFUND`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
