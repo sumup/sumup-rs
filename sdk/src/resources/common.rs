@@ -83,6 +83,8 @@ pub enum CardType {
     Mastercard,
     #[serde(rename = "PLUXEE")]
     Pluxee,
+    #[serde(rename = "SUMUP")]
+    Sumup,
     #[serde(rename = "SWILE")]
     Swile,
     #[serde(rename = "TICKET")]
