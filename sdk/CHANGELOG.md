@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.14](https://github.com/sumup/sumup-rs/compare/v0.5.13...v0.5.14) - 2026-10-15
+
+### Other
+
+- synced file(s) with sumup/apis ([#277](https://github.com/sumup/sumup-rs/pull/277))
+- synced local 'openapi.json' with remote 'specs/openapi31.json' ([#272](https://github.com/sumup/sumup-rs/pull/272))
+- synced file(s) with sumup/apis ([#269](https://github.com/sumup/sumup-rs/pull/269))
+- synced file(s) with sumup/apis ([#263](https://github.com/sumup/sumup-rs/pull/263))
+- synced file(s) with sumup/apis ([#261](https://github.com/sumup/sumup-rs/pull/261))
+
 ## [0.5.13](https://github.com/sumup/sumup-rs/compare/v0.5.12...v0.5.13) - 2026-09-11
 
 ### Added
