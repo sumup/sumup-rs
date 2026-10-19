@@ -15,6 +15,56 @@
 //!
 //! Checkouts are used to initiate and orchestrate online payments. Transactions remain the authoritative record of the resulting payment outcome.
 use super::common::*;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum CheckoutCreated {}
+impl crate::event::private::Sealed for CheckoutCreated {}
+impl crate::events::EventSpec for CheckoutCreated {
+    const EVENT_TYPE: &'static str = "checkouts.created";
+    type FetchedObject = Checkout;
+}
+/// Event notification for this event type.
+pub type CheckoutCreatedEvent = crate::events::Event<CheckoutCreated>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum CheckoutExpired {}
+impl crate::event::private::Sealed for CheckoutExpired {}
+impl crate::events::EventSpec for CheckoutExpired {
+    const EVENT_TYPE: &'static str = "checkouts.expired";
+    type FetchedObject = Checkout;
+}
+/// Event notification for this event type.
+pub type CheckoutExpiredEvent = crate::events::Event<CheckoutExpired>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum CheckoutFailed {}
+impl crate::event::private::Sealed for CheckoutFailed {}
+impl crate::events::EventSpec for CheckoutFailed {
+    const EVENT_TYPE: &'static str = "checkouts.failed";
+    type FetchedObject = Checkout;
+}
+/// Event notification for this event type.
+pub type CheckoutFailedEvent = crate::events::Event<CheckoutFailed>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum CheckoutPaid {}
+impl crate::event::private::Sealed for CheckoutPaid {}
+impl crate::events::EventSpec for CheckoutPaid {
+    const EVENT_TYPE: &'static str = "checkouts.paid";
+    type FetchedObject = Checkout;
+}
+/// Event notification for this event type.
+pub type CheckoutPaidEvent = crate::events::Event<CheckoutPaid>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum CheckoutUpdated {}
+impl crate::event::private::Sealed for CheckoutUpdated {}
+impl crate::events::EventSpec for CheckoutUpdated {
+    const EVENT_TYPE: &'static str = "checkouts.updated";
+    type FetchedObject = Checkout;
+}
+/// Event notification for this event type.
+pub type CheckoutUpdatedEvent = crate::events::Event<CheckoutUpdated>;
 /// __Required when payment type is `card`.__ Details of the payment card.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Card {
