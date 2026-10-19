@@ -21,6 +21,106 @@ pub use crate::event::{
     SIGNATURE_VERSION, UnknownEvent, verify_signature,
 };
 impl EventsHandler {
+    /// Registers an async callback for `checkouts.created` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_checkout_created<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(
+            crate::resources::checkouts::CheckoutCreatedEvent,
+            crate::Client,
+        ) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::checkouts::CheckoutCreated, _>(callback)
+    }
+    /// Registers an async callback for `checkouts.expired` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_checkout_expired<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(
+            crate::resources::checkouts::CheckoutExpiredEvent,
+            crate::Client,
+        ) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::checkouts::CheckoutExpired, _>(callback)
+    }
+    /// Registers an async callback for `checkouts.failed` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_checkout_failed<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(
+            crate::resources::checkouts::CheckoutFailedEvent,
+            crate::Client,
+        ) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::checkouts::CheckoutFailed, _>(callback)
+    }
+    /// Registers an async callback for `checkouts.paid` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_checkout_paid<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(
+            crate::resources::checkouts::CheckoutPaidEvent,
+            crate::Client,
+        ) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::checkouts::CheckoutPaid, _>(callback)
+    }
+    /// Registers an async callback for `checkouts.updated` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_checkout_updated<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(
+            crate::resources::checkouts::CheckoutUpdatedEvent,
+            crate::Client,
+        ) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::checkouts::CheckoutUpdated, _>(callback)
+    }
     /// Registers an async callback for `members.created` notifications.
     ///
     /// The callback receives the typed event and a clone of the client.
@@ -167,6 +267,11 @@ impl EventsHandler {
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum EventNotification {
+    CheckoutCreated(crate::resources::checkouts::CheckoutCreatedEvent),
+    CheckoutExpired(crate::resources::checkouts::CheckoutExpiredEvent),
+    CheckoutFailed(crate::resources::checkouts::CheckoutFailedEvent),
+    CheckoutPaid(crate::resources::checkouts::CheckoutPaidEvent),
+    CheckoutUpdated(crate::resources::checkouts::CheckoutUpdatedEvent),
     MemberCreated(crate::resources::members::MemberCreatedEvent),
     MemberDeleted(crate::resources::members::MemberDeletedEvent),
     MemberUpdated(crate::resources::members::MemberUpdatedEvent),
@@ -181,6 +286,11 @@ impl EventNotification {
     /// Returns the event type string, such as `members.updated`.
     pub fn event_type(&self) -> &str {
         match self {
+            Self::CheckoutCreated(event) => event.event_type(),
+            Self::CheckoutExpired(event) => event.event_type(),
+            Self::CheckoutFailed(event) => event.event_type(),
+            Self::CheckoutPaid(event) => event.event_type(),
+            Self::CheckoutUpdated(event) => event.event_type(),
             Self::MemberCreated(event) => event.event_type(),
             Self::MemberDeleted(event) => event.event_type(),
             Self::MemberUpdated(event) => event.event_type(),
@@ -195,6 +305,31 @@ impl EventNotification {
 }
 pub(crate) fn parse_known_event(client: crate::Client, event: RawEvent) -> EventNotification {
     match event.event_type() {
+        <crate::resources::checkouts::CheckoutCreated as EventSpec>::EVENT_TYPE => {
+            EventNotification::CheckoutCreated(
+                crate::resources::checkouts::CheckoutCreatedEvent::from_raw(client, event),
+            )
+        }
+        <crate::resources::checkouts::CheckoutExpired as EventSpec>::EVENT_TYPE => {
+            EventNotification::CheckoutExpired(
+                crate::resources::checkouts::CheckoutExpiredEvent::from_raw(client, event),
+            )
+        }
+        <crate::resources::checkouts::CheckoutFailed as EventSpec>::EVENT_TYPE => {
+            EventNotification::CheckoutFailed(
+                crate::resources::checkouts::CheckoutFailedEvent::from_raw(client, event),
+            )
+        }
+        <crate::resources::checkouts::CheckoutPaid as EventSpec>::EVENT_TYPE => {
+            EventNotification::CheckoutPaid(
+                crate::resources::checkouts::CheckoutPaidEvent::from_raw(client, event),
+            )
+        }
+        <crate::resources::checkouts::CheckoutUpdated as EventSpec>::EVENT_TYPE => {
+            EventNotification::CheckoutUpdated(
+                crate::resources::checkouts::CheckoutUpdatedEvent::from_raw(client, event),
+            )
+        }
         <crate::resources::members::MemberCreated as EventSpec>::EVENT_TYPE => {
             EventNotification::MemberCreated(
                 crate::resources::members::MemberCreatedEvent::from_raw(client, event),
