@@ -38,23 +38,32 @@ pub struct Amount {
     /// Example: `1000`
     pub value: i64,
 }
-/// Reader Checkout
+/// Reader Checkout request for SumUp API clients.
+///
+/// SumUp API integrators send affiliate metadata in the `affiliate` field below. SDK clients
+/// use `POST /api/terminals` with `terminal.affiliate` instead.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequest {
     /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
     /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aade: Option<CreateReaderCheckoutRequestAade>,
-    /// Affiliate metadata for the transaction.
-    /// It is a field that allow for integrators to track the source of the transaction.
+    /// **SumUp API clients:** affiliate ingress for Reader Checkout.
+    ///
+    /// Send integrator metadata here when creating a checkout. When `app_id` and `key` are both
+    /// present, the key is validated against Identity Admin, stored server-side, and merged into
+    /// the payment when the reader starts the transaction using the returned `client_transaction_id`
+    /// as `terminal.client_id`.
+    ///
+    /// SDK clients send affiliate on `POST /api/terminals` instead.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
-    pub affiliate: Option<crate::Nullable<CreateReaderCheckoutRequestAffiliate>>,
+    pub affiliate: Option<crate::Nullable<serde_json::Value>>,
     /// The card type of the card used for the transaction.
-    /// Is is required only for some countries (e.g: Brazil).
+    /// It is required only for some countries (e.g: Brazil).
     ///
     /// Example: `credit`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,7 +75,7 @@ pub struct CreateReaderCheckoutRequest {
     /// It may vary according to the merchant country.
     /// For example, in Brazil, the maximum number of installments is 12.
     ///
-    /// Omit if the merchant country does support installments.
+    /// Omit if the merchant country does not support installments.
     /// Otherwise, the checkout will be rejected.
     ///
     /// Constraints:
@@ -79,6 +88,14 @@ pub struct CreateReaderCheckoutRequest {
         deserialize_with = "crate::nullable::deserialize"
     )]
     pub installments: Option<crate::Nullable<i64>>,
+    /// The payment method type for the transaction. Defaults to `card`.
+    ///
+    /// Use `pix` to initiate a Pix QR-code payment flow on the device.
+    /// Pix is only supported for Brazilian merchants; other merchants will receive a 422 error.
+    ///
+    /// Example: `card`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_type: Option<CreateReaderCheckoutRequestPaymentType>,
     /// Webhook URL to which the payment result will be sent.
     /// It must be a HTTPS url.
     ///
@@ -88,9 +105,14 @@ pub struct CreateReaderCheckoutRequest {
     /// Example: `https://www.example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
-    /// List of tipping rates to be displayed to the cardholder.
-    /// The rates are in percentage and should be between 0.01 and 0.99.
-    /// The list should be sorted in ascending order.
+    /// Exactly three distinct tipping rates to be displayed to the cardholder.
+    /// Each rate is a fraction between 0.01 and 1.00 in increments of 0.01.
+    /// The rates are sorted in ascending order by the server.
+    ///
+    /// Constraints:
+    /// - min items: 3
+    /// - max items: 3
+    /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_rates: Option<Vec<f32>>,
     /// Time in seconds the cardholder has to select a tip rate.
@@ -261,8 +283,8 @@ pub struct CreateReaderCheckoutRequestAade {
     /// Example: `B71D7A555072E3EE4D2FD3F457A29115830E6CBA;;20251112214713;796;104;900;900;54889039`
     pub signature_data: String,
 }
-/// Additional metadata for the transaction.
-/// It is key-value object that can be associated with the transaction.
+/// Optional key-value metadata associated with the transaction.
+/// Forwarded to terminal-hub together with the payment.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequestAffiliateTags {
     #[serde(
@@ -272,33 +294,39 @@ pub struct CreateReaderCheckoutRequestAffiliateTags {
     )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
-/// Affiliate metadata for the transaction.
-/// It is a field that allow for integrators to track the source of the transaction.
+/// **SumUp API clients:** affiliate ingress for Reader Checkout.
+///
+/// Send integrator metadata here when creating a checkout. When `app_id` and `key` are both
+/// present, the key is validated against Identity Admin, stored server-side, and merged into
+/// the payment when the reader starts the transaction using the returned `client_transaction_id`
+/// as `terminal.client_id`.
+///
+/// SDK clients send affiliate on `POST /api/terminals` instead.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequestAffiliate {
-    /// Application ID of the affiliate.
-    /// It is a unique identifier for the application and should be set by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Integrator application identifier from the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Required when the affiliate object is provided.
     ///
     /// Example: `com.example.app`
     pub app_id: String,
-    /// Foreign transaction ID of the affiliate.
-    /// It is a unique identifier for the transaction.
-    /// It can be used later to fetch the transaction details via the [Transactions API](https://developer.sumup.com/api/transactions/get).
+    /// Integrator-owned transaction reference. Optional.
+    /// Forwarded to terminal-hub and can be used later to fetch the transaction via the [Transactions API](https://developer.sumup.com/api/transactions/get).
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
-    pub foreign_transaction_id: String,
-    /// Key of the affiliate.
-    /// It is a unique identifier for the key  and should be generated by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub foreign_transaction_id: Option<String>,
+    /// Affiliate key generated in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Required when the affiliate object is provided. Validated against Identity Admin when both `app_id` and `key` are present.
     ///
     /// Example: `123e4567-e89b-12d3-a456-426614174000`
     pub key: String,
-    /// Additional metadata for the transaction.
-    /// It is key-value object that can be associated with the transaction.
+    /// Optional key-value metadata associated with the transaction.
+    /// Forwarded to terminal-hub together with the payment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<serde_json::Value>,
 }
 /// The card type of the card used for the transaction.
-/// Is is required only for some countries (e.g: Brazil).
+/// It is required only for some countries (e.g: Brazil).
 ///
 /// Example: `credit`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -307,6 +335,21 @@ pub enum CreateReaderCheckoutRequestCardType {
     Credit,
     #[serde(rename = "debit")]
     Debit,
+    #[serde(untagged)]
+    Other(String),
+}
+/// The payment method type for the transaction. Defaults to `card`.
+///
+/// Use `pix` to initiate a Pix QR-code payment flow on the device.
+/// Pix is only supported for Brazilian merchants; other merchants will receive a 422 error.
+///
+/// Example: `card`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CreateReaderCheckoutRequestPaymentType {
+    #[serde(rename = "card")]
+    Card,
+    #[serde(rename = "pix")]
+    Pix,
     #[serde(untagged)]
     Other(String),
 }
@@ -344,14 +387,18 @@ pub struct CreateReaderCheckoutResponseData {
     /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkout_id: Option<String>,
-    /// The client transaction ID is a unique identifier for the transaction that is generated for the client.
+    /// **SumUp API flow.** Unique identifier for this checkout-generated transaction.
     ///
-    /// It can be used later to fetch the transaction details via the [Transactions API](https://developer.sumup.com/api/transactions/get).
+    /// Pass this value as `terminal.client_id` when the reader creates the terminal so
+    /// checkout metadata (including affiliate sent here) is merged into the payment.
+    ///
+    /// SDK clients do not use this field for affiliate metadata; they send affiliate in
+    /// `terminal.affiliate` on `POST /api/terminals` instead.
     ///
     /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
     pub client_transaction_id: String,
 }
-/// Type of the card. Required for some countries
+/// Type of the card, or null when no card type was specified.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum GetReaderCheckoutResponseDataCardType {
     #[serde(rename = "credit")]
@@ -414,7 +461,7 @@ pub struct GetReaderCheckoutResponseDataTotalAmount {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GetReaderCheckoutResponseData {
-    /// Type of the card. Required for some countries
+    /// Type of the card, or null when no card type was specified.
     pub card_type: GetReaderCheckoutResponseDataCardType,
     /// Unique identifier for the checkout
     ///
@@ -428,12 +475,7 @@ pub struct GetReaderCheckoutResponseData {
     /// Number of installments for the transaction. Required for some countries.
     pub installments: i64,
     /// Payment failure reason
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "crate::nullable::deserialize"
-    )]
-    pub payment_failure_reason: Option<crate::Nullable<String>>,
+    pub payment_failure_reason: String,
     /// Payment status from payments v2 event
     pub payment_status: String,
     /// Type of the payment. Required for some countries
@@ -584,8 +626,8 @@ pub struct CreateCheckoutRequestAade {
     /// Example: `B71D7A555072E3EE4D2FD3F457A29115830E6CBA;;20251112214713;796;104;900;900;54889039`
     pub signature_data: String,
 }
-/// Additional metadata for the transaction.
-/// It is key-value object that can be associated with the transaction.
+/// Optional key-value metadata associated with the transaction.
+/// Forwarded to terminal-hub together with the payment.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateCheckoutRequestAffiliateTags {
     #[serde(
@@ -595,33 +637,39 @@ pub struct CreateCheckoutRequestAffiliateTags {
     )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
-/// Affiliate metadata for the transaction.
-/// It is a field that allow for integrators to track the source of the transaction.
+/// **SumUp API clients:** affiliate ingress for Reader Checkout.
+///
+/// Send integrator metadata here when creating a checkout. When `app_id` and `key` are both
+/// present, the key is validated against Identity Admin, stored server-side, and merged into
+/// the payment when the reader starts the transaction using the returned `client_transaction_id`
+/// as `terminal.client_id`.
+///
+/// SDK clients send affiliate on `POST /api/terminals` instead.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateCheckoutRequestAffiliate {
-    /// Application ID of the affiliate.
-    /// It is a unique identifier for the application and should be set by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Integrator application identifier from the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Required when the affiliate object is provided.
     ///
     /// Example: `com.example.app`
     pub app_id: String,
-    /// Foreign transaction ID of the affiliate.
-    /// It is a unique identifier for the transaction.
-    /// It can be used later to fetch the transaction details via the [Transactions API](https://developer.sumup.com/api/transactions/get).
+    /// Integrator-owned transaction reference. Optional.
+    /// Forwarded to terminal-hub and can be used later to fetch the transaction via the [Transactions API](https://developer.sumup.com/api/transactions/get).
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
-    pub foreign_transaction_id: String,
-    /// Key of the affiliate.
-    /// It is a unique identifier for the key  and should be generated by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub foreign_transaction_id: Option<String>,
+    /// Affiliate key generated in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Required when the affiliate object is provided. Validated against Identity Admin when both `app_id` and `key` are present.
     ///
     /// Example: `123e4567-e89b-12d3-a456-426614174000`
     pub key: String,
-    /// Additional metadata for the transaction.
-    /// It is key-value object that can be associated with the transaction.
+    /// Optional key-value metadata associated with the transaction.
+    /// Forwarded to terminal-hub together with the payment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<serde_json::Value>,
 }
 /// The card type of the card used for the transaction.
-/// Is is required only for some countries (e.g: Brazil).
+/// It is required only for some countries (e.g: Brazil).
 ///
 /// Example: `credit`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -630,6 +678,21 @@ pub enum CreateCheckoutRequestCardType {
     Credit,
     #[serde(rename = "debit")]
     Debit,
+    #[serde(untagged)]
+    Other(String),
+}
+/// The payment method type for the transaction. Defaults to `card`.
+///
+/// Use `pix` to initiate a Pix QR-code payment flow on the device.
+/// Pix is only supported for Brazilian merchants; other merchants will receive a 422 error.
+///
+/// Example: `card`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CreateCheckoutRequestPaymentType {
+    #[serde(rename = "card")]
+    Card,
+    #[serde(rename = "pix")]
+    Pix,
     #[serde(untagged)]
     Other(String),
 }
@@ -691,16 +754,22 @@ pub struct CreateCheckoutRequest {
     /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aade: Option<CreateCheckoutRequestAade>,
-    /// Affiliate metadata for the transaction.
-    /// It is a field that allow for integrators to track the source of the transaction.
+    /// **SumUp API clients:** affiliate ingress for Reader Checkout.
+    ///
+    /// Send integrator metadata here when creating a checkout. When `app_id` and `key` are both
+    /// present, the key is validated against Identity Admin, stored server-side, and merged into
+    /// the payment when the reader starts the transaction using the returned `client_transaction_id`
+    /// as `terminal.client_id`.
+    ///
+    /// SDK clients send affiliate on `POST /api/terminals` instead.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
-    pub affiliate: Option<crate::Nullable<CreateCheckoutRequestAffiliate>>,
+    pub affiliate: Option<crate::Nullable<serde_json::Value>>,
     /// The card type of the card used for the transaction.
-    /// Is is required only for some countries (e.g: Brazil).
+    /// It is required only for some countries (e.g: Brazil).
     ///
     /// Example: `credit`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -712,7 +781,7 @@ pub struct CreateCheckoutRequest {
     /// It may vary according to the merchant country.
     /// For example, in Brazil, the maximum number of installments is 12.
     ///
-    /// Omit if the merchant country does support installments.
+    /// Omit if the merchant country does not support installments.
     /// Otherwise, the checkout will be rejected.
     ///
     /// Constraints:
@@ -725,6 +794,14 @@ pub struct CreateCheckoutRequest {
         deserialize_with = "crate::nullable::deserialize"
     )]
     pub installments: Option<crate::Nullable<i64>>,
+    /// The payment method type for the transaction. Defaults to `card`.
+    ///
+    /// Use `pix` to initiate a Pix QR-code payment flow on the device.
+    /// Pix is only supported for Brazilian merchants; other merchants will receive a 422 error.
+    ///
+    /// Example: `card`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_type: Option<CreateCheckoutRequestPaymentType>,
     /// Webhook URL to which the payment result will be sent.
     /// It must be a HTTPS url.
     ///
@@ -734,9 +811,14 @@ pub struct CreateCheckoutRequest {
     /// Example: `https://www.example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
-    /// List of tipping rates to be displayed to the cardholder.
-    /// The rates are in percentage and should be between 0.01 and 0.99.
-    /// The list should be sorted in ascending order.
+    /// Exactly three distinct tipping rates to be displayed to the cardholder.
+    /// Each rate is a fraction between 0.01 and 1.00 in increments of 0.01.
+    /// The rates are sorted in ascending order by the server.
+    ///
+    /// Constraints:
+    /// - min items: 3
+    /// - max items: 3
+    /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_rates: Option<Vec<f32>>,
     /// Time in seconds the cardholder has to select a tip rate.
@@ -1112,6 +1194,12 @@ impl<'a> ReadersClient<'a> {
     ///
     ///
     /// **Note**: If the target device is a Solo, it must be in version 3.3.24.3 or higher.
+    ///
+    ///
+    /// **Affiliate metadata**: Optionally include an `affiliate` object to attach integrator metadata to the payment.
+    /// When provided, the affiliate key is validated against Identity Admin, stored server-side for approximately 600 seconds,
+    /// and merged into the downstream payment when the reader starts the transaction using the returned `client_transaction_id`.
+    /// Affiliate metadata is not sent to the device during checkout creation.
     ///
     /// Responses:
     /// - 201: The Checkout got successfully created for the given reader.
