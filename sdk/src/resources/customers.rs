@@ -16,6 +16,22 @@ pub struct Customer {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub personal_details: Option<PersonalDetails>,
 }
+/// Details of a customer validation error.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CustomerValidationError {
+    /// Platform code for the error.
+    ///
+    /// Example: `INVALID`
+    pub error_code: String,
+    /// Short description of the error.
+    ///
+    /// Example: `customer_id`
+    pub error_message: String,
+    /// Unique identifier of this error occurrence.
+    ///
+    /// Example: `32a44c6c-85d3-49e8-86bf-a5bba98c4621`
+    pub instance: String,
+}
 /// Details of a saved payment instrument.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PaymentInstrumentResponse {
