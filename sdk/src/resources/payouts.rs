@@ -164,10 +164,10 @@ impl<'a> PayoutsClient<'a> {
     /// - 401: The request is not authorized.
     pub async fn list(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
         params: ListParams,
     ) -> crate::error::SdkResult<FinancialPayouts, ListErrorBody> {
-        let path = format!("/v1.0/merchants/{}/payouts", merchant_code.into());
+        let path = format!("/v1.0/merchants/{}/payouts", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client

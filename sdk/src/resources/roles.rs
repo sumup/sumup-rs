@@ -159,9 +159,9 @@ impl<'a> RolesClient<'a> {
     /// - 404: Merchant not found.
     pub async fn list(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
     ) -> crate::error::SdkResult<ListResponse, ListErrorBody> {
-        let path = format!("/v0.1/merchants/{}/roles", merchant_code.into());
+        let path = format!("/v0.1/merchants/{}/roles", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -203,10 +203,10 @@ impl<'a> RolesClient<'a> {
     /// - 404: Merchant not found.
     pub async fn create(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
         body: CreateRequest,
     ) -> crate::error::SdkResult<Role, CreateErrorBody> {
-        let path = format!("/v0.1/merchants/{}/roles", merchant_code.into());
+        let path = format!("/v0.1/merchants/{}/roles", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -255,13 +255,13 @@ impl<'a> RolesClient<'a> {
     /// - 404: Merchant not found.
     pub async fn delete(
         &self,
-        merchant_code: impl Into<String>,
-        role_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        role_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<(), DeleteErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
-            merchant_code.into(),
-            role_id.into()
+            merchant_code.as_ref(),
+            role_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -306,13 +306,13 @@ impl<'a> RolesClient<'a> {
     /// - 404: Merchant or role not found.
     pub async fn get(
         &self,
-        merchant_code: impl Into<String>,
-        role_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        role_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<Role, GetErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
-            merchant_code.into(),
-            role_id.into()
+            merchant_code.as_ref(),
+            role_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -357,14 +357,14 @@ impl<'a> RolesClient<'a> {
     /// - 404: Merchant not found.
     pub async fn update(
         &self,
-        merchant_code: impl Into<String>,
-        role_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        role_id: impl AsRef<str>,
         body: UpdateRequest,
     ) -> crate::error::SdkResult<Role, UpdateErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/roles/{}",
-            merchant_code.into(),
-            role_id.into()
+            merchant_code.as_ref(),
+            role_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self

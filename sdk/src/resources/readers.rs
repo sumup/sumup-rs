@@ -854,9 +854,9 @@ impl<'a> ReadersClient<'a> {
     /// - 401: Authentication failed or missing required scope.
     pub async fn list(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
     ) -> crate::error::SdkResult<ListResponse, ListErrorBody> {
-        let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
+        let path = format!("/v0.1/merchants/{}/readers", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -901,10 +901,10 @@ impl<'a> ReadersClient<'a> {
     /// - 409: The Reader is not in a pending state.
     pub async fn create(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
         body: CreateRequest,
     ) -> crate::error::SdkResult<Reader, CreateErrorBody> {
-        let path = format!("/v0.1/merchants/{}/readers", merchant_code.into());
+        let path = format!("/v0.1/merchants/{}/readers", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -956,13 +956,13 @@ impl<'a> ReadersClient<'a> {
     /// - 404: The requested Reader resource does not exist.
     pub async fn delete(
         &self,
-        merchant_code: impl Into<String>,
-        reader_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<(), DeleteErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
-            merchant_code.into(),
-            reader_id.into()
+            merchant_code.as_ref(),
+            reader_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -1001,13 +1001,13 @@ impl<'a> ReadersClient<'a> {
     /// - 404: The requested Reader resource does not exist.
     pub async fn get(
         &self,
-        merchant_code: impl Into<String>,
-        reader_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<Reader, GetErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
-            merchant_code.into(),
-            reader_id.into()
+            merchant_code.as_ref(),
+            reader_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -1052,14 +1052,14 @@ impl<'a> ReadersClient<'a> {
     /// - 404: The requested Reader resource does not exist.
     pub async fn update(
         &self,
-        merchant_code: impl Into<String>,
-        reader_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
         body: UpdateRequest,
     ) -> crate::error::SdkResult<Reader, UpdateErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}",
-            merchant_code.into(),
-            reader_id.into()
+            merchant_code.as_ref(),
+            reader_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -1121,14 +1121,14 @@ impl<'a> ReadersClient<'a> {
     /// - 422: Response when given params (or one of them) are invalid
     pub async fn create_checkout(
         &self,
-        merchant_code: impl Into<String>,
-        reader_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
         body: CreateCheckoutRequest,
     ) -> crate::error::SdkResult<CreateReaderCheckoutResponse, CreateCheckoutErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}/checkout",
-            merchant_code.into(),
-            reader_id.into()
+            merchant_code.as_ref(),
+            reader_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -1192,15 +1192,15 @@ impl<'a> ReadersClient<'a> {
     /// - 404: Response when given reader or checkout is not found
     pub async fn get_checkout(
         &self,
-        merchant_code: impl Into<String>,
-        reader_id: impl Into<String>,
-        checkout_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
+        checkout_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<GetReaderCheckoutResponse, GetCheckoutErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}/checkout/{}",
-            merchant_code.into(),
-            reader_id.into(),
-            checkout_id.into()
+            merchant_code.as_ref(),
+            reader_id.as_ref(),
+            checkout_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -1270,13 +1270,13 @@ impl<'a> ReadersClient<'a> {
     /// - 404: Response when given reader is not found
     pub async fn get_status(
         &self,
-        merchant_code: impl Into<String>,
-        reader_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<StatusResponse, GetStatusErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}/status",
-            merchant_code.into(),
-            reader_id.into()
+            merchant_code.as_ref(),
+            reader_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -1348,13 +1348,13 @@ impl<'a> ReadersClient<'a> {
     /// - 422: Response when given params (or one of them) are invalid
     pub async fn terminate_checkout(
         &self,
-        merchant_code: impl Into<String>,
-        reader_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<(), TerminateCheckoutErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/readers/{}/terminate",
-            merchant_code.into(),
-            reader_id.into()
+            merchant_code.as_ref(),
+            reader_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -1418,14 +1418,14 @@ impl<'a> ReadersClient<'a> {
     /// - 422: The request could not be processed as it violates a business rule.
     pub async fn create_go_checkout(
         &self,
-        merchant_code: impl Into<String>,
-        reader_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
         body: CreateGoCheckoutRequest,
     ) -> crate::error::SdkResult<ReaderPaymentResponse, CreateGoCheckoutErrorBody> {
         let path = format!(
             "/v0/merchants/{}/readers/{}/go-checkout",
-            merchant_code.into(),
-            reader_id.into()
+            merchant_code.as_ref(),
+            reader_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self

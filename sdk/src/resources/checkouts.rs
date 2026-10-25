@@ -1393,9 +1393,9 @@ impl<'a> CheckoutsClient<'a> {
     /// - 409: The request conflicts with the current state of the resource.
     pub async fn deactivate(
         &self,
-        checkout_id: impl Into<String>,
+        checkout_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<Checkout, DeactivateErrorBody> {
-        let path = format!("/v0.1/checkouts/{}", checkout_id.into());
+        let path = format!("/v0.1/checkouts/{}", checkout_id.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1451,9 +1451,9 @@ impl<'a> CheckoutsClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn get(
         &self,
-        checkout_id: impl Into<String>,
+        checkout_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<CheckoutSuccess, GetErrorBody> {
-        let path = format!("/v0.1/checkouts/{}", checkout_id.into());
+        let path = format!("/v0.1/checkouts/{}", checkout_id.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1503,10 +1503,10 @@ impl<'a> CheckoutsClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn update(
         &self,
-        checkout_id: impl Into<String>,
+        checkout_id: impl AsRef<str>,
         body: UpdateRequest,
     ) -> crate::error::SdkResult<Checkout, UpdateErrorBody> {
-        let path = format!("/v0.1/checkouts/{}", checkout_id.into());
+        let path = format!("/v0.1/checkouts/{}", checkout_id.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1566,10 +1566,10 @@ impl<'a> CheckoutsClient<'a> {
     /// - 409: The request conflicts with the current state of the resource.
     pub async fn process(
         &self,
-        checkout_id: impl Into<String>,
+        checkout_id: impl AsRef<str>,
         body: ProcessRequest,
     ) -> crate::error::SdkResult<ProcessResponse, ProcessErrorBody> {
-        let path = format!("/v0.1/checkouts/{}", checkout_id.into());
+        let path = format!("/v0.1/checkouts/{}", checkout_id.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1636,13 +1636,13 @@ impl<'a> CheckoutsClient<'a> {
     /// - 400: The request is invalid for the submitted query parameters.
     pub async fn list_available_payment_methods(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
         params: ListAvailablePaymentMethodsParams,
     ) -> crate::error::SdkResult<
         ListAvailablePaymentMethodsResponse,
         ListAvailablePaymentMethodsErrorBody,
     > {
-        let path = format!("/v0.1/merchants/{}/payment-methods", merchant_code.into());
+        let path = format!("/v0.1/merchants/{}/payment-methods", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1699,11 +1699,11 @@ impl<'a> CheckoutsClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn create_apple_pay_session(
         &self,
-        checkout_id: impl Into<String>,
+        checkout_id: impl AsRef<str>,
         body: Option<CreateApplePaySessionRequest>,
     ) -> crate::error::SdkResult<CreateApplePaySessionResponse, CreateApplePaySessionErrorBody>
     {
-        let path = format!("/v0.2/checkouts/{}/apple-pay-session", checkout_id.into());
+        let path = format!("/v0.2/checkouts/{}/apple-pay-session", checkout_id.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client

@@ -703,9 +703,9 @@ impl<'a> MerchantsClient<'a> {
     /// - 404: The requested Merchant does not exist.
     pub async fn get(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
     ) -> crate::error::SdkResult<Merchant, GetErrorBody> {
-        let path = format!("/v1/merchants/{}", merchant_code.into());
+        let path = format!("/v1/merchants/{}", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -746,9 +746,9 @@ impl<'a> MerchantsClient<'a> {
     /// - 404: The requested Merchant does not exist.
     pub async fn list_persons(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
     ) -> crate::error::SdkResult<ListPersonsResponseBody, ListPersonsErrorBody> {
-        let path = format!("/v1/merchants/{}/persons", merchant_code.into());
+        let path = format!("/v1/merchants/{}/persons", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -791,13 +791,13 @@ impl<'a> MerchantsClient<'a> {
     /// - 404: The requested Person does not exist.
     pub async fn get_person(
         &self,
-        merchant_code: impl Into<String>,
-        person_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        person_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<Person, GetPersonErrorBody> {
         let path = format!(
             "/v1/merchants/{}/persons/{}",
-            merchant_code.into(),
-            person_id.into()
+            merchant_code.as_ref(),
+            person_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self

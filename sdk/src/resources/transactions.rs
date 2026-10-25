@@ -1013,14 +1013,14 @@ impl<'a> TransactionsClient<'a> {
     /// - 422: The refund could not be processed by the payment processor.
     pub async fn refund(
         &self,
-        merchant_code: impl Into<String>,
-        transaction_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        transaction_id: impl AsRef<str>,
         body: Option<RefundRequest>,
     ) -> crate::error::SdkResult<RefundResponse, RefundErrorBody> {
         let path = format!(
             "/v1.0/merchants/{}/payments/{}/refunds",
-            merchant_code.into(),
-            transaction_id.into()
+            merchant_code.as_ref(),
+            transaction_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -1092,10 +1092,10 @@ impl<'a> TransactionsClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn get(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
         params: GetParams,
     ) -> crate::error::SdkResult<TransactionFull, GetErrorBody> {
-        let path = format!("/v2.1/merchants/{}/transactions", merchant_code.into());
+        let path = format!("/v2.1/merchants/{}/transactions", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -1157,12 +1157,12 @@ impl<'a> TransactionsClient<'a> {
     /// - 401: The request is not authorized.
     pub async fn list(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
         params: ListParams,
     ) -> crate::error::SdkResult<ListResponse, ListErrorBody> {
         let path = format!(
             "/v2.1/merchants/{}/transactions/history",
-            merchant_code.into()
+            merchant_code.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self

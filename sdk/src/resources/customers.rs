@@ -218,9 +218,9 @@ impl<'a> CustomersClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn get(
         &self,
-        customer_id: impl Into<String>,
+        customer_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<Customer, GetErrorBody> {
-        let path = format!("/v0.1/customers/{}", customer_id.into());
+        let path = format!("/v0.1/customers/{}", customer_id.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -275,10 +275,10 @@ impl<'a> CustomersClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn update(
         &self,
-        customer_id: impl Into<String>,
+        customer_id: impl AsRef<str>,
         body: UpdateRequest,
     ) -> crate::error::SdkResult<Customer, UpdateErrorBody> {
-        let path = format!("/v0.1/customers/{}", customer_id.into());
+        let path = format!("/v0.1/customers/{}", customer_id.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -334,10 +334,13 @@ impl<'a> CustomersClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn list_payment_instruments(
         &self,
-        customer_id: impl Into<String>,
+        customer_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<ListPaymentInstrumentsResponse, ListPaymentInstrumentsErrorBody>
     {
-        let path = format!("/v0.1/customers/{}/payment-instruments", customer_id.into());
+        let path = format!(
+            "/v0.1/customers/{}/payment-instruments",
+            customer_id.as_ref()
+        );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -395,13 +398,13 @@ impl<'a> CustomersClient<'a> {
     /// - 404: The requested resource does not exist.
     pub async fn deactivate_payment_instrument(
         &self,
-        customer_id: impl Into<String>,
-        token: impl Into<String>,
+        customer_id: impl AsRef<str>,
+        token: impl AsRef<str>,
     ) -> crate::error::SdkResult<(), DeactivatePaymentInstrumentErrorBody> {
         let path = format!(
             "/v0.1/customers/{}/payment-instruments/{}",
-            customer_id.into(),
-            token.into()
+            customer_id.as_ref(),
+            token.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self

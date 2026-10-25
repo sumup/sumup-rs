@@ -112,7 +112,7 @@ fn generate_operation_method(
             let param_name = param.name.to_snake_case();
             let param_ident = crate::schema::make_rust_field_ident(&param_name);
 
-            path_params.push(quote! { #param_ident: impl Into<String> });
+            path_params.push(quote! { #param_ident: impl AsRef<str> });
             path_param_names.push((param.name.clone(), param_ident));
         }
     }
@@ -128,7 +128,7 @@ fn generate_operation_method(
             let param_name = param.name.to_snake_case();
             let param_ident = crate::schema::make_rust_field_ident(&param_name);
 
-            path_params.push(quote! { #param_ident: impl Into<String> });
+            path_params.push(quote! { #param_ident: impl AsRef<str> });
             path_param_names.push((param.name.clone(), param_ident));
         }
     }
@@ -198,7 +198,7 @@ fn generate_operation_method(
         for (original_name, param_ident) in &path_param_names {
             let placeholder = format!("{{{}}}", original_name);
             format_str = format_str.replace(&placeholder, "{}");
-            format_args.push(quote! { #param_ident.into() });
+            format_args.push(quote! { #param_ident.as_ref() });
         }
 
         quote! {

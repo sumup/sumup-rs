@@ -299,10 +299,10 @@ impl<'a> MembersClient<'a> {
     /// - 404: Merchant not found.
     pub async fn list(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
         params: ListParams,
     ) -> crate::error::SdkResult<ListResponse, ListErrorBody> {
-        let path = format!("/v0.1/merchants/{}/members", merchant_code.into());
+        let path = format!("/v0.1/merchants/{}/members", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -370,10 +370,10 @@ impl<'a> MembersClient<'a> {
     ///   Retry-After header indicates when the client can retry.
     pub async fn create(
         &self,
-        merchant_code: impl Into<String>,
+        merchant_code: impl AsRef<str>,
         body: CreateRequest,
     ) -> crate::error::SdkResult<Member, CreateErrorBody> {
-        let path = format!("/v0.1/merchants/{}/members", merchant_code.into());
+        let path = format!("/v0.1/merchants/{}/members", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
             .client
@@ -428,13 +428,13 @@ impl<'a> MembersClient<'a> {
     /// - 404: Merchant or member not found.
     pub async fn delete(
         &self,
-        merchant_code: impl Into<String>,
-        member_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        member_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<(), DeleteErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/members/{}",
-            merchant_code.into(),
-            member_id.into()
+            merchant_code.as_ref(),
+            member_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -479,13 +479,13 @@ impl<'a> MembersClient<'a> {
     /// - 404: Merchant or member not found.
     pub async fn get(
         &self,
-        merchant_code: impl Into<String>,
-        member_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        member_id: impl AsRef<str>,
     ) -> crate::error::SdkResult<Member, GetErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/members/{}",
-            merchant_code.into(),
-            member_id.into()
+            merchant_code.as_ref(),
+            member_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -533,14 +533,14 @@ impl<'a> MembersClient<'a> {
     /// - 409: Cannot update member as some data conflict with existing members.
     pub async fn update(
         &self,
-        merchant_code: impl Into<String>,
-        member_id: impl Into<String>,
+        merchant_code: impl AsRef<str>,
+        member_id: impl AsRef<str>,
         body: UpdateRequest,
     ) -> crate::error::SdkResult<Member, UpdateErrorBody> {
         let path = format!(
             "/v0.1/merchants/{}/members/{}",
-            merchant_code.into(),
-            member_id.into()
+            merchant_code.as_ref(),
+            member_id.as_ref()
         );
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self

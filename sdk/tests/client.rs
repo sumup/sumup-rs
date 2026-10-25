@@ -136,3 +136,24 @@ async fn client_requests_include_runtime_headers() {
 fn client_returns_none_when_authorization_missing() {
     run_environment_test("missing_authorization", None);
 }
+
+#[tokio::test]
+async fn path_arguments_accept_borrowed_and_owned_strings() {
+    let server = MockServer::start().await;
+
+    let _mock = Mock::given(method("DELETE"))
+        .and(path("/v0.1/merchants/M123/readers/reader-123"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(3)
+        .mount_as_scoped(&server)
+        .await;
+
+    let client = Client::new().with_base_url(server.uri());
+    let readers = client.readers();
+    readers.delete("M123", "reader-123").await.unwrap();
+
+    let merchant_code = String::from("M123");
+    let reader_id = String::from("reader-123");
+    readers.delete(&merchant_code, &reader_id).await.unwrap();
+    readers.delete(merchant_code, reader_id).await.unwrap();
+}
