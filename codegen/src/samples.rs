@@ -1,4 +1,4 @@
-use heck::ToSnakeCase;
+use heck::{ToSnakeCase, ToUpperCamelCase};
 use oas3::{
     Spec as OpenAPI,
     spec::{
@@ -6,6 +6,7 @@ use oas3::{
         ParameterIn, RequestBody, Schema, SchemaType,
     },
 };
+use proc_macro2::Ident;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -268,7 +269,11 @@ fn render_program(
         .iter()
         .any(|parameter| matches!(parameter, ReferenceOr::Object(parameter) if parameter.location == ParameterIn::Query))
     {
-        arguments.push("Default::default()".to_string());
+        let params_type = Ident::new(
+            &format!("{}Params", operation_name.to_upper_camel_case()),
+            proc_macro2::Span::call_site(),
+        );
+        arguments.push(types.render(&resource, &params_type, &Value::Object(Map::new()))?);
     }
 
     let arguments = arguments.join(", ");
@@ -441,9 +446,16 @@ mod tests {
 
         for sample in &generated.samples {
             assert!(!sample.sample.contains("serde_json::from_value"));
+            assert!(!sample.sample.contains("Default::default()"));
             syn::parse_file(&sample.sample)
                 .unwrap_or_else(|error| panic!("invalid sample {}: {error}", sample.id));
         }
+        assert!(
+            generated
+                .samples
+                .iter()
+                .any(|sample| { sample.sample.contains("ListParams::builder().build()") })
+        );
 
         let encoded = serde_json::to_value(&generated.samples[0]).expect("encode sample");
         assert!(encoded.get("sample").is_some());
@@ -485,9 +497,32 @@ mod tests {
 
         let generated = generate_code_samples(&spec, "test").expect("generate samples");
         let sample = &generated.samples[0].sample;
-        assert!(sample.contains("sumup::resources::samples::CreateSampleRequest {"));
+        assert!(sample.contains("sumup::resources::samples::CreateSampleRequest::builder()"));
         assert!(sample.contains("request-selected"));
         assert!(!sample.contains("property-"));
+    }
+
+    #[test]
+    fn renders_required_query_fields_with_builders() {
+        let spec: OpenAPI = serde_json::from_value(serde_json::json!({
+            "openapi": "3.1.0",
+            "info": {"title": "Samples", "version": "1"},
+            "paths": {"/samples": {"get": {
+                "operationId": "ListSamples",
+                "tags": ["Samples"],
+                "parameters": [
+                    {"name": "filter", "in": "query", "required": true, "schema": {"type": "string"}},
+                    {"name": "limit", "in": "query", "schema": {"type": "integer"}}
+                ],
+                "responses": {"204": {"description": "OK"}}
+            }}}
+        }))
+        .unwrap();
+        let generated = generate_code_samples(&spec, "test").unwrap();
+        let sample = &generated.samples[0].sample;
+        assert!(sample.contains("ListSamplesParams::builder()"));
+        assert!(sample.contains(".filter(\"\")"));
+        assert!(!sample.contains(".limit("));
     }
 
     #[test]
@@ -506,6 +541,9 @@ mod tests {
                                 "items": [{ "type": "card", "amount": "12.50" }],
                                 "clear": null,
                                 "update": "new value",
+                                "label": "Coffee",
+                                "labels": ["first"],
+                                "omit_null": null,
                                 "metadata": { "key": [1, true] },
                                 "custom": "extra"
                             }
@@ -514,7 +552,9 @@ mod tests {
                     "responses": { "204": { "description": "Created" } }
                 } }
             },
-            "components": { "schemas": { "Payload": {
+            "components": { "schemas": {
+                "Label": {"type": "string"},
+                "Payload": {
                 "type": "object",
                 "required": ["items"],
                 "properties": {
@@ -529,6 +569,9 @@ mod tests {
                     "clear": { "type": ["string", "null"] },
                     "update": { "type": ["string", "null"] },
                     "absent": { "type": ["string", "null"] },
+                    "label": { "$ref": "#/components/schemas/Label" },
+                    "labels": { "type": "array", "items": {"type": "string"} },
+                    "omit_null": { "type": "string" },
                     "metadata": { "type": "object" }
                 },
                 "additionalProperties": { "type": "string" }
@@ -539,13 +582,14 @@ mod tests {
         let sample = &generated.samples[0].sample;
         let compact = sample.split_whitespace().collect::<String>();
         for expected in [
-            "CreateSampleRequest {",
-            "CreateSampleRequestItemsItem {",
-            "r#type: sumup::resources::samples::CreateSampleRequestItemsItemType::Card",
-            "amount: 12.50f32",
-            "clear: Some(sumup::Nullable::Null)",
+            "CreateSampleRequest::builder()",
+            "CreateSampleRequestItemsItem::builder()",
+            ".r#type(sumup::resources::samples::CreateSampleRequestItemsItemType::Card)",
+            ".amount(12.50f32)",
+            ".clear(sumup::Nullable::Null)",
+            ".label(\"Coffee\")",
+            ".labels(vec![\"first\".to_string()])",
             "sumup::Nullable::Value(\"new value\".to_string())",
-            "..Default::default()",
             "serde_json::json!",
             "(\"custom\".to_string(), \"extra\".to_string())",
         ] {
@@ -554,6 +598,8 @@ mod tests {
                 "missing {expected} in {sample}"
             );
         }
-        assert!(!sample.contains("absent:"));
+        assert!(!sample.contains(".absent("));
+        assert!(!sample.contains(".omit_null("));
+        assert!(!sample.contains("Some("));
     }
 }

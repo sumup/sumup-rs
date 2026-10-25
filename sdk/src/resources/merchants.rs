@@ -4,7 +4,10 @@
 use super::common::*;
 /// An address somewhere in the world. The address fields used depend on the country conventions. For example, in Great Britain, `city` is `post_town`. In the United States, the top-level administrative unit used in addresses is `state`, whereas in Chile it's `region`.
 /// Whether an address is valid or not depends on whether the locally required fields are present. Fields not supported in a country will be ignored.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Address {
     /// In Spain, an autonomous community is the first sub-national level of political and administrative division.
     ///
@@ -13,6 +16,14 @@ pub struct Address {
     ///
     /// Example: `Catalonia`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`autonomous_community`](Address::autonomous_community)."
+        )
+    )]
     pub autonomous_community: Option<String>,
     /// The city of the address.
     ///
@@ -21,6 +32,10 @@ pub struct Address {
     ///
     /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`city`](Address::city).")
+    )]
     pub city: Option<String>,
     /// In many countries, terms cognate with "commune" are used, referring to the community living in the area and the common interest. Used in countries such as Chile.
     ///
@@ -29,7 +44,12 @@ pub struct Address {
     ///
     /// Example: `Providencia`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`commune`](Address::commune).")
+    )]
     pub commune: Option<String>,
+    #[builder(setter(into, doc = "Sets [`country`](Address::country)."))]
     pub country: CountryCode,
     /// A county is a geographic region of a country used for administrative or other purposes in some nations. Used in countries such as Ireland, Romania, etc.
     ///
@@ -38,6 +58,10 @@ pub struct Address {
     ///
     /// Example: `Dublin County`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`county`](Address::county).")
+    )]
     pub county: Option<String>,
     /// A department (French: département, Spanish: departamento) is an administrative or political division in several countries. Used in countries such as Colombia.
     ///
@@ -46,6 +70,10 @@ pub struct Address {
     ///
     /// Example: `Antioquia`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`department`](Address::department).")
+    )]
     pub department: Option<String>,
     /// A district is a type of administrative division that in some countries is managed by the local government. Used in countries such as Portugal.
     ///
@@ -54,6 +82,10 @@ pub struct Address {
     ///
     /// Example: `Lisbon District`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`district`](Address::district).")
+    )]
     pub district: Option<String>,
     /// A postal address in Ireland.
     ///
@@ -62,6 +94,10 @@ pub struct Address {
     ///
     /// Example: `D02 X285`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`eircode`](Address::eircode).")
+    )]
     pub eircode: Option<String>,
     /// A municipality is usually a single administrative division having corporate status and powers of self-government or jurisdiction as granted by national and regional laws to which it is subordinate. Used in countries such as Colombia.
     ///
@@ -70,6 +106,14 @@ pub struct Address {
     ///
     /// Example: `Medellín`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`municipality`](Address::municipality)."
+        )
+    )]
     pub municipality: Option<String>,
     /// Locality level of the address. Used in countries such as Brazil or Chile.
     ///
@@ -78,6 +122,14 @@ pub struct Address {
     ///
     /// Example: `Copacabana`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`neighborhood`](Address::neighborhood)."
+        )
+    )]
     pub neighborhood: Option<String>,
     /// The postal code (aka. zip code) of the address.
     ///
@@ -86,6 +138,10 @@ pub struct Address {
     ///
     /// Example: `10999`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`post_code`](Address::post_code).")
+    )]
     pub post_code: Option<String>,
     /// A post town is a required part of all postal addresses in the United Kingdom and Ireland, and a basic unit of the postal delivery system.
     ///
@@ -94,6 +150,10 @@ pub struct Address {
     ///
     /// Example: `London`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`post_town`](Address::post_town).")
+    )]
     pub post_town: Option<String>,
     /// The province where the address is located. This may not be relevant in some countries.
     ///
@@ -102,6 +162,10 @@ pub struct Address {
     ///
     /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`province`](Address::province).")
+    )]
     pub province: Option<String>,
     /// The region where the address is located. This may not be relevant in some countries.
     ///
@@ -110,6 +174,10 @@ pub struct Address {
     ///
     /// Example: `Baden Wuerttemberg`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`region`](Address::region).")
+    )]
     pub region: Option<String>,
     /// Most often, a country has a single state, with various administrative divisions. The term "state" is sometimes used to refer to the federated polities that make up the federation. Used in countries such as the United States and Brazil.
     ///
@@ -118,8 +186,19 @@ pub struct Address {
     ///
     /// Example: `California`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`state`](Address::state).")
+    )]
     pub state: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`street_address`](Address::street_address)."
+        )
+    )]
     pub street_address: Option<Vec<String>>,
     /// A US system of postal codes used by the United States Postal Service (USPS).
     ///
@@ -128,21 +207,52 @@ pub struct Address {
     ///
     /// Example: `94103`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`zip_code`](Address::zip_code).")
+    )]
     pub zip_code: Option<String>,
 }
 /// Base schema for a Person associated with a Merchant. This can be a legal representative, business owner (ultimate beneficial owner), or an officer. A legal representative is the Person who registered the Merchant with SumUp. They should always have a `user_id`.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct BasePerson {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`address`](BasePerson::address).")
+    )]
     pub address: Option<Address>,
     /// The date of birth of the individual, represented as an ISO 8601:2004 [ISO8601‑2004] YYYY-MM-DD format.
     ///
     /// Example: `1980-01-12`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`birthdate`](BasePerson::birthdate).")
+    )]
     pub birthdate: Option<crate::datetime::Date>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`change_status`](BasePerson::change_status)."
+        )
+    )]
     pub change_status: Option<ChangeStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`citizenship`](BasePerson::citizenship)."
+        )
+    )]
     pub citizenship: Option<CountryCode>,
     /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code representing the country where the Person resides.
     ///
@@ -153,6 +263,13 @@ pub struct BasePerson {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`country_of_residence`](BasePerson::country_of_residence)."
+        )
+    )]
     pub country_of_residence: Option<crate::Nullable<String>>,
     /// The last name(s) of the individual.
     ///
@@ -162,6 +279,14 @@ pub struct BasePerson {
     ///
     /// Example: `Bond`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`family_name`](BasePerson::family_name)."
+        )
+    )]
     pub family_name: Option<String>,
     /// The first name(s) of the individual.
     ///
@@ -171,6 +296,14 @@ pub struct BasePerson {
     ///
     /// Example: `James Herrald`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`given_name`](BasePerson::given_name)."
+        )
+    )]
     pub given_name: Option<String>,
     /// The unique identifier for the Person. This is a [typeid](https://github.com/sumup/typeid).
     ///
@@ -178,8 +311,13 @@ pub struct BasePerson {
     /// - read-only
     ///
     /// Example: `pers_2EGQ057R6C8J791RVCG5NWAEAB`
+    #[builder(setter(into, doc = "Sets [`id`](BasePerson::id)."))]
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`identifiers`](BasePerson::identifiers).")
+    )]
     pub identifiers: Option<PersonalIdentifiers>,
     /// Middle name(s) of the End-User. Note that in some cultures, people can have multiple middle names; all can be present, with the names being separated by space characters. Also note that in some cultures, middle names are not used.
     ///
@@ -189,6 +327,14 @@ pub struct BasePerson {
     ///
     /// Example: `Maria Sophie`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`middle_name`](BasePerson::middle_name)."
+        )
+    )]
     pub middle_name: Option<String>,
     /// The Person's nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
     ///
@@ -199,10 +345,26 @@ pub struct BasePerson {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`nationality`](BasePerson::nationality).")
+    )]
     pub nationality: Option<crate::Nullable<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`ownership`](BasePerson::ownership).")
+    )]
     pub ownership: Option<Ownership>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`phone_number`](BasePerson::phone_number)."
+        )
+    )]
     pub phone_number: Option<PhoneNumber>,
     /// A list of roles the Person has in the Merchant or towards SumUp. A Merchant must have at least one Person with the relationship `representative`.
     ///
@@ -210,22 +372,54 @@ pub struct BasePerson {
     /// - min items: 1
     /// - max items: 1
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`relationships`](BasePerson::relationships)."
+        )
+    )]
     pub relationships: Option<Vec<String>>,
     /// A corresponding identity user ID for the Person, if they have a user account.
     ///
     /// Example: `ef263f37-8701-4181-9758-acddbb778ee9`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`user_id`](BasePerson::user_id).")
+    )]
     pub user_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`version`](BasePerson::version).")
+    )]
     pub version: Option<Version>,
 }
 /// Settings used to apply the Merchant's branding to email receipts, invoices, checkouts, and other products.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Branding {
     /// A hex color value representing the preferred background color of this merchant.
     ///
     /// Example: `#FF4B3A`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`background_color`](Branding::background_color)."
+        )
+    )]
     pub background_color: Option<String>,
     /// Footer text rendered on receipts and other customer-facing products.
     ///
@@ -235,52 +429,121 @@ pub struct Branding {
     ///
     /// Example: `Thanks for shopping with us.`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`footer_text`](Branding::footer_text)."
+        )
+    )]
     pub footer_text: Option<String>,
     /// Data-URL encoded hero image for the merchant business.
     ///
     /// Constraints:
     /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`hero`](Branding::hero).")
+    )]
     pub hero: Option<String>,
     /// An icon for the merchant. Must be square.
     ///
     /// Constraints:
     /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`icon`](Branding::icon).")
+    )]
     pub icon: Option<String>,
     /// A logo for the merchant that will be used in place of the icon and without the merchant's name next to it if there's sufficient space.
     ///
     /// Constraints:
     /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`logo`](Branding::logo).")
+    )]
     pub logo: Option<String>,
     /// A hex color value representing the primary branding color of this merchant (your brand color).
     ///
     /// Example: `#FF4B3A`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`primary_color`](Branding::primary_color)."
+        )
+    )]
     pub primary_color: Option<String>,
     /// A hex color value representing the color of the text displayed on branding color of this merchant.
     ///
     /// Example: `#FF4B3A`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`primary_color_fg`](Branding::primary_color_fg)."
+        )
+    )]
     pub primary_color_fg: Option<String>,
     /// A hex color value representing the secondary branding color of this merchant (accent color used for buttons).
     ///
     /// Example: `#FF4B3A`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`secondary_color`](Branding::secondary_color)."
+        )
+    )]
     pub secondary_color: Option<String>,
     /// A hex color value representing the color of the text displayed on secondary branding color of this merchant.
     ///
     /// Example: `#FF4B3A`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`secondary_color_fg`](Branding::secondary_color_fg)."
+        )
+    )]
     pub secondary_color_fg: Option<String>,
 }
 /// Business information about the merchant. This information will be visible to the merchant's customers.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct BusinessProfile {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`address`](BusinessProfile::address).")
+    )]
     pub address: Option<Address>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`branding`](BusinessProfile::branding).")
+    )]
     pub branding: Option<Branding>,
     /// The descriptor is the text that your customer sees on their bank account statement.
     /// The more recognisable your descriptor is, the less risk you have of receiving disputes (e.g. chargebacks).
@@ -292,6 +555,14 @@ pub struct BusinessProfile {
     ///
     /// Example: `Example Coffee`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`dynamic_descriptor`](BusinessProfile::dynamic_descriptor)."
+        )
+    )]
     pub dynamic_descriptor: Option<String>,
     /// A publicly available email address.
     ///
@@ -301,6 +572,10 @@ pub struct BusinessProfile {
     ///
     /// Example: `contact@example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`email`](BusinessProfile::email).")
+    )]
     pub email: Option<String>,
     /// The customer-facing business name.
     ///
@@ -310,8 +585,20 @@ pub struct BusinessProfile {
     ///
     /// Example: `Example Coffee`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`name`](BusinessProfile::name).")
+    )]
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`phone_number`](BusinessProfile::phone_number)."
+        )
+    )]
     pub phone_number: Option<PhoneNumber>,
     /// The business's publicly available website.
     ///
@@ -321,6 +608,14 @@ pub struct BusinessProfile {
     ///
     /// Example: `https://example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`website`](BusinessProfile::website)."
+        )
+    )]
     pub website: Option<String>,
 }
 /// Reflects the status of changes submitted through the `PATCH` endpoints for the Merchant or Persons. If some changes have not been applied yet, the status will be `pending`. If all changes have been applied, the status `done`.
@@ -329,24 +624,53 @@ pub struct BusinessProfile {
 /// Constraints:
 /// - read-only
 pub type ChangeStatus = String;
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ClassicMerchantIdentifiers {
     /// Classic (serial) merchant ID.
     ///
     /// Example: `1234`
     #[deprecated]
+    #[builder(setter(doc = "Sets [`id`](ClassicMerchantIdentifiers::id)."))]
     pub id: i64,
 }
 /// Information about the company or business. This is legal information that is used for verification.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Company {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`address`](Company::address).")
+    )]
     pub address: Option<Address>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`attributes`](Company::attributes).")
+    )]
     pub attributes: Option<Attributes>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`identifiers`](Company::identifiers).")
+    )]
     pub identifiers: Option<CompanyIdentifiers>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`legal_type`](Company::legal_type).")
+    )]
     pub legal_type: Option<LegalType>,
     /// The merchant category code for the account as specified by [ISO18245](https://www.iso.org/standard/33365.html). MCCs are used to classify businesses based on the goods or services they provide.
     ///
@@ -355,6 +679,14 @@ pub struct Company {
     ///
     /// Example: `1532`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_category_code`](Company::merchant_category_code)."
+        )
+    )]
     pub merchant_category_code: Option<String>,
     /// The company's legal name.
     ///
@@ -364,10 +696,29 @@ pub struct Company {
     ///
     /// Example: `Gin & Doughnuts Bar GmbH`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`name`](Company::name).")
+    )]
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`phone_number`](Company::phone_number)."
+        )
+    )]
     pub phone_number: Option<PhoneNumber>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`trading_address`](Company::trading_address)."
+        )
+    )]
     pub trading_address: Option<Address>,
     /// HTTP(S) URL of the company's website.
     ///
@@ -377,9 +728,16 @@ pub struct Company {
     ///
     /// Example: `https://www.sumup.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`website`](Company::website).")
+    )]
     pub website: Option<String>,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CompanyIdentifier {
     /// The unique reference for the company identifier type as defined in the country SDK.
     ///
@@ -388,6 +746,7 @@ pub struct CompanyIdentifier {
     ///
     /// Example: `de.gmbh`
     #[serde(rename = "ref")]
+    #[builder(setter(into, doc = "Sets [`r#ref`](CompanyIdentifier::r#ref)."))]
     pub r#ref: String,
     /// The company identifier value.
     ///
@@ -396,6 +755,7 @@ pub struct CompanyIdentifier {
     /// - max length: 100
     ///
     /// Example: `HRB 123456`
+    #[builder(setter(into, doc = "Sets [`value`](CompanyIdentifier::value)."))]
     pub value: String,
 }
 /// A list of country-specific company identifiers.
@@ -420,22 +780,50 @@ pub type CountryCode = String;
 ///
 /// Example: `de.freiberufler`
 pub type LegalType = String;
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListPersonsResponseBody {
+    #[builder(setter(doc = "Sets [`items`](ListPersonsResponseBody::items)."))]
     pub items: Vec<Person>,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Merchant {
     /// A user-facing name of the merchant account for use in dashboards and other user-facing applications. For customer-facing business name see `merchant.business_profile`.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`alias`](Merchant::alias).")
+    )]
     pub alias: Option<String>,
     /// A user-facing small-format logo for use in dashboards and other user-facing applications. For customer-facing branding see `merchant.business_profile.branding`.
     ///
     /// Constraints:
     /// - format: `uri`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`avatar`](Merchant::avatar).")
+    )]
     pub avatar: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`business_profile`](Merchant::business_profile)."
+        )
+    )]
     pub business_profile: Option<BusinessProfile>,
     /// The business type.
     /// * `sole_trader`: The business is run by an self-employed individual.
@@ -444,13 +832,38 @@ pub struct Merchant {
     /// * `non_profit`: The business is run as a nonprofit organization that operates for public or social benefit
     /// * `government_entity`: The business is state owned and operated
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`business_type`](Merchant::business_type)."
+        )
+    )]
     pub business_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`change_status`](Merchant::change_status)."
+        )
+    )]
     pub change_status: Option<ChangeStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`classic`](Merchant::classic).")
+    )]
     pub classic: Option<ClassicMerchantIdentifiers>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`company`](Merchant::company).")
+    )]
     pub company: Option<Company>,
+    #[builder(setter(into, doc = "Sets [`country`](Merchant::country)."))]
     pub country: CountryCode,
     /// The date and time when the resource was created. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
     ///
@@ -458,6 +871,7 @@ pub struct Merchant {
     /// - read-only
     ///
     /// Example: `2021-08-31T12:00:00Z`
+    #[builder(setter(doc = "Sets [`created_at`](Merchant::created_at)."))]
     pub created_at: crate::datetime::DateTime,
     /// Three-letter [ISO currency code](https://en.wikipedia.org/wiki/ISO_4217) representing the default currency for the account.
     ///
@@ -467,6 +881,7 @@ pub struct Merchant {
     /// - max length: 3
     ///
     /// Example: `EUR`
+    #[builder(setter(into, doc = "Sets [`default_currency`](Merchant::default_currency)."))]
     pub default_currency: String,
     /// Merchant's default locale, represented as a BCP47 [RFC5646](https://datatracker.ietf.org/doc/html/rfc5646) language tag. This is typically an ISO 639-1 Alpha-2 [ISO639‑1](https://www.iso.org/iso-639-language-code) language code in lowercase and an ISO 3166-1 Alpha-2 [ISO3166‑1](https://www.iso.org/iso-3166-country-codes.html) country code in uppercase, separated by a dash. For example, en-US or fr-CA.
     /// In multilingual countries this is the merchant's preferred locale out of those, that are officially spoken in the country. In a countries with a single official language this will match the official language.
@@ -476,6 +891,7 @@ pub struct Merchant {
     /// - max length: 5
     ///
     /// Example: `de-DE`
+    #[builder(setter(into, doc = "Sets [`default_locale`](Merchant::default_locale)."))]
     pub default_locale: String,
     /// Short unique identifier for the merchant.
     ///
@@ -483,18 +899,32 @@ pub struct Merchant {
     /// - read-only
     ///
     /// Example: `MK01A8C2`
+    #[builder(setter(into, doc = "Sets [`merchant_code`](Merchant::merchant_code)."))]
     pub merchant_code: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(default, setter(strip_option, doc = "Sets [`meta`](Merchant::meta)."))]
     pub meta: Option<Meta>,
     /// ID of the organization the merchant belongs to (if any).
     ///
     /// Example: `G0UZPVAX`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`organization_id`](Merchant::organization_id)."
+        )
+    )]
     pub organization_id: Option<String>,
     /// True if the merchant is a sandbox for testing.
     ///
     /// Example: `false`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`sandbox`](Merchant::sandbox).")
+    )]
     pub sandbox: Option<bool>,
     /// The date and time when the resource was last updated. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
     ///
@@ -502,23 +932,44 @@ pub struct Merchant {
     /// - read-only
     ///
     /// Example: `2021-08-31T12:00:00Z`
+    #[builder(setter(doc = "Sets [`updated_at`](Merchant::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`version`](Merchant::version).")
+    )]
     pub version: Option<Version>,
 }
 /// A set of key-value pairs that you can attach to an object. This can be useful for storing additional information about the object in a structured format.
 ///
 /// **Warning**: Updating Meta will overwrite the existing data. Make sure to always include the complete JSON object.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Meta {
     #[serde(
         flatten,
         default,
         skip_serializing_if = "std::collections::HashMap::is_empty"
     )]
+    #[builder(
+        default,
+        setter(doc = "Sets [`additional_properties`](Meta::additional_properties).")
+    )]
     pub additional_properties: std::collections::HashMap<String, String>,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Ownership {
     /// The percent of ownership shares held by the Person expressed in percent mille (1/100000). Only Persons with the relationship `owner` can have ownership.
     ///
@@ -527,20 +978,44 @@ pub struct Ownership {
     /// - value <= 100000
     ///
     /// Example: `50000`
+    #[builder(setter(doc = "Sets [`share`](Ownership::share)."))]
     pub share: i32,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Person {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`address`](Person::address).")
+    )]
     pub address: Option<Address>,
     /// The date of birth of the individual, represented as an ISO 8601:2004 [ISO8601‑2004] YYYY-MM-DD format.
     ///
     /// Example: `1980-01-12`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`birthdate`](Person::birthdate).")
+    )]
     pub birthdate: Option<crate::datetime::Date>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`change_status`](Person::change_status)."
+        )
+    )]
     pub change_status: Option<ChangeStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`citizenship`](Person::citizenship).")
+    )]
     pub citizenship: Option<CountryCode>,
     /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code representing the country where the Person resides.
     ///
@@ -551,6 +1026,13 @@ pub struct Person {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`country_of_residence`](Person::country_of_residence)."
+        )
+    )]
     pub country_of_residence: Option<crate::Nullable<String>>,
     /// The last name(s) of the individual.
     ///
@@ -560,6 +1042,10 @@ pub struct Person {
     ///
     /// Example: `Bond`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`family_name`](Person::family_name).")
+    )]
     pub family_name: Option<String>,
     /// The first name(s) of the individual.
     ///
@@ -569,6 +1055,10 @@ pub struct Person {
     ///
     /// Example: `James Herrald`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`given_name`](Person::given_name).")
+    )]
     pub given_name: Option<String>,
     /// The unique identifier for the Person. This is a [typeid](https://github.com/sumup/typeid).
     ///
@@ -576,8 +1066,13 @@ pub struct Person {
     /// - read-only
     ///
     /// Example: `pers_2EGQ057R6C8J791RVCG5NWAEAB`
+    #[builder(setter(into, doc = "Sets [`id`](Person::id)."))]
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`identifiers`](Person::identifiers).")
+    )]
     pub identifiers: Option<PersonalIdentifiers>,
     /// Middle name(s) of the End-User. Note that in some cultures, people can have multiple middle names; all can be present, with the names being separated by space characters. Also note that in some cultures, middle names are not used.
     ///
@@ -587,6 +1082,10 @@ pub struct Person {
     ///
     /// Example: `Maria Sophie`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`middle_name`](Person::middle_name).")
+    )]
     pub middle_name: Option<String>,
     /// The Person's nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
     ///
@@ -597,10 +1096,26 @@ pub struct Person {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`nationality`](Person::nationality).")
+    )]
     pub nationality: Option<crate::Nullable<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`ownership`](Person::ownership).")
+    )]
     pub ownership: Option<Ownership>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`phone_number`](Person::phone_number)."
+        )
+    )]
     pub phone_number: Option<PhoneNumber>,
     /// A list of roles the Person has in the Merchant or towards SumUp. A Merchant must have at least one Person with the relationship `representative`.
     ///
@@ -608,16 +1123,31 @@ pub struct Person {
     /// - min items: 1
     /// - max items: 1
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`relationships`](Person::relationships).")
+    )]
     pub relationships: Option<Vec<String>>,
     /// A corresponding identity user ID for the Person, if they have a user account.
     ///
     /// Example: `ef263f37-8701-4181-9758-acddbb778ee9`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`user_id`](Person::user_id).")
+    )]
     pub user_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`version`](Person::version).")
+    )]
     pub version: Option<Version>,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct PersonalIdentifier {
     /// The unique reference for the personal identifier type.
     ///
@@ -626,6 +1156,7 @@ pub struct PersonalIdentifier {
     ///
     /// Example: `br.cpf`
     #[serde(rename = "ref")]
+    #[builder(setter(into, doc = "Sets [`r#ref`](PersonalIdentifier::r#ref)."))]
     pub r#ref: String,
     /// The personal identifier value.
     ///
@@ -633,6 +1164,7 @@ pub struct PersonalIdentifier {
     /// - max length: 128
     ///
     /// Example: `847.060.136-90`
+    #[builder(setter(into, doc = "Sets [`value`](PersonalIdentifier::value)."))]
     pub value: String,
 }
 /// A list of country-specific personal identifiers.
@@ -647,7 +1179,10 @@ pub type PersonalIdentifiers = Vec<PersonalIdentifier>;
 ///
 /// Example: `+420123456789`
 pub type PhoneNumber = String;
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Timestamps {
     /// The date and time when the resource was created. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
     ///
@@ -655,6 +1190,7 @@ pub struct Timestamps {
     /// - read-only
     ///
     /// Example: `2021-08-31T12:00:00Z`
+    #[builder(setter(doc = "Sets [`created_at`](Timestamps::created_at)."))]
     pub created_at: crate::datetime::DateTime,
     /// The date and time when the resource was last updated. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
     ///
@@ -662,6 +1198,7 @@ pub struct Timestamps {
     /// - read-only
     ///
     /// Example: `2021-08-31T12:00:00Z`
+    #[builder(setter(doc = "Sets [`updated_at`](Timestamps::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
 }
 /// The version of the resource. The version reflects a specific change submitted to the API via one of the `PATCH` endpoints.

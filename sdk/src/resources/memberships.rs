@@ -3,54 +3,90 @@
 //! Endpoints to manage user's memberships. Memberships are used to connect the user to merchant accounts and to grant them access to the merchant's resources via roles.
 use super::common::*;
 /// A membership associates a user with a resource, memberships is defined by user, resource, resource type, and associated roles.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Membership {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`attributes`](Membership::attributes).")
+    )]
     pub attributes: Option<Attributes>,
     /// The timestamp of when the membership was created.
     ///
     /// Example: `2023-01-20T15:16:17Z`
+    #[builder(setter(doc = "Sets [`created_at`](Membership::created_at)."))]
     pub created_at: crate::datetime::DateTime,
     /// ID of the membership.
     ///
     /// Example: `mem_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
+    #[builder(setter(into, doc = "Sets [`id`](Membership::id)."))]
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`invite`](Membership::invite).")
+    )]
     pub invite: Option<Invite>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`metadata`](Membership::metadata).")
+    )]
     pub metadata: Option<Metadata>,
     /// User's permissions.
     #[deprecated(
         note = "Permissions include only legacy permissions, please use roles instead. Member access is based on their roles within a given resource and the permissions these roles grant."
     )]
+    #[builder(setter(doc = "Sets [`permissions`](Membership::permissions)."))]
     pub permissions: Vec<String>,
+    #[builder(setter(doc = "Sets [`resource`](Membership::resource)."))]
     pub resource: MembershipResource,
     /// ID of the resource the membership is in.
     ///
     /// Example: `M2DDT39A`
+    #[builder(setter(into, doc = "Sets [`resource_id`](Membership::resource_id)."))]
     pub resource_id: String,
     /// User's roles.
+    #[builder(setter(doc = "Sets [`roles`](Membership::roles)."))]
     pub roles: Vec<String>,
+    #[builder(setter(doc = "Sets [`status`](Membership::status)."))]
     pub status: MembershipStatus,
     #[serde(rename = "type")]
+    #[builder(setter(into, doc = "Sets [`r#type`](Membership::r#type)."))]
     pub r#type: ResourceType,
     /// The timestamp of when the membership was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
+    #[builder(setter(doc = "Sets [`updated_at`](Membership::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
 }
 /// Information about the resource the membership is in.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct MembershipResource {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`attributes`](MembershipResource::attributes)."
+        )
+    )]
     pub attributes: Option<Attributes>,
     /// The timestamp of when the membership resource was created.
     ///
     /// Example: `2023-01-20T15:16:17Z`
+    #[builder(setter(doc = "Sets [`created_at`](MembershipResource::created_at)."))]
     pub created_at: crate::datetime::DateTime,
     /// ID of the resource the membership is in.
     ///
     /// Example: `M2DDT39A`
+    #[builder(setter(into, doc = "Sets [`id`](MembershipResource::id)."))]
     pub id: String,
     /// Logo fo the resource.
     ///
@@ -60,16 +96,23 @@ pub struct MembershipResource {
     ///
     /// Example: `https://images.sumup.com/img_2x4y6z8a0b1c2d3e4f5g6h7j8k.png`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`logo`](MembershipResource::logo).")
+    )]
     pub logo: Option<String>,
     /// Display name of the resource.
     ///
     /// Example: `Acme Corp`
+    #[builder(setter(into, doc = "Sets [`name`](MembershipResource::name)."))]
     pub name: String,
     #[serde(rename = "type")]
+    #[builder(setter(into, doc = "Sets [`r#type`](MembershipResource::r#type)."))]
     pub r#type: ResourceType,
     /// The timestamp of when the membership resource was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
+    #[builder(setter(doc = "Sets [`updated_at`](MembershipResource::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
 }
 /// The type of the membership resource.
@@ -79,7 +122,16 @@ pub struct MembershipResource {
 ///
 /// Example: `merchant`
 pub type ResourceType = String;
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListParams {
     /// Offset of the first member to return.
     ///
@@ -88,6 +140,10 @@ pub struct ListParams {
     ///
     /// Example: `0`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`offset`](ListParams::offset).")
+    )]
     pub offset: Option<i64>,
     /// Maximum number of members to return.
     ///
@@ -97,47 +153,115 @@ pub struct ListParams {
     ///
     /// Example: `10`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`limit`](ListParams::limit).")
+    )]
     pub limit: Option<i64>,
     /// Filter memberships by resource kind.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`kind`](ListParams::kind).")
+    )]
     pub kind: Option<ResourceType>,
     /// Filter the returned memberships by the membership status.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](ListParams::status).")
+    )]
     pub status: Option<MembershipStatus>,
     /// Filter memberships by resource kind.
     #[serde(rename = "resource.type")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`resource_type`](ListParams::resource_type)."
+        )
+    )]
     pub resource_type: Option<ResourceType>,
     /// Filter memberships by the sandbox status of the resource the membership is in.
     #[serde(rename = "resource.attributes.sandbox")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`resource_attributes_sandbox`](ListParams::resource_attributes_sandbox)."
+        )
+    )]
     pub resource_attributes_sandbox: Option<bool>,
     /// Filter memberships by the name of the resource the membership is in.
     #[serde(rename = "resource.name")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`resource_name`](ListParams::resource_name)."
+        )
+    )]
     pub resource_name: Option<String>,
     /// Filter memberships by the ID of the resource the membership is in.
     #[serde(rename = "resource.id")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`resource_id`](ListParams::resource_id)."
+        )
+    )]
     pub resource_id: Option<String>,
     /// Filter memberships by the parent of the resource the membership is in.
     /// Omit both `resource.parent.id` and `resource.parent.type` to skip parent filtering. When filtering by parent, both parameters must be present. To select resources without a parent, set each parameter to an empty value. Otherwise, both parameters must identify a parent.
     #[serde(rename = "resource.parent.id")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`resource_parent_id`](ListParams::resource_parent_id)."
+        )
+    )]
     pub resource_parent_id: Option<String>,
     /// Filter memberships by the parent of the resource the membership is in.
     /// Omit both `resource.parent.id` and `resource.parent.type` to skip parent filtering. When filtering by parent, both parameters must be present. To select resources without a parent, set each parameter to an empty value. Otherwise, both parameters must identify a parent.
     #[serde(rename = "resource.parent.type")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`resource_parent_type`](ListParams::resource_parent_type)."
+        )
+    )]
     pub resource_parent_type: Option<ResourceType>,
     /// Filter the returned memberships by role.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`roles`](ListParams::roles).")
+    )]
     pub roles: Option<Vec<String>>,
 }
 /// Returns a list of Membership objects.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListResponse {
+    #[builder(setter(doc = "Sets [`items`](ListResponse::items)."))]
     pub items: Vec<Membership>,
+    #[builder(setter(doc = "Sets [`total_count`](ListResponse::total_count)."))]
     pub total_count: i64,
 }
 use crate::client::Client;

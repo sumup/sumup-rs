@@ -33,61 +33,110 @@ impl crate::events::EventSpec for MemberUpdated {
 /// Event notification for this event type.
 pub type MemberUpdatedEvent = crate::events::Event<MemberUpdated>;
 /// A member is user within specific resource identified by resource id, resource type, and associated roles.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Member {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`attributes`](Member::attributes).")
+    )]
     pub attributes: Option<Attributes>,
     /// The timestamp of when the member was created.
     ///
     /// Example: `2023-01-20T15:16:17Z`
+    #[builder(setter(doc = "Sets [`created_at`](Member::created_at)."))]
     pub created_at: crate::datetime::DateTime,
     /// ID of the member.
     ///
     /// Example: `mem_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
+    #[builder(setter(into, doc = "Sets [`id`](Member::id)."))]
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`invite`](Member::invite).")
+    )]
     pub invite: Option<Invite>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`metadata`](Member::metadata).")
+    )]
     pub metadata: Option<Metadata>,
     /// User's permissions.
     #[deprecated(
         note = "Permissions include only legacy permissions, please use roles instead. Member access is based on roles within a given resource and the permissions these roles grant."
     )]
+    #[builder(setter(doc = "Sets [`permissions`](Member::permissions)."))]
     pub permissions: Vec<String>,
     /// User's roles.
+    #[builder(setter(doc = "Sets [`roles`](Member::roles)."))]
     pub roles: Vec<String>,
+    #[builder(setter(doc = "Sets [`status`](Member::status)."))]
     pub status: MembershipStatus,
     /// The timestamp of when the member was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
+    #[builder(setter(doc = "Sets [`updated_at`](Member::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(default, setter(strip_option, doc = "Sets [`user`](Member::user)."))]
     pub user: Option<MembershipUser>,
 }
 /// Information about the user associated with the membership.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct MembershipUser {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`classic`](MembershipUser::classic).")
+    )]
     pub classic: Option<MembershipUserClassic>,
     /// Time when the user has been disabled. Applies only to virtual users (`virtual_user: true`).
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`disabled_at`](MembershipUser::disabled_at)."
+        )
+    )]
     pub disabled_at: Option<crate::datetime::DateTime>,
     /// End-User's preferred e-mail address. Its value MUST conform to the RFC 5322 [RFC5322] addr-spec syntax. The RP MUST NOT rely upon this value being unique, for unique identification use ID instead.
     ///
     /// Example: `example@sumup.com`
+    #[builder(setter(into, doc = "Sets [`email`](MembershipUser::email)."))]
     pub email: String,
     /// Identifier for the End-User (also called Subject).
     ///
     /// Example: `44ca0f5b-813b-46e1-aee7-e6242010662e`
+    #[builder(setter(into, doc = "Sets [`id`](MembershipUser::id)."))]
     pub id: String,
     /// True if the user has enabled MFA on login.
     ///
     /// Example: `true`
+    #[builder(setter(
+        doc = "Sets [`mfa_on_login_enabled`](MembershipUser::mfa_on_login_enabled)."
+    ))]
     pub mfa_on_login_enabled: bool,
     /// User's nickname. Used for display purposes only.
     ///
     /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`nickname`](MembershipUser::nickname)."
+        )
+    )]
     pub nickname: Option<String>,
     /// URL of the End-User's profile picture. This URL refers to an image file (for example, a PNG, JPEG, or GIF image file), rather than to a Web page containing an image.
     ///
@@ -96,24 +145,37 @@ pub struct MembershipUser {
     ///
     /// Example: `https://usercontent.sumup.com/44ca0f5b-813b-46e1-aee7-e6242010662e.png`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`picture`](MembershipUser::picture).")
+    )]
     pub picture: Option<String>,
     /// True if the user is a service account.
     ///
     /// Example: `false`
     #[deprecated(note = "Rely on `type` instead.")]
+    #[builder(setter(
+        doc = "Sets [`service_account_user`](MembershipUser::service_account_user)."
+    ))]
     pub service_account_user: bool,
     #[serde(rename = "type")]
+    #[builder(setter(doc = "Sets [`r#type`](MembershipUser::r#type)."))]
     pub r#type: UserType,
     /// True if the user is a virtual user (operator).
     ///
     /// Example: `false`
     #[deprecated(note = "Rely on `type` instead.")]
+    #[builder(setter(doc = "Sets [`virtual_user`](MembershipUser::virtual_user)."))]
     pub virtual_user: bool,
 }
 /// Classic identifiers of the user.
 #[deprecated]
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct MembershipUserClassic {
+    #[builder(setter(doc = "Sets [`user_id`](MembershipUserClassic::user_id)."))]
     pub user_id: i64,
 }
 /// Type of the user account.
@@ -133,7 +195,16 @@ pub enum UserType {
     Other(String),
 }
 /// Allows you to update user data of managed users.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateRequestUser {
     /// User's nickname. Used for display purposes only.
     ///
@@ -142,15 +213,36 @@ pub struct UpdateRequestUser {
     ///
     /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`nickname`](UpdateRequestUser::nickname)."
+        )
+    )]
     pub nickname: Option<String>,
     /// Password of the member to add. Only used if `is_managed_user` is true.
     ///
     /// Constraints:
     /// - min length: 8
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`password`](UpdateRequestUser::password).")
+    )]
     pub password: Option<crate::secret::Secret>,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListParams {
     /// Offset of the first member to return.
     ///
@@ -159,6 +251,10 @@ pub struct ListParams {
     ///
     /// Example: `0`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`offset`](ListParams::offset).")
+    )]
     pub offset: Option<i64>,
     /// Maximum number of members to return.
     ///
@@ -168,16 +264,28 @@ pub struct ListParams {
     ///
     /// Example: `10`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`limit`](ListParams::limit).")
+    )]
     pub limit: Option<i64>,
     /// Indicates to skip count query.
     ///
     /// Example: `true`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`scroll`](ListParams::scroll).")
+    )]
     pub scroll: Option<bool>,
     /// Filter the returned members by email address prefix.
     ///
     /// Example: `user`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`email`](ListParams::email).")
+    )]
     pub email: Option<String>,
     /// Search for a member by user id.
     ///
@@ -187,35 +295,80 @@ pub struct ListParams {
     /// Example: `245b2ead-85bf-45ff-856f-311a88a5d454`
     #[serde(rename = "user.id")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`user_id`](ListParams::user_id).")
+    )]
     pub user_id: Option<String>,
     /// Filter the returned members by the membership status.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](ListParams::status).")
+    )]
     pub status: Option<MembershipStatus>,
     /// Filter the returned members by role.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`roles`](ListParams::roles).")
+    )]
     pub roles: Option<Vec<String>>,
 }
 /// Returns a list of Member objects.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListResponse {
+    #[builder(setter(doc = "Sets [`items`](ListResponse::items)."))]
     pub items: Vec<Member>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`total_count`](ListResponse::total_count).")
+    )]
     pub total_count: Option<i64>,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`attributes`](CreateRequest::attributes).")
+    )]
     pub attributes: Option<Attributes>,
     /// Email address of the member to add.
     ///
     /// Constraints:
     /// - format: `email`
     /// - max length: 256
+    #[builder(setter(into, doc = "Sets [`email`](CreateRequest::email)."))]
     pub email: String,
     /// True if the user is managed by the merchant. In this case, we'll created a virtual user with the provided password and nickname.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`is_managed_user`](CreateRequest::is_managed_user)."
+        )
+    )]
     pub is_managed_user: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`metadata`](CreateRequest::metadata).")
+    )]
     pub metadata: Option<Metadata>,
     /// Nickname of the member to add. Only used if `is_managed_user` is true. Used for display purposes only.
     ///
@@ -224,30 +377,68 @@ pub struct CreateRequest {
     ///
     /// Example: `Test User`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`nickname`](CreateRequest::nickname)."
+        )
+    )]
     pub nickname: Option<String>,
     /// Password of the member to add. Only used if `is_managed_user` is true. In the case of service accounts, the password is not used and can not be defined by the caller.
     ///
     /// Constraints:
     /// - min length: 8
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`password`](CreateRequest::password).")
+    )]
     pub password: Option<crate::secret::Secret>,
     /// List of roles to assign to the new member.
     ///
     /// Constraints:
     /// - min items: 1
     /// - max items: 124
+    #[builder(setter(doc = "Sets [`roles`](CreateRequest::roles)."))]
     pub roles: Vec<String>,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`attributes`](UpdateRequest::attributes).")
+    )]
     pub attributes: Option<Attributes>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`metadata`](UpdateRequest::metadata).")
+    )]
     pub metadata: Option<Metadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`roles`](UpdateRequest::roles).")
+    )]
     pub roles: Option<Vec<String>>,
     /// Allows you to update user data of managed users.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`user`](UpdateRequest::user).")
+    )]
     pub user: Option<UpdateRequestUser>,
 }
 use crate::client::Client;

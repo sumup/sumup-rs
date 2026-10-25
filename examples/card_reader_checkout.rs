@@ -38,22 +38,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .create_checkout(
             &merchant_code,
             &reader.id,
-            sumup::readers::CreateCheckoutRequest {
-                total_amount: sumup::readers::CreateCheckoutRequestTotalAmount {
-                    currency: "EUR".into(),
-                    minor_unit: 2,
-                    value: 1000,
-                },
-                affiliate: None,
-                card_type: None,
-                payment_type: None,
-                description: Some("sumup-rs card reader checkout example".into()),
-                installments: None,
-                return_url: None,
-                tip_rates: None,
-                tip_timeout: None,
-                aade: None,
-            },
+            sumup::readers::CreateCheckoutRequest::builder()
+                .total_amount(
+                    sumup::readers::CreateCheckoutRequestTotalAmount::builder()
+                        .currency("EUR")
+                        .minor_unit(2)
+                        .value(1000)
+                        .build(),
+                )
+                .description("sumup-rs card reader checkout example")
+                .build(),
         )
         .await
     {

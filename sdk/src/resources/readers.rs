@@ -22,28 +22,48 @@ impl crate::events::EventSpec for ReaderDeleted {
 }
 /// Event notification for this event type.
 pub type ReaderDeletedEvent = crate::events::Event<ReaderDeleted>;
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Affiliate {
+    #[builder(setter(into, doc = "Sets [`app_id`](Affiliate::app_id)."))]
     pub app_id: String,
+    #[builder(setter(into, doc = "Sets [`key`](Affiliate::key)."))]
     pub key: String,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Amount {
     /// Currency ISO 4217 code
     ///
     /// Example: `MXN`
+    #[builder(setter(into, doc = "Sets [`currency`](Amount::currency)."))]
     pub currency: String,
     /// Amount in minor units (e.g. cents).
     ///
     /// Example: `1000`
+    #[builder(setter(doc = "Sets [`value`](Amount::value)."))]
     pub value: i64,
 }
 /// Payment details for a Reader Checkout.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateReaderCheckoutRequest {
     /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
     /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`aade`](CreateReaderCheckoutRequest::aade)."
+        )
+    )]
     pub aade: Option<CreateReaderCheckoutRequestAade>,
     /// Optional affiliate metadata associated with the checkout's payment.
     /// Provide both `app_id` and `key` when including this object.
@@ -52,15 +72,37 @@ pub struct CreateReaderCheckoutRequest {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`affiliate`](CreateReaderCheckoutRequest::affiliate)."
+        )
+    )]
     pub affiliate: Option<crate::Nullable<CreateReaderCheckoutRequestAffiliate>>,
     /// The card type of the card used for the transaction.
     /// It is required only for some countries (e.g: Brazil).
     ///
     /// Example: `credit`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`card_type`](CreateReaderCheckoutRequest::card_type)."
+        )
+    )]
     pub card_type: Option<CreateReaderCheckoutRequestCardType>,
     /// Description of the checkout to be shown in the Merchant Sales
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](CreateReaderCheckoutRequest::description)."
+        )
+    )]
     pub description: Option<String>,
     /// Number of installments for the transaction.
     /// It may vary according to the merchant country.
@@ -78,6 +120,13 @@ pub struct CreateReaderCheckoutRequest {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installments`](CreateReaderCheckoutRequest::installments)."
+        )
+    )]
     pub installments: Option<crate::Nullable<i64>>,
     /// The payment method type for the transaction. Defaults to `card`.
     ///
@@ -86,6 +135,13 @@ pub struct CreateReaderCheckoutRequest {
     ///
     /// Example: `card`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`payment_type`](CreateReaderCheckoutRequest::payment_type)."
+        )
+    )]
     pub payment_type: Option<CreateReaderCheckoutRequestPaymentType>,
     /// Webhook URL to which the payment result will be sent.
     /// It must be a HTTPS url.
@@ -95,6 +151,14 @@ pub struct CreateReaderCheckoutRequest {
     ///
     /// Example: `https://www.example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`return_url`](CreateReaderCheckoutRequest::return_url)."
+        )
+    )]
     pub return_url: Option<String>,
     /// Exactly three distinct tipping rates to be displayed to the cardholder.
     /// Each rate is a fraction between 0.01 and 1.00 in increments of 0.01.
@@ -105,6 +169,13 @@ pub struct CreateReaderCheckoutRequest {
     /// - max items: 3
     /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_rates`](CreateReaderCheckoutRequest::tip_rates)."
+        )
+    )]
     pub tip_rates: Option<Vec<f32>>,
     /// Time in seconds the cardholder has to select a tip rate.
     /// If not provided, the default value is 30 seconds.
@@ -119,38 +190,69 @@ pub struct CreateReaderCheckoutRequest {
     ///
     /// Example: `30`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_timeout`](CreateReaderCheckoutRequest::tip_timeout)."
+        )
+    )]
     pub tip_timeout: Option<i64>,
     /// Amount structure.
     ///
     /// The amount is represented as an integer value altogether with the currency and the minor unit.
     ///
     /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
+    #[builder(setter(doc = "Sets [`total_amount`](CreateReaderCheckoutRequest::total_amount)."))]
     pub total_amount: CreateReaderCheckoutRequestTotalAmount,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateReaderCheckoutResponse {
+    #[builder(setter(doc = "Sets [`data`](CreateReaderCheckoutResponse::data)."))]
     pub data: CreateReaderCheckoutResponseData,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct GetReaderCheckoutResponse {
+    #[builder(setter(doc = "Sets [`data`](GetReaderCheckoutResponse::data)."))]
     pub data: GetReaderCheckoutResponseData,
 }
 /// Menu lock settings reported by the reader, or the last saved settings when offline.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct GetReaderSettingsResponse {
+    #[builder(setter(doc = "Sets [`data`](GetReaderSettingsResponse::data)."))]
     pub data: GetReaderSettingsResponseData,
 }
 /// A physical card reader device that can accept in-person payments.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Reader {
     /// The timestamp of when the reader was created.
     ///
     /// Example: `2023-01-18T15:16:17Z`
+    #[builder(setter(doc = "Sets [`created_at`](Reader::created_at)."))]
     pub created_at: crate::datetime::DateTime,
+    #[builder(setter(doc = "Sets [`device`](Reader::device)."))]
     pub device: ReaderDevice,
+    #[builder(setter(into, doc = "Sets [`id`](Reader::id)."))]
     pub id: ReaderId,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`metadata`](Reader::metadata).")
+    )]
     pub metadata: Option<Metadata>,
+    #[builder(setter(into, doc = "Sets [`name`](Reader::name)."))]
     pub name: ReaderName,
     /// Identifier of the system-managed service account associated with this reader.
     /// Present only for readers that are already paired.
@@ -159,23 +261,38 @@ pub struct Reader {
     /// Constraints:
     /// - format: `uuid`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`service_account_id`](Reader::service_account_id)."
+        )
+    )]
     pub service_account_id: Option<String>,
+    #[builder(setter(doc = "Sets [`status`](Reader::status)."))]
     pub status: ReaderStatus,
     /// The timestamp of when the reader was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
+    #[builder(setter(doc = "Sets [`updated_at`](Reader::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
 }
 /// Information about the underlying physical device.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReaderDevice {
     /// A unique identifier of the physical device (e.g. serial number).
     ///
     /// Example: `U1DT3NA00-CN`
+    #[builder(setter(into, doc = "Sets [`identifier`](ReaderDevice::identifier)."))]
     pub identifier: String,
     /// Identifier of the model of the device.
     ///
     /// Example: `solo`
+    #[builder(setter(doc = "Sets [`model`](ReaderDevice::model)."))]
     pub model: ReaderDeviceModel,
 }
 /// Unique identifier of the reader that the payment is initiated on.
@@ -201,37 +318,97 @@ pub type ReaderName = String;
 ///
 /// Example: `4WLFDSBF`
 pub type ReaderPairingCode = String;
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReaderPaymentRequestParams {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`affiliate`](ReaderPaymentRequestParams::affiliate)."
+        )
+    )]
     pub affiliate: Option<ReaderPaymentRequestParamsAffiliate>,
     /// Caller-supplied correlation identifier, used as the idempotency key.
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
+    #[builder(setter(
+        into,
+        doc = "Sets [`client_transaction_id`](ReaderPaymentRequestParams::client_transaction_id)."
+    ))]
     pub client_transaction_id: String,
     /// Portion of total_amount that is a tip, in minor units.
     ///
     /// Example: `200`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_amount`](ReaderPaymentRequestParams::tip_amount)."
+        )
+    )]
     pub tip_amount: Option<i64>,
+    #[builder(setter(doc = "Sets [`total_amount`](ReaderPaymentRequestParams::total_amount)."))]
     pub total_amount: Amount,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReaderPaymentResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`data`](ReaderPaymentResponse::data).")
+    )]
     pub data: Option<ReaderPaymentResponseData>,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReaderPaymentResponseData {
     /// Caller-supplied correlation identifier that was provided in the request.
     ///
     /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`client_transaction_id`](ReaderPaymentResponseData::client_transaction_id)."
+        )
+    )]
     pub client_transaction_id: Option<String>,
     /// Transaction code returned by the acquirer/processing entity after processing the transaction.
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_code`](ReaderPaymentResponseData::transaction_code)."
+        )
+    )]
     pub transaction_code: Option<String>,
 }
 /// The status of the reader object gives information about the current state of the reader.
@@ -258,73 +435,138 @@ pub enum ReaderStatus {
     Other(String),
 }
 /// Status of a device
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct StatusResponse {
+    #[builder(setter(doc = "Sets [`data`](StatusResponse::data)."))]
     pub data: StatusResponseData,
 }
 /// Menu lock settings to update for a Solo reader.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateReaderSettingsRequest {
     /// Menu lock configuration. Provide at least one of `enabled` or `passcode`.
     ///
     /// Constraints:
     /// - min properties: 1
+    #[builder(setter(doc = "Sets [`menu_lock`](UpdateReaderSettingsRequest::menu_lock)."))]
     pub menu_lock: UpdateReaderSettingsRequestMenuLock,
 }
 /// Menu lock settings applied to the reader.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateReaderSettingsResponse {
+    #[builder(setter(doc = "Sets [`data`](UpdateReaderSettingsResponse::data)."))]
     pub data: UpdateReaderSettingsResponseData,
 }
 /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
 /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateReaderCheckoutRequestAade {
     /// The identifier of the AADE signature provider.
     ///
     /// Example: `123`
+    #[builder(setter(
+        into,
+        doc = "Sets [`provider_id`](CreateReaderCheckoutRequestAade::provider_id)."
+    ))]
     pub provider_id: String,
     /// The base64 encoded signature of the transaction data.
     ///
     /// Example: `QjcxRDdBNTU1MDcyRTNFRTREMkZEM0Y0NTdBMjkxMTU4MzBFNkNCQTs7MjAyNTExMTIyMTQ3MTM7Nzk2OzEwNDs5MDA7OTAwOzU0ODg5MDM5`
+    #[builder(setter(
+        into,
+        doc = "Sets [`signature`](CreateReaderCheckoutRequestAade::signature)."
+    ))]
     pub signature: String,
     /// The string containing the signed transaction data.
     ///
     /// Example: `B71D7A555072E3EE4D2FD3F457A29115830E6CBA;;20251112214713;796;104;900;900;54889039`
+    #[builder(setter(
+        into,
+        doc = "Sets [`signature_data`](CreateReaderCheckoutRequestAade::signature_data)."
+    ))]
     pub signature_data: String,
 }
 /// Optional key-value metadata associated with the transaction.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateReaderCheckoutRequestAffiliateTags {
     #[serde(
         flatten,
         default,
         skip_serializing_if = "std::collections::HashMap::is_empty"
     )]
+    #[builder(
+        default,
+        setter(
+            doc = "Sets [`additional_properties`](CreateReaderCheckoutRequestAffiliateTags::additional_properties)."
+        )
+    )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
 /// Optional affiliate metadata associated with the checkout's payment.
 /// Provide both `app_id` and `key` when including this object.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateReaderCheckoutRequestAffiliate {
     /// Integrator application identifier from the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
     /// Required when the affiliate object is provided.
     ///
     /// Example: `com.example.app`
+    #[builder(setter(
+        into,
+        doc = "Sets [`app_id`](CreateReaderCheckoutRequestAffiliate::app_id)."
+    ))]
     pub app_id: String,
     /// Integrator-owned transaction reference. Optional.
     /// Can be used to retrieve the transaction via the [Transactions API](https://developer.sumup.com/api/transactions/get).
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`foreign_transaction_id`](CreateReaderCheckoutRequestAffiliate::foreign_transaction_id)."
+        )
+    )]
     pub foreign_transaction_id: Option<String>,
     /// Affiliate key generated in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
     /// Required when the affiliate object is provided.
     ///
     /// Example: `123e4567-e89b-12d3-a456-426614174000`
+    #[builder(setter(into, doc = "Sets [`key`](CreateReaderCheckoutRequestAffiliate::key)."))]
     pub key: String,
     /// Optional key-value metadata associated with the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tags`](CreateReaderCheckoutRequestAffiliate::tags)."
+        )
+    )]
     pub tags: Option<serde_json::Value>,
 }
 /// The card type of the card used for the transaction.
@@ -360,11 +602,18 @@ pub enum CreateReaderCheckoutRequestPaymentType {
 /// The amount is represented as an integer value altogether with the currency and the minor unit.
 ///
 /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateReaderCheckoutRequestTotalAmount {
     /// Currency ISO 4217 code
     ///
     /// Example: `EUR`
+    #[builder(setter(
+        into,
+        doc = "Sets [`currency`](CreateReaderCheckoutRequestTotalAmount::currency)."
+    ))]
     pub currency: String,
     /// The minor units of the currency.
     /// It represents the number of decimals of the currency. For the currencies CLP, COP and HUF, the minor unit is 0.
@@ -373,6 +622,9 @@ pub struct CreateReaderCheckoutRequestTotalAmount {
     /// - value >= 0
     ///
     /// Example: `2`
+    #[builder(setter(
+        doc = "Sets [`minor_unit`](CreateReaderCheckoutRequestTotalAmount::minor_unit)."
+    ))]
     pub minor_unit: i64,
     /// Integer value of the amount.
     ///
@@ -380,19 +632,35 @@ pub struct CreateReaderCheckoutRequestTotalAmount {
     /// - value >= 0
     ///
     /// Example: `1000`
+    #[builder(setter(doc = "Sets [`value`](CreateReaderCheckoutRequestTotalAmount::value)."))]
     pub value: i64,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateReaderCheckoutResponseData {
     /// The checkout ID is a unique identifier for the checkout.
     ///
     /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`checkout_id`](CreateReaderCheckoutResponseData::checkout_id)."
+        )
+    )]
     pub checkout_id: Option<String>,
     /// Unique identifier for the transaction associated with this checkout.
     /// Use this value to match the checkout with payment events and transaction records.
     ///
     /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
+    #[builder(setter(
+        into,
+        doc = "Sets [`client_transaction_id`](CreateReaderCheckoutResponseData::client_transaction_id)."
+    ))]
     pub client_transaction_id: String,
 }
 /// Type of the card, or null when no card type was specified.
@@ -434,11 +702,18 @@ pub enum GetReaderCheckoutResponseDataStatus {
 /// The amount is represented as an integer value altogether with the currency and the minor unit.
 ///
 /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct GetReaderCheckoutResponseDataTotalAmount {
     /// Currency ISO 4217 code
     ///
     /// Example: `EUR`
+    #[builder(setter(
+        into,
+        doc = "Sets [`currency`](GetReaderCheckoutResponseDataTotalAmount::currency)."
+    ))]
     pub currency: String,
     /// The minor units of the currency.
     /// It represents the number of decimals of the currency. For the currencies CLP, COP and HUF, the minor unit is 0.
@@ -447,6 +722,9 @@ pub struct GetReaderCheckoutResponseDataTotalAmount {
     /// - value >= 0
     ///
     /// Example: `2`
+    #[builder(setter(
+        doc = "Sets [`minor_unit`](GetReaderCheckoutResponseDataTotalAmount::minor_unit)."
+    ))]
     pub minor_unit: i64,
     /// Integer value of the amount.
     ///
@@ -454,53 +732,111 @@ pub struct GetReaderCheckoutResponseDataTotalAmount {
     /// - value >= 0
     ///
     /// Example: `1000`
+    #[builder(setter(doc = "Sets [`value`](GetReaderCheckoutResponseDataTotalAmount::value)."))]
     pub value: i64,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct GetReaderCheckoutResponseData {
     /// Type of the card, or null when no card type was specified.
+    #[builder(setter(doc = "Sets [`card_type`](GetReaderCheckoutResponseData::card_type)."))]
     pub card_type: GetReaderCheckoutResponseDataCardType,
     /// Unique identifier for the checkout
     ///
     /// Constraints:
     /// - format: `uuid`
+    #[builder(setter(
+        into,
+        doc = "Sets [`checkout_id`](GetReaderCheckoutResponseData::checkout_id)."
+    ))]
     pub checkout_id: String,
     /// Client transaction identifier associated with the checkout
+    #[builder(setter(
+        into,
+        doc = "Sets [`client_transaction_id`](GetReaderCheckoutResponseData::client_transaction_id)."
+    ))]
     pub client_transaction_id: String,
     /// Checkout creation timestamp
+    #[builder(setter(doc = "Sets [`created_at`](GetReaderCheckoutResponseData::created_at)."))]
     pub created_at: crate::datetime::DateTime,
     /// Number of installments for the transaction. Required for some countries.
+    #[builder(setter(
+        doc = "Sets [`installments`](GetReaderCheckoutResponseData::installments)."
+    ))]
     pub installments: i64,
     /// Reason for the payment failure, or null when no failure reason is available.
+    #[builder(setter(
+        into,
+        doc = "Sets [`payment_failure_reason`](GetReaderCheckoutResponseData::payment_failure_reason)."
+    ))]
     pub payment_failure_reason: String,
     /// Status of the payment, or null when no payment status is available.
+    #[builder(setter(
+        into,
+        doc = "Sets [`payment_status`](GetReaderCheckoutResponseData::payment_status)."
+    ))]
     pub payment_status: String,
     /// Type of the payment. Required for some countries
+    #[builder(setter(
+        doc = "Sets [`payment_type`](GetReaderCheckoutResponseData::payment_type)."
+    ))]
     pub payment_type: GetReaderCheckoutResponseDataPaymentType,
     /// Reader firmware version
+    #[builder(setter(
+        into,
+        doc = "Sets [`reader_firmware_version`](GetReaderCheckoutResponseData::reader_firmware_version)."
+    ))]
     pub reader_firmware_version: String,
     /// Device serial number
+    #[builder(setter(
+        into,
+        doc = "Sets [`reader_serial_number`](GetReaderCheckoutResponseData::reader_serial_number)."
+    ))]
     pub reader_serial_number: String,
     /// Current status of the checkout
+    #[builder(setter(doc = "Sets [`status`](GetReaderCheckoutResponseData::status)."))]
     pub status: GetReaderCheckoutResponseDataStatus,
     /// Amount structure.
     ///
     /// The amount is represented as an integer value altogether with the currency and the minor unit.
     ///
     /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
+    #[builder(setter(
+        doc = "Sets [`total_amount`](GetReaderCheckoutResponseData::total_amount)."
+    ))]
     pub total_amount: GetReaderCheckoutResponseDataTotalAmount,
     /// Checkout last update timestamp
+    #[builder(setter(doc = "Sets [`updated_at`](GetReaderCheckoutResponseData::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
     /// Checkout expiration timestamp. After this time, the checkout will be automatically cancelled.
+    #[builder(setter(doc = "Sets [`valid_until`](GetReaderCheckoutResponseData::valid_until)."))]
     pub valid_until: crate::datetime::DateTime,
 }
 /// Menu lock configuration. Fields may be absent if no value is available.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct GetReaderSettingsResponseDataMenuLock {
     /// Whether menu lock is enabled.
     ///
     /// Example: `true`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`enabled`](GetReaderSettingsResponseDataMenuLock::enabled)."
+        )
+    )]
     pub enabled: Option<bool>,
     /// Four-digit PIN used to unlock the reader's menu.
     ///
@@ -509,11 +845,22 @@ pub struct GetReaderSettingsResponseDataMenuLock {
     ///
     /// Example: `1234`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`passcode`](GetReaderSettingsResponseDataMenuLock::passcode)."
+        )
+    )]
     pub passcode: Option<crate::secret::Secret>,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct GetReaderSettingsResponseData {
     /// Menu lock configuration. Fields may be absent if no value is available.
+    #[builder(setter(doc = "Sets [`menu_lock`](GetReaderSettingsResponseData::menu_lock)."))]
     pub menu_lock: GetReaderSettingsResponseDataMenuLock,
 }
 /// Identifier of the model of the device.
@@ -528,9 +875,17 @@ pub enum ReaderDeviceModel {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReaderPaymentRequestParamsAffiliate {
+    #[builder(setter(
+        into,
+        doc = "Sets [`app_id`](ReaderPaymentRequestParamsAffiliate::app_id)."
+    ))]
     pub app_id: String,
+    #[builder(setter(into, doc = "Sets [`key`](ReaderPaymentRequestParamsAffiliate::key)."))]
     pub key: String,
 }
 /// Type of connection used by the device
@@ -587,7 +942,10 @@ pub enum StatusResponseDataStatus {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct StatusResponseData {
     /// Battery level percentage
     ///
@@ -597,47 +955,104 @@ pub struct StatusResponseData {
     ///
     /// Example: `10.5`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`battery_level`](StatusResponseData::battery_level)."
+        )
+    )]
     pub battery_level: Option<f32>,
     /// Battery temperature in Celsius
     ///
     /// Example: `35`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`battery_temperature`](StatusResponseData::battery_temperature)."
+        )
+    )]
     pub battery_temperature: Option<i64>,
     /// Type of connection used by the device
     ///
     /// Example: `Wi-Fi`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`connection_type`](StatusResponseData::connection_type)."
+        )
+    )]
     pub connection_type: Option<StatusResponseDataConnectionType>,
     /// Firmware version of the device
     ///
     /// Example: `3.3.3.21`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`firmware_version`](StatusResponseData::firmware_version)."
+        )
+    )]
     pub firmware_version: Option<String>,
     /// Timestamp of the last activity from the device
     ///
     /// Example: `2025-09-25T15:20:00Z`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`last_activity`](StatusResponseData::last_activity)."
+        )
+    )]
     pub last_activity: Option<crate::datetime::DateTime>,
     /// Latest state of the device
     ///
     /// Example: `IDLE`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`state`](StatusResponseData::state).")
+    )]
     pub state: Option<StatusResponseDataState>,
     /// Status of a device
     ///
     /// Example: `ONLINE`
+    #[builder(setter(doc = "Sets [`status`](StatusResponseData::status)."))]
     pub status: StatusResponseDataStatus,
 }
 /// Menu lock configuration. Provide at least one of `enabled` or `passcode`.
 ///
 /// Constraints:
 /// - min properties: 1
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateReaderSettingsRequestMenuLock {
     /// Whether menu lock is enabled.
     ///
     /// Example: `true`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`enabled`](UpdateReaderSettingsRequestMenuLock::enabled)."
+        )
+    )]
     pub enabled: Option<bool>,
     /// Four-digit PIN used to unlock the reader's menu.
     ///
@@ -646,15 +1061,38 @@ pub struct UpdateReaderSettingsRequestMenuLock {
     ///
     /// Example: `1234`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`passcode`](UpdateReaderSettingsRequestMenuLock::passcode)."
+        )
+    )]
     pub passcode: Option<crate::secret::Secret>,
 }
 /// Settings included in the update. Omitted fields are not returned.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateReaderSettingsResponseDataMenuLock {
     /// Whether menu lock is enabled.
     ///
     /// Example: `true`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`enabled`](UpdateReaderSettingsResponseDataMenuLock::enabled)."
+        )
+    )]
     pub enabled: Option<bool>,
     /// Four-digit PIN used to unlock the reader's menu.
     ///
@@ -663,6 +1101,13 @@ pub struct UpdateReaderSettingsResponseDataMenuLock {
     ///
     /// Example: `1234`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`passcode`](UpdateReaderSettingsResponseDataMenuLock::passcode)."
+        )
+    )]
     pub passcode: Option<crate::secret::Secret>,
 }
 /// Indicates that the reader applied the settings update.
@@ -675,64 +1120,119 @@ pub enum UpdateReaderSettingsResponseDataStatus {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateReaderSettingsResponseData {
     /// Settings included in the update. Omitted fields are not returned.
+    #[builder(setter(doc = "Sets [`menu_lock`](UpdateReaderSettingsResponseData::menu_lock)."))]
     pub menu_lock: UpdateReaderSettingsResponseDataMenuLock,
     /// Indicates that the reader applied the settings update.
     ///
     /// Example: `applied`
+    #[builder(setter(doc = "Sets [`status`](UpdateReaderSettingsResponseData::status)."))]
     pub status: UpdateReaderSettingsResponseDataStatus,
 }
 /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
 /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateCheckoutRequestAade {
     /// The identifier of the AADE signature provider.
     ///
     /// Example: `123`
+    #[builder(setter(
+        into,
+        doc = "Sets [`provider_id`](CreateCheckoutRequestAade::provider_id)."
+    ))]
     pub provider_id: String,
     /// The base64 encoded signature of the transaction data.
     ///
     /// Example: `QjcxRDdBNTU1MDcyRTNFRTREMkZEM0Y0NTdBMjkxMTU4MzBFNkNCQTs7MjAyNTExMTIyMTQ3MTM7Nzk2OzEwNDs5MDA7OTAwOzU0ODg5MDM5`
+    #[builder(setter(
+        into,
+        doc = "Sets [`signature`](CreateCheckoutRequestAade::signature)."
+    ))]
     pub signature: String,
     /// The string containing the signed transaction data.
     ///
     /// Example: `B71D7A555072E3EE4D2FD3F457A29115830E6CBA;;20251112214713;796;104;900;900;54889039`
+    #[builder(setter(
+        into,
+        doc = "Sets [`signature_data`](CreateCheckoutRequestAade::signature_data)."
+    ))]
     pub signature_data: String,
 }
 /// Optional key-value metadata associated with the transaction.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateCheckoutRequestAffiliateTags {
     #[serde(
         flatten,
         default,
         skip_serializing_if = "std::collections::HashMap::is_empty"
     )]
+    #[builder(
+        default,
+        setter(
+            doc = "Sets [`additional_properties`](CreateCheckoutRequestAffiliateTags::additional_properties)."
+        )
+    )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
 /// Optional affiliate metadata associated with the checkout's payment.
 /// Provide both `app_id` and `key` when including this object.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateCheckoutRequestAffiliate {
     /// Integrator application identifier from the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
     /// Required when the affiliate object is provided.
     ///
     /// Example: `com.example.app`
+    #[builder(setter(into, doc = "Sets [`app_id`](CreateCheckoutRequestAffiliate::app_id)."))]
     pub app_id: String,
     /// Integrator-owned transaction reference. Optional.
     /// Can be used to retrieve the transaction via the [Transactions API](https://developer.sumup.com/api/transactions/get).
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`foreign_transaction_id`](CreateCheckoutRequestAffiliate::foreign_transaction_id)."
+        )
+    )]
     pub foreign_transaction_id: Option<String>,
     /// Affiliate key generated in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
     /// Required when the affiliate object is provided.
     ///
     /// Example: `123e4567-e89b-12d3-a456-426614174000`
+    #[builder(setter(into, doc = "Sets [`key`](CreateCheckoutRequestAffiliate::key)."))]
     pub key: String,
     /// Optional key-value metadata associated with the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tags`](CreateCheckoutRequestAffiliate::tags)."
+        )
+    )]
     pub tags: Option<serde_json::Value>,
 }
 /// The card type of the card used for the transaction.
@@ -768,11 +1268,18 @@ pub enum CreateCheckoutRequestPaymentType {
 /// The amount is represented as an integer value altogether with the currency and the minor unit.
 ///
 /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateCheckoutRequestTotalAmount {
     /// Currency ISO 4217 code
     ///
     /// Example: `EUR`
+    #[builder(setter(
+        into,
+        doc = "Sets [`currency`](CreateCheckoutRequestTotalAmount::currency)."
+    ))]
     pub currency: String,
     /// The minor units of the currency.
     /// It represents the number of decimals of the currency. For the currencies CLP, COP and HUF, the minor unit is 0.
@@ -781,6 +1288,7 @@ pub struct CreateCheckoutRequestTotalAmount {
     /// - value >= 0
     ///
     /// Example: `2`
+    #[builder(setter(doc = "Sets [`minor_unit`](CreateCheckoutRequestTotalAmount::minor_unit)."))]
     pub minor_unit: i64,
     /// Integer value of the amount.
     ///
@@ -788,38 +1296,90 @@ pub struct CreateCheckoutRequestTotalAmount {
     /// - value >= 0
     ///
     /// Example: `1000`
+    #[builder(setter(doc = "Sets [`value`](CreateCheckoutRequestTotalAmount::value)."))]
     pub value: i64,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateGoCheckoutRequestAffiliate {
+    #[builder(setter(
+        into,
+        doc = "Sets [`app_id`](CreateGoCheckoutRequestAffiliate::app_id)."
+    ))]
     pub app_id: String,
+    #[builder(setter(into, doc = "Sets [`key`](CreateGoCheckoutRequestAffiliate::key)."))]
     pub key: String,
 }
 /// Returns a list Reader objects.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListResponse {
+    #[builder(setter(doc = "Sets [`items`](ListResponse::items)."))]
     pub items: Vec<Reader>,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`metadata`](CreateRequest::metadata).")
+    )]
     pub metadata: Option<Metadata>,
+    #[builder(setter(into, doc = "Sets [`name`](CreateRequest::name)."))]
     pub name: ReaderName,
+    #[builder(setter(into, doc = "Sets [`pairing_code`](CreateRequest::pairing_code)."))]
     pub pairing_code: ReaderPairingCode,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`metadata`](UpdateRequest::metadata).")
+    )]
     pub metadata: Option<Metadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`name`](UpdateRequest::name).")
+    )]
     pub name: Option<ReaderName>,
 }
 /// A checkout initial attributes
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateCheckoutRequest {
     /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
     /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`aade`](CreateCheckoutRequest::aade).")
+    )]
     pub aade: Option<CreateCheckoutRequestAade>,
     /// Optional affiliate metadata associated with the checkout's payment.
     /// Provide both `app_id` and `key` when including this object.
@@ -828,15 +1388,37 @@ pub struct CreateCheckoutRequest {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`affiliate`](CreateCheckoutRequest::affiliate)."
+        )
+    )]
     pub affiliate: Option<crate::Nullable<CreateCheckoutRequestAffiliate>>,
     /// The card type of the card used for the transaction.
     /// It is required only for some countries (e.g: Brazil).
     ///
     /// Example: `credit`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`card_type`](CreateCheckoutRequest::card_type)."
+        )
+    )]
     pub card_type: Option<CreateCheckoutRequestCardType>,
     /// Description of the checkout to be shown in the Merchant Sales
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](CreateCheckoutRequest::description)."
+        )
+    )]
     pub description: Option<String>,
     /// Number of installments for the transaction.
     /// It may vary according to the merchant country.
@@ -854,6 +1436,13 @@ pub struct CreateCheckoutRequest {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installments`](CreateCheckoutRequest::installments)."
+        )
+    )]
     pub installments: Option<crate::Nullable<i64>>,
     /// The payment method type for the transaction. Defaults to `card`.
     ///
@@ -862,6 +1451,13 @@ pub struct CreateCheckoutRequest {
     ///
     /// Example: `card`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`payment_type`](CreateCheckoutRequest::payment_type)."
+        )
+    )]
     pub payment_type: Option<CreateCheckoutRequestPaymentType>,
     /// Webhook URL to which the payment result will be sent.
     /// It must be a HTTPS url.
@@ -871,6 +1467,14 @@ pub struct CreateCheckoutRequest {
     ///
     /// Example: `https://www.example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`return_url`](CreateCheckoutRequest::return_url)."
+        )
+    )]
     pub return_url: Option<String>,
     /// Exactly three distinct tipping rates to be displayed to the cardholder.
     /// Each rate is a fraction between 0.01 and 1.00 in increments of 0.01.
@@ -881,6 +1485,13 @@ pub struct CreateCheckoutRequest {
     /// - max items: 3
     /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_rates`](CreateCheckoutRequest::tip_rates)."
+        )
+    )]
     pub tip_rates: Option<Vec<f32>>,
     /// Time in seconds the cardholder has to select a tip rate.
     /// If not provided, the default value is 30 seconds.
@@ -895,28 +1506,58 @@ pub struct CreateCheckoutRequest {
     ///
     /// Example: `30`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_timeout`](CreateCheckoutRequest::tip_timeout)."
+        )
+    )]
     pub tip_timeout: Option<i64>,
     /// Amount structure.
     ///
     /// The amount is represented as an integer value altogether with the currency and the minor unit.
     ///
     /// For example, EUR 1.00 is represented as value 100 with minor unit of 2.
+    #[builder(setter(doc = "Sets [`total_amount`](CreateCheckoutRequest::total_amount)."))]
     pub total_amount: CreateCheckoutRequestTotalAmount,
 }
 /// Payment details to initiate on the reader.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateGoCheckoutRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`affiliate`](CreateGoCheckoutRequest::affiliate)."
+        )
+    )]
     pub affiliate: Option<CreateGoCheckoutRequestAffiliate>,
     /// Caller-supplied correlation identifier, used as the idempotency key.
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
+    #[builder(setter(
+        into,
+        doc = "Sets [`client_transaction_id`](CreateGoCheckoutRequest::client_transaction_id)."
+    ))]
     pub client_transaction_id: String,
     /// Portion of total_amount that is a tip, in minor units.
     ///
     /// Example: `200`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_amount`](CreateGoCheckoutRequest::tip_amount)."
+        )
+    )]
     pub tip_amount: Option<i64>,
+    #[builder(setter(doc = "Sets [`total_amount`](CreateGoCheckoutRequest::total_amount)."))]
     pub total_amount: Amount,
 }
 use crate::client::Client;

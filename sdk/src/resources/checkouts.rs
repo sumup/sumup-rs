@@ -66,7 +66,10 @@ impl crate::events::EventSpec for CheckoutUpdated {
 /// Event notification for this event type.
 pub type CheckoutUpdatedEvent = crate::events::Event<CheckoutUpdated>;
 /// __Required when payment type is `card`.__ Details of the payment card.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Card {
     /// Three or four-digit card verification value (security code) of the payment card.
     ///
@@ -76,6 +79,7 @@ pub struct Card {
     /// - max length: 4
     ///
     /// Example: `123`
+    #[builder(setter(into, doc = "Sets [`cvv`](Card::cvv)."))]
     pub cvv: String,
     /// Two-digit expiration month, from `01` through `12`.
     ///
@@ -86,6 +90,7 @@ pub struct Card {
     /// - max length: 2
     ///
     /// Example: `12`
+    #[builder(setter(into, doc = "Sets [`expiry_month`](Card::expiry_month)."))]
     pub expiry_month: String,
     /// Two- or four-digit expiration year in `YY` or `YYYY` format.
     ///
@@ -94,6 +99,7 @@ pub struct Card {
     /// - pattern: `^[0-9]{2}([0-9]{2})?$`
     ///
     /// Example: `2030`
+    #[builder(setter(into, doc = "Sets [`expiry_year`](Card::expiry_year)."))]
     pub expiry_year: String,
     /// Name of the cardholder as it appears on the payment card.
     ///
@@ -101,6 +107,7 @@ pub struct Card {
     /// - write-only
     ///
     /// Example: `FIRSTNAME LASTNAME`
+    #[builder(setter(into, doc = "Sets [`name`](Card::name)."))]
     pub name: String,
     /// Number of the payment card (without spaces).
     ///
@@ -108,8 +115,10 @@ pub struct Card {
     /// - write-only
     ///
     /// Example: `1234567890123456`
+    #[builder(setter(into, doc = "Sets [`number`](Card::number)."))]
     pub number: String,
     #[serde(rename = "type")]
+    #[builder(setter(doc = "Sets [`r#type`](Card::r#type)."))]
     pub r#type: CardType,
     /// Required five-digit ZIP code. Applicable only to merchant users in the USA.
     ///
@@ -120,15 +129,32 @@ pub struct Card {
     ///
     /// Example: `12345`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`zip_code`](Card::zip_code).")
+    )]
     pub zip_code: Option<String>,
 }
 /// Core checkout resource returned by the Checkouts API. A checkout is created before payment processing and then updated as payment attempts, redirects, and resulting transactions are attached to it.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Checkout {
     /// Amount to be charged to the payer, expressed in major units.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`amount`](Checkout::amount).")
+    )]
     pub amount: Option<f32>,
     /// Merchant-defined reference for the checkout. Use it to correlate the SumUp checkout with your own order, cart, subscription, or payment attempt in your systems.
     ///
@@ -137,23 +163,52 @@ pub struct Checkout {
     ///
     /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`checkout_reference`](Checkout::checkout_reference)."
+        )
+    )]
     pub checkout_reference: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`currency`](Checkout::currency).")
+    )]
     pub currency: Option<Currency>,
     /// Merchant-scoped identifier of the customer associated with the checkout. Use it when storing payment instruments or reusing saved customer context for recurring and returning-payer flows.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`customer_id`](Checkout::customer_id)."
+        )
+    )]
     pub customer_id: Option<String>,
     /// The timestamp of when the checkout was created.
     ///
     /// Example: `2020-02-29T10:56:56+00:00`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(default, setter(strip_option, doc = "Sets [`date`](Checkout::date)."))]
     pub date: Option<crate::datetime::DateTime>,
     /// Short merchant-defined description shown in SumUp tools and reporting. Use it to make the checkout easier to recognize in dashboards, support workflows, and reconciliation.
     ///
     /// Example: `Purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](Checkout::description)."
+        )
+    )]
     pub description: Option<String>,
     /// URL of the SumUp-hosted payment page that handles the payment flow. Returned when Hosted Checkout is enabled for the checkout.
     ///
@@ -163,6 +218,14 @@ pub struct Checkout {
     ///
     /// Example: `https://checkout.sumup.com/pay/8f9316a3-cda9-42a9-9771-54d534315676`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`hosted_checkout_url`](Checkout::hosted_checkout_url)."
+        )
+    )]
     pub hosted_checkout_url: Option<String>,
     /// Unique SumUp identifier of the checkout resource.
     ///
@@ -171,13 +234,29 @@ pub struct Checkout {
     ///
     /// Example: `4e425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`id`](Checkout::id).")
+    )]
     pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`mandate`](Checkout::mandate).")
+    )]
     pub mandate: Option<MandateResponse>,
     /// Short unique identifier for the merchant that receives the payment.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](Checkout::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     /// Optional backend callback URL for checkout status notifications. SumUp sends an HTTP POST with `event_type` and the checkout `id`. Retrieve the checkout to verify its current status before updating your order. See the [webhook guide](https://developer.sumup.com/online-payments/webhooks/) for the payload and response requirements.
     ///
@@ -186,17 +265,29 @@ pub struct Checkout {
     ///
     /// Example: `http://example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`return_url`](Checkout::return_url).")
+    )]
     pub return_url: Option<String>,
     /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
     ///
     /// Example: `PENDING`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](Checkout::status).")
+    )]
     pub status: Option<CheckoutStatus>,
     /// Payment attempts and resulting transaction records linked to this checkout. Use the Transactions endpoints when you need the authoritative payment result and event history.
     ///
     /// Constraints:
     /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`transactions`](Checkout::transactions).")
+    )]
     pub transactions: Option<Vec<CheckoutTransactionsItem>>,
     /// Optional expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable. If omitted, the checkout does not have an explicit expiry time.
     ///
@@ -206,21 +297,42 @@ pub struct Checkout {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`valid_until`](Checkout::valid_until).")
+    )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
 }
 /// Response returned when checkout processing requires an additional payer action, such as a 3DS challenge or a redirect to an external payment method page.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CheckoutAccepted {
     /// Instructions for the next action the payer or client must take.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`next_step`](CheckoutAccepted::next_step).")
+    )]
     pub next_step: Option<CheckoutAcceptedNextStep>,
 }
 /// Request body for creating a checkout before processing payment. Define the payment amount, currency, merchant, and optional customer or redirect behavior here.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CheckoutCreateRequest {
     /// Amount to be charged to the payer, expressed in major units.
     ///
     /// Example: `10.1`
+    #[builder(setter(doc = "Sets [`amount`](CheckoutCreateRequest::amount)."))]
     pub amount: f32,
     /// Merchant-defined reference for the new checkout, up to 64 characters. Use it to correlate the checkout with an order or payment attempt in your own system. If a checkout already exists for the supplied unique parameters, creation returns `409` with `DUPLICATED_CHECKOUT`; see the conflict response.
     ///
@@ -228,31 +340,78 @@ pub struct CheckoutCreateRequest {
     /// - max length: 64
     ///
     /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
+    #[builder(setter(
+        into,
+        doc = "Sets [`checkout_reference`](CheckoutCreateRequest::checkout_reference)."
+    ))]
     pub checkout_reference: String,
+    #[builder(setter(doc = "Sets [`currency`](CheckoutCreateRequest::currency)."))]
     pub currency: Currency,
     /// Merchant-scoped customer identifier. Required when setting up recurring payments and useful when the checkout should be linked to a returning payer.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`customer_id`](CheckoutCreateRequest::customer_id)."
+        )
+    )]
     pub customer_id: Option<String>,
     /// Short merchant-defined description shown in SumUp tools and reporting for easier identification of the checkout.
     ///
     /// Example: `Purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](CheckoutCreateRequest::description)."
+        )
+    )]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`hosted_checkout`](CheckoutCreateRequest::hosted_checkout)."
+        )
+    )]
     pub hosted_checkout: Option<HostedCheckout>,
     /// Short unique identifier for the merchant that should receive the payment.
     ///
     /// Example: `MH4H92C7`
+    #[builder(setter(
+        into,
+        doc = "Sets [`merchant_code`](CheckoutCreateRequest::merchant_code)."
+    ))]
     pub merchant_code: String,
     /// Business purpose of the checkout. Use `CHECKOUT` for a standard payment and `SETUP_RECURRING_PAYMENT` when collecting consent and payment details for future recurring charges.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`purpose`](CheckoutCreateRequest::purpose)."
+        )
+    )]
     pub purpose: Option<CheckoutCreateRequestPurpose>,
     /// URL where the payer should be sent after a redirect-based payment or SCA flow completes. This is required for [APMs](https://developer.sumup.com/online-payments/apm/introduction) and recommended for card checkouts that may require [3DS](https://developer.sumup.com/online-payments/features/3ds). If it is omitted, the [Payment Widget](https://developer.sumup.com/online-payments/checkouts) can render the challenge in an iframe instead of using a full-page redirect.
     ///
     /// Example: `https://mysite.com/completed_purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`redirect_url`](CheckoutCreateRequest::redirect_url)."
+        )
+    )]
     pub redirect_url: Option<String>,
     /// Optional backend callback URL for checkout status notifications. SumUp sends an HTTP POST with `event_type` and the checkout `id`. Retrieve the checkout to verify its current status before updating your order. See the [webhook guide](https://developer.sumup.com/online-payments/webhooks/) for the payload and response requirements.
     ///
@@ -261,6 +420,14 @@ pub struct CheckoutCreateRequest {
     ///
     /// Example: `http://example.com/`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`return_url`](CheckoutCreateRequest::return_url)."
+        )
+    )]
     pub return_url: Option<String>,
     /// Optional expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable. If omitted, the checkout does not have an explicit expiry time.
     ///
@@ -270,15 +437,35 @@ pub struct CheckoutCreateRequest {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`valid_until`](CheckoutCreateRequest::valid_until)."
+        )
+    )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
 }
 /// Checkout resource returned after a synchronous processing attempt. In addition to the base checkout fields, it can include the resulting transaction identifiers and any newly created payment instrument token.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CheckoutSuccess {
     /// Amount to be charged to the payer, expressed in major units.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`amount`](CheckoutSuccess::amount).")
+    )]
     pub amount: Option<f32>,
     /// Merchant-defined reference for the checkout. Use it to correlate the SumUp checkout with your own order, cart, subscription, or payment attempt in your systems.
     ///
@@ -287,23 +474,55 @@ pub struct CheckoutSuccess {
     ///
     /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`checkout_reference`](CheckoutSuccess::checkout_reference)."
+        )
+    )]
     pub checkout_reference: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`currency`](CheckoutSuccess::currency).")
+    )]
     pub currency: Option<Currency>,
     /// Merchant-scoped identifier of the customer associated with the checkout. Use it when storing payment instruments or reusing saved customer context for recurring and returning-payer flows.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`customer_id`](CheckoutSuccess::customer_id)."
+        )
+    )]
     pub customer_id: Option<String>,
     /// The timestamp of when the checkout was created.
     ///
     /// Example: `2020-02-29T10:56:56+00:00`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`date`](CheckoutSuccess::date).")
+    )]
     pub date: Option<crate::datetime::DateTime>,
     /// Short merchant-defined description shown in SumUp tools and reporting. Use it to make the checkout easier to recognize in dashboards, support workflows, and reconciliation.
     ///
     /// Example: `Purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](CheckoutSuccess::description)."
+        )
+    )]
     pub description: Option<String>,
     /// URL of the SumUp-hosted payment page that handles the payment flow. Returned when Hosted Checkout is enabled for the checkout.
     ///
@@ -313,6 +532,14 @@ pub struct CheckoutSuccess {
     ///
     /// Example: `https://checkout.sumup.com/pay/8f9316a3-cda9-42a9-9771-54d534315676`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`hosted_checkout_url`](CheckoutSuccess::hosted_checkout_url)."
+        )
+    )]
     pub hosted_checkout_url: Option<String>,
     /// Unique SumUp identifier of the checkout resource.
     ///
@@ -321,26 +548,65 @@ pub struct CheckoutSuccess {
     ///
     /// Example: `4e425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`id`](CheckoutSuccess::id).")
+    )]
     pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`mandate`](CheckoutSuccess::mandate).")
+    )]
     pub mandate: Option<MandateResponse>,
     /// Short unique identifier for the merchant that receives the payment.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](CheckoutSuccess::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     /// Name of the merchant.
     ///
     /// Example: `Sample Merchant`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_name`](CheckoutSuccess::merchant_name)."
+        )
+    )]
     pub merchant_name: Option<String>,
     /// Details of the saved payment instrument created or reused during checkout processing.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`payment_instrument`](CheckoutSuccess::payment_instrument)."
+        )
+    )]
     pub payment_instrument: Option<CheckoutSuccessPaymentInstrument>,
     /// URL where the payer is redirected after a redirect-based payment or SCA flow completes.
     ///
     /// Example: `https://mysite.com/completed_purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`redirect_url`](CheckoutSuccess::redirect_url)."
+        )
+    )]
     pub redirect_url: Option<String>,
     /// Optional backend callback URL for checkout status notifications. SumUp sends an HTTP POST with `event_type` and the checkout `id`. Retrieve the checkout to verify its current status before updating your order. See the [webhook guide](https://developer.sumup.com/online-payments/webhooks/) for the payload and response requirements.
     ///
@@ -349,11 +615,23 @@ pub struct CheckoutSuccess {
     ///
     /// Example: `http://example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`return_url`](CheckoutSuccess::return_url)."
+        )
+    )]
     pub return_url: Option<String>,
     /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
     ///
     /// Example: `PENDING`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](CheckoutSuccess::status).")
+    )]
     pub status: Option<CheckoutSuccessStatus>,
     /// Transaction code of the successful transaction with which the payment for the checkout is completed.
     ///
@@ -362,6 +640,14 @@ pub struct CheckoutSuccess {
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_code`](CheckoutSuccess::transaction_code)."
+        )
+    )]
     pub transaction_code: Option<String>,
     /// Unique identifier of the successful transaction that completed payment for the checkout.
     ///
@@ -370,12 +656,27 @@ pub struct CheckoutSuccess {
     ///
     /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_id`](CheckoutSuccess::transaction_id)."
+        )
+    )]
     pub transaction_id: Option<String>,
     /// Payment attempts and resulting transaction records linked to this checkout. Use the Transactions endpoints when you need the authoritative payment result and event history.
     ///
     /// Constraints:
     /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`transactions`](CheckoutSuccess::transactions)."
+        )
+    )]
     pub transactions: Option<Vec<CheckoutSuccessTransactionsItem>>,
     /// Optional expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable. If omitted, the checkout does not have an explicit expiry time.
     ///
@@ -385,15 +686,35 @@ pub struct CheckoutSuccess {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`valid_until`](CheckoutSuccess::valid_until)."
+        )
+    )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
 }
 /// Request body for updating an existing checkout. Include only the fields that should be changed.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CheckoutUpdateRequest {
     /// Updated amount to be charged to the payer, expressed in major units.
     ///
     /// Example: `12.5`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`amount`](CheckoutUpdateRequest::amount).")
+    )]
     pub amount: Option<f32>,
     /// Updated merchant-defined reference for the checkout.
     ///
@@ -402,18 +723,49 @@ pub struct CheckoutUpdateRequest {
     ///
     /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`checkout_reference`](CheckoutUpdateRequest::checkout_reference)."
+        )
+    )]
     pub checkout_reference: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`currency`](CheckoutUpdateRequest::currency)."
+        )
+    )]
     pub currency: Option<Currency>,
     /// Updated merchant-scoped customer identifier associated with the checkout.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`customer_id`](CheckoutUpdateRequest::customer_id)."
+        )
+    )]
     pub customer_id: Option<String>,
     /// Updated short merchant-defined description shown in SumUp tools and reporting.
     ///
     /// Example: `Updated purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](CheckoutUpdateRequest::description)."
+        )
+    )]
     pub description: Option<String>,
     /// Updated expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable.
     ///
@@ -423,28 +775,63 @@ pub struct CheckoutUpdateRequest {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`valid_until`](CheckoutUpdateRequest::valid_until)."
+        )
+    )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
 }
 /// Details of a request validation error.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct DetailsError {
     /// Details of the error.
     ///
     /// Example: `One or more of the parameters are invalid.`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`details`](DetailsError::details).")
+    )]
     pub details: Option<String>,
     /// List of violated validation constraints.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`failed_constraints`](DetailsError::failed_constraints)."
+        )
+    )]
     pub failed_constraints: Option<Vec<DetailsErrorFailedConstraintsItem>>,
     /// HTTP status code for the error.
     ///
     /// Example: `400`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](DetailsError::status).")
+    )]
     pub status: Option<f64>,
     /// Short title of the error.
     ///
     /// Example: `Bad Request`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`title`](DetailsError::title).")
+    )]
     pub title: Option<String>,
 }
 impl std::fmt::Display for DetailsError {
@@ -454,46 +841,85 @@ impl std::fmt::Display for DetailsError {
 }
 impl std::error::Error for DetailsError {}
 /// Hosted Checkout configuration. Enable it to receive a SumUp-hosted payment page URL in the checkout response.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct HostedCheckout {
     /// Whether the checkout should include a SumUp-hosted payment page.
     ///
     /// Example: `true`
+    #[builder(setter(doc = "Sets [`enabled`](HostedCheckout::enabled)."))]
     pub enabled: bool,
 }
 /// Mandate details used when a checkout should create a reusable card token for future recurring or merchant-initiated payments.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct MandatePayload {
     /// Type of mandate to create for the saved payment instrument.
     ///
     /// Example: `recurrent`
     #[serde(rename = "type")]
+    #[builder(setter(doc = "Sets [`r#type`](MandatePayload::r#type)."))]
     pub r#type: MandatePayloadType,
     /// Browser or client user agent observed when consent was collected.
     ///
     /// Example: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36`
+    #[builder(setter(into, doc = "Sets [`user_agent`](MandatePayload::user_agent)."))]
     pub user_agent: String,
     /// IP address of the payer when the mandate was accepted.
     ///
     /// Example: `172.217.169.174`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`user_ip`](MandatePayload::user_ip).")
+    )]
     pub user_ip: Option<String>,
 }
 /// Request body for attempting payment on an existing checkout. The required companion fields depend on the selected `payment_type`, for example card details, saved-card data, or payer information required by a specific payment method.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ProcessCheckout {
     /// Raw payment token object received from Apple Pay. Send the Apple Pay response payload as-is.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`apple_pay`](ProcessCheckout::apple_pay).")
+    )]
     pub apple_pay: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`card`](ProcessCheckout::card).")
+    )]
     pub card: Option<Card>,
     /// Customer identifier associated with the saved payment instrument. Required when `token` is provided.
     ///
     /// Example: `MEDKHDTI`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`customer_id`](ProcessCheckout::customer_id)."
+        )
+    )]
     pub customer_id: Option<String>,
     /// Raw `PaymentData` object received from Google Pay. Send the Google Pay response payload as-is.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`google_pay`](ProcessCheckout::google_pay)."
+        )
+    )]
     pub google_pay: Option<serde_json::Value>,
     /// Number of installments for deferred payments. Available only to merchant users in Brazil.
     ///
@@ -503,19 +929,42 @@ pub struct ProcessCheckout {
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installments`](ProcessCheckout::installments)."
+        )
+    )]
     pub installments: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`mandate`](ProcessCheckout::mandate).")
+    )]
     pub mandate: Option<MandatePayload>,
     /// Payment method used for this processing attempt. It determines which additional request fields are required.
     ///
     /// Example: `card`
+    #[builder(setter(doc = "Sets [`payment_type`](ProcessCheckout::payment_type)."))]
     pub payment_type: ProcessCheckoutPaymentType,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`personal_details`](ProcessCheckout::personal_details)."
+        )
+    )]
     pub personal_details: Option<PersonalDetails>,
     /// Token of a saved payment instrument returned by checkout processing or the customer's payment-instruments endpoint. To charge a saved card, set `payment_type` to `card` and provide both this `token` and the associated `customer_id` instead of raw card details.
     ///
     /// Example: `ba85dfee-c3cf-48a6-84f5-d7d761fbba50`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`token`](ProcessCheckout::token).")
+    )]
     pub token: Option<String>,
 }
 /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
@@ -534,26 +983,68 @@ pub enum CheckoutStatus {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CheckoutTransactionsItem {
     /// Total amount of the transaction in major units of `currency`, for example `10.1` for EUR 10.10.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`amount`](CheckoutTransactionsItem::amount)."
+        )
+    )]
     pub amount: Option<f32>,
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     ///
     /// Example: `053201`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`auth_code`](CheckoutTransactionsItem::auth_code)."
+        )
+    )]
     pub auth_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`currency`](CheckoutTransactionsItem::currency)."
+        )
+    )]
     pub currency: Option<Currency>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`entry_mode`](CheckoutTransactionsItem::entry_mode)."
+        )
+    )]
     pub entry_mode: Option<EntryMode>,
     /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`id`](CheckoutTransactionsItem::id).")
+    )]
     pub id: Option<String>,
     /// Number of installments for a deferred payment.
     ///
@@ -562,35 +1053,93 @@ pub struct CheckoutTransactionsItem {
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installments_count`](CheckoutTransactionsItem::installments_count)."
+        )
+    )]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](CheckoutTransactionsItem::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`payment_type`](CheckoutTransactionsItem::payment_type)."
+        )
+    )]
     pub payment_type: Option<PaymentType>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`status`](CheckoutTransactionsItem::status)."
+        )
+    )]
     pub status: Option<TransactionStatus>,
     /// The timestamp of when the transaction was created.
     ///
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`timestamp`](CheckoutTransactionsItem::timestamp)."
+        )
+    )]
     pub timestamp: Option<crate::datetime::DateTime>,
     /// Tip included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `3`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_amount`](CheckoutTransactionsItem::tip_amount)."
+        )
+    )]
     pub tip_amount: Option<f32>,
     /// SumUp transaction code, for example `TEENSK4W2K`. Use it to look up the transaction with the `transaction_code` query parameter. This is separate from the transaction's `id` and the card issuer's `auth_code`.
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_code`](CheckoutTransactionsItem::transaction_code)."
+        )
+    )]
     pub transaction_code: Option<String>,
     /// VAT included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `6`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`vat_amount`](CheckoutTransactionsItem::vat_amount)."
+        )
+    )]
     pub vat_amount: Option<f32>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -603,38 +1152,100 @@ pub enum CheckoutAcceptedNextStepMechanismItem {
     Other(String),
 }
 /// Parameters required to complete the next step. The exact keys depend on the payment provider and flow type.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CheckoutAcceptedNextStepPayload {
     #[serde(
         flatten,
         default,
         skip_serializing_if = "std::collections::HashMap::is_empty"
     )]
+    #[builder(
+        default,
+        setter(
+            doc = "Sets [`additional_properties`](CheckoutAcceptedNextStepPayload::additional_properties)."
+        )
+    )]
     pub additional_properties: std::collections::HashMap<String, String>,
 }
 /// Instructions for the next action the payer or client must take.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CheckoutAcceptedNextStep {
     /// Allowed presentation mechanisms for the next step. `iframe` means the flow can be embedded, while `browser` means it can be completed through a full-page redirect.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`mechanism`](CheckoutAcceptedNextStep::mechanism)."
+        )
+    )]
     pub mechanism: Option<Vec<CheckoutAcceptedNextStepMechanismItem>>,
     /// HTTP method to use when following the next step.
     ///
     /// Example: `POST`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`method`](CheckoutAcceptedNextStep::method)."
+        )
+    )]
     pub method: Option<String>,
     /// Parameters required to complete the next step. The exact keys depend on the payment provider and flow type.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`payload`](CheckoutAcceptedNextStep::payload)."
+        )
+    )]
     pub payload: Option<serde_json::Value>,
     /// Merchant URL where the payer returns after the external flow finishes.
     ///
     /// Example: `https://mysite.com/completed_purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`redirect_url`](CheckoutAcceptedNextStep::redirect_url)."
+        )
+    )]
     pub redirect_url: Option<String>,
     /// URL to open or submit in order to continue processing.
     ///
     /// Example: `https://dummy-3ds-gateway.com/cap?RID=1233&VAA=A`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`url`](CheckoutAcceptedNextStep::url)."
+        )
+    )]
     pub url: Option<String>,
 }
 /// Business purpose of the checkout. Use `CHECKOUT` for a standard payment and `SETUP_RECURRING_PAYMENT` when collecting consent and payment details for future recurring charges.
@@ -648,12 +1259,29 @@ pub enum CheckoutCreateRequestPurpose {
     Other(String),
 }
 /// Details of the saved payment instrument created or reused during checkout processing.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CheckoutSuccessPaymentInstrument {
     /// Unique token of the saved payment instrument.
     ///
     /// Example: `e76d7e5c-9375-4fac-a7e7-b19dc5302fbc`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`token`](CheckoutSuccessPaymentInstrument::token)."
+        )
+    )]
     pub token: Option<String>,
 }
 /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
@@ -672,26 +1300,72 @@ pub enum CheckoutSuccessStatus {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CheckoutSuccessTransactionsItem {
     /// Total amount of the transaction in major units of `currency`, for example `10.1` for EUR 10.10.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`amount`](CheckoutSuccessTransactionsItem::amount)."
+        )
+    )]
     pub amount: Option<f32>,
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     ///
     /// Example: `053201`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`auth_code`](CheckoutSuccessTransactionsItem::auth_code)."
+        )
+    )]
     pub auth_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`currency`](CheckoutSuccessTransactionsItem::currency)."
+        )
+    )]
     pub currency: Option<Currency>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`entry_mode`](CheckoutSuccessTransactionsItem::entry_mode)."
+        )
+    )]
     pub entry_mode: Option<EntryMode>,
     /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`id`](CheckoutSuccessTransactionsItem::id)."
+        )
+    )]
     pub id: Option<String>,
     /// Number of installments for a deferred payment.
     ///
@@ -700,48 +1374,131 @@ pub struct CheckoutSuccessTransactionsItem {
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installments_count`](CheckoutSuccessTransactionsItem::installments_count)."
+        )
+    )]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](CheckoutSuccessTransactionsItem::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`payment_type`](CheckoutSuccessTransactionsItem::payment_type)."
+        )
+    )]
     pub payment_type: Option<PaymentType>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`status`](CheckoutSuccessTransactionsItem::status)."
+        )
+    )]
     pub status: Option<TransactionStatus>,
     /// The timestamp of when the transaction was created.
     ///
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`timestamp`](CheckoutSuccessTransactionsItem::timestamp)."
+        )
+    )]
     pub timestamp: Option<crate::datetime::DateTime>,
     /// Tip included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `3`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_amount`](CheckoutSuccessTransactionsItem::tip_amount)."
+        )
+    )]
     pub tip_amount: Option<f32>,
     /// SumUp transaction code, for example `TEENSK4W2K`. Use it to look up the transaction with the `transaction_code` query parameter. This is separate from the transaction's `id` and the card issuer's `auth_code`.
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_code`](CheckoutSuccessTransactionsItem::transaction_code)."
+        )
+    )]
     pub transaction_code: Option<String>,
     /// VAT included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `6`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`vat_amount`](CheckoutSuccessTransactionsItem::vat_amount)."
+        )
+    )]
     pub vat_amount: Option<f32>,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct DetailsErrorFailedConstraintsItem {
     /// Human-readable description of the violated constraint.
     ///
     /// Example: `Currency must also be specified when filtering by amount`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`message`](DetailsErrorFailedConstraintsItem::message)."
+        )
+    )]
     pub message: Option<String>,
     /// Name of the field that violated the constraint.
     ///
     /// Example: `currency`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`reference`](DetailsErrorFailedConstraintsItem::reference)."
+        )
+    )]
     pub reference: Option<String>,
 }
 /// Type of mandate to create for the saved payment instrument.
@@ -809,12 +1566,29 @@ pub enum ProcessRequestPaymentType {
     Other(String),
 }
 /// Details of the saved payment instrument created or reused during checkout processing.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ProcessResponse200PaymentInstrument {
     /// Unique token of the saved payment instrument.
     ///
     /// Example: `e76d7e5c-9375-4fac-a7e7-b19dc5302fbc`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`token`](ProcessResponse200PaymentInstrument::token)."
+        )
+    )]
     pub token: Option<String>,
 }
 /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
@@ -833,26 +1607,72 @@ pub enum ProcessResponse200Status {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ProcessResponse200TransactionsItem {
     /// Total amount of the transaction in major units of `currency`, for example `10.1` for EUR 10.10.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`amount`](ProcessResponse200TransactionsItem::amount)."
+        )
+    )]
     pub amount: Option<f32>,
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     ///
     /// Example: `053201`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`auth_code`](ProcessResponse200TransactionsItem::auth_code)."
+        )
+    )]
     pub auth_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`currency`](ProcessResponse200TransactionsItem::currency)."
+        )
+    )]
     pub currency: Option<Currency>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`entry_mode`](ProcessResponse200TransactionsItem::entry_mode)."
+        )
+    )]
     pub entry_mode: Option<EntryMode>,
     /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`id`](ProcessResponse200TransactionsItem::id)."
+        )
+    )]
     pub id: Option<String>,
     /// Number of installments for a deferred payment.
     ///
@@ -861,60 +1681,146 @@ pub struct ProcessResponse200TransactionsItem {
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installments_count`](ProcessResponse200TransactionsItem::installments_count)."
+        )
+    )]
     pub installments_count: Option<i64>,
     /// Unique code of the registered merchant to whom the payment is made.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](ProcessResponse200TransactionsItem::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`payment_type`](ProcessResponse200TransactionsItem::payment_type)."
+        )
+    )]
     pub payment_type: Option<PaymentType>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`status`](ProcessResponse200TransactionsItem::status)."
+        )
+    )]
     pub status: Option<TransactionStatus>,
     /// The timestamp of when the transaction was created.
     ///
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`timestamp`](ProcessResponse200TransactionsItem::timestamp)."
+        )
+    )]
     pub timestamp: Option<crate::datetime::DateTime>,
     /// Tip included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `3`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_amount`](ProcessResponse200TransactionsItem::tip_amount)."
+        )
+    )]
     pub tip_amount: Option<f32>,
     /// SumUp transaction code, for example `TEENSK4W2K`. Use it to look up the transaction with the `transaction_code` query parameter. This is separate from the transaction's `id` and the card issuer's `auth_code`.
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_code`](ProcessResponse200TransactionsItem::transaction_code)."
+        )
+    )]
     pub transaction_code: Option<String>,
     /// VAT included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `6`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`vat_amount`](ProcessResponse200TransactionsItem::vat_amount)."
+        )
+    )]
     pub vat_amount: Option<f32>,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem {
     /// Unique identifier of the payment method.
     ///
     /// Example: `qr_code_pix`
+    #[builder(setter(
+        into,
+        doc = "Sets [`id`](ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem::id)."
+    ))]
     pub id: String,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListParams {
     /// Filters checkouts by the merchant-defined `checkout_reference` supplied when creating the checkout. This is separate from the SumUp-generated checkout `id`.
     ///
     /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`checkout_reference`](ListParams::checkout_reference)."
+        )
+    )]
     pub checkout_reference: Option<String>,
 }
 /// Returns a list of checkout resources.
 pub type ListResponse = Vec<CheckoutSuccess>;
 /// Details for creating a checkout resource.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateRequest {
     /// Amount to be charged to the payer, expressed in major units.
     ///
     /// Example: `10.1`
+    #[builder(setter(doc = "Sets [`amount`](CreateRequest::amount)."))]
     pub amount: f32,
     /// Merchant-defined reference for the new checkout, up to 64 characters. Use it to correlate the checkout with an order or payment attempt in your own system. If a checkout already exists for the supplied unique parameters, creation returns `409` with `DUPLICATED_CHECKOUT`; see the conflict response.
     ///
@@ -922,31 +1828,72 @@ pub struct CreateRequest {
     /// - max length: 64
     ///
     /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
+    #[builder(setter(
+        into,
+        doc = "Sets [`checkout_reference`](CreateRequest::checkout_reference)."
+    ))]
     pub checkout_reference: String,
+    #[builder(setter(doc = "Sets [`currency`](CreateRequest::currency)."))]
     pub currency: Currency,
     /// Merchant-scoped customer identifier. Required when setting up recurring payments and useful when the checkout should be linked to a returning payer.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`customer_id`](CreateRequest::customer_id)."
+        )
+    )]
     pub customer_id: Option<String>,
     /// Short merchant-defined description shown in SumUp tools and reporting for easier identification of the checkout.
     ///
     /// Example: `Purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](CreateRequest::description)."
+        )
+    )]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`hosted_checkout`](CreateRequest::hosted_checkout)."
+        )
+    )]
     pub hosted_checkout: Option<HostedCheckout>,
     /// Short unique identifier for the merchant that should receive the payment.
     ///
     /// Example: `MH4H92C7`
+    #[builder(setter(into, doc = "Sets [`merchant_code`](CreateRequest::merchant_code)."))]
     pub merchant_code: String,
     /// Business purpose of the checkout. Use `CHECKOUT` for a standard payment and `SETUP_RECURRING_PAYMENT` when collecting consent and payment details for future recurring charges.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`purpose`](CreateRequest::purpose).")
+    )]
     pub purpose: Option<CreateRequestPurpose>,
     /// URL where the payer should be sent after a redirect-based payment or SCA flow completes. This is required for [APMs](https://developer.sumup.com/online-payments/apm/introduction) and recommended for card checkouts that may require [3DS](https://developer.sumup.com/online-payments/features/3ds). If it is omitted, the [Payment Widget](https://developer.sumup.com/online-payments/checkouts) can render the challenge in an iframe instead of using a full-page redirect.
     ///
     /// Example: `https://mysite.com/completed_purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`redirect_url`](CreateRequest::redirect_url)."
+        )
+    )]
     pub redirect_url: Option<String>,
     /// Optional backend callback URL for checkout status notifications. SumUp sends an HTTP POST with `event_type` and the checkout `id`. Retrieve the checkout to verify its current status before updating your order. See the [webhook guide](https://developer.sumup.com/online-payments/webhooks/) for the payload and response requirements.
     ///
@@ -955,6 +1902,14 @@ pub struct CreateRequest {
     ///
     /// Example: `http://example.com/`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`return_url`](CreateRequest::return_url)."
+        )
+    )]
     pub return_url: Option<String>,
     /// Optional expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable. If omitted, the checkout does not have an explicit expiry time.
     ///
@@ -964,15 +1919,35 @@ pub struct CreateRequest {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`valid_until`](CreateRequest::valid_until)."
+        )
+    )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
 }
 /// Details for updating a checkout resource.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateRequest {
     /// Updated amount to be charged to the payer, expressed in major units.
     ///
     /// Example: `12.5`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`amount`](UpdateRequest::amount).")
+    )]
     pub amount: Option<f32>,
     /// Updated merchant-defined reference for the checkout.
     ///
@@ -981,18 +1956,46 @@ pub struct UpdateRequest {
     ///
     /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`checkout_reference`](UpdateRequest::checkout_reference)."
+        )
+    )]
     pub checkout_reference: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`currency`](UpdateRequest::currency).")
+    )]
     pub currency: Option<Currency>,
     /// Updated merchant-scoped customer identifier associated with the checkout.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`customer_id`](UpdateRequest::customer_id)."
+        )
+    )]
     pub customer_id: Option<String>,
     /// Updated short merchant-defined description shown in SumUp tools and reporting.
     ///
     /// Example: `Updated purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](UpdateRequest::description)."
+        )
+    )]
     pub description: Option<String>,
     /// Updated expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable.
     ///
@@ -1002,23 +2005,53 @@ pub struct UpdateRequest {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`valid_until`](UpdateRequest::valid_until)."
+        )
+    )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
 }
 /// Details of the payment instrument for processing the checkout.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ProcessRequest {
     /// Raw payment token object received from Apple Pay. Send the Apple Pay response payload as-is.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`apple_pay`](ProcessRequest::apple_pay).")
+    )]
     pub apple_pay: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`card`](ProcessRequest::card).")
+    )]
     pub card: Option<Card>,
     /// Customer identifier associated with the saved payment instrument. Required when `token` is provided.
     ///
     /// Example: `MEDKHDTI`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`customer_id`](ProcessRequest::customer_id)."
+        )
+    )]
     pub customer_id: Option<String>,
     /// Raw `PaymentData` object received from Google Pay. Send the Google Pay response payload as-is.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`google_pay`](ProcessRequest::google_pay).")
+    )]
     pub google_pay: Option<serde_json::Value>,
     /// Number of installments for deferred payments. Available only to merchant users in Brazil.
     ///
@@ -1028,28 +2061,64 @@ pub struct ProcessRequest {
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installments`](ProcessRequest::installments)."
+        )
+    )]
     pub installments: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`mandate`](ProcessRequest::mandate).")
+    )]
     pub mandate: Option<MandatePayload>,
     /// Payment method used for this processing attempt. It determines which additional request fields are required.
     ///
     /// Example: `card`
+    #[builder(setter(doc = "Sets [`payment_type`](ProcessRequest::payment_type)."))]
     pub payment_type: ProcessRequestPaymentType,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`personal_details`](ProcessRequest::personal_details)."
+        )
+    )]
     pub personal_details: Option<PersonalDetails>,
     /// Token of a saved payment instrument returned by checkout processing or the customer's payment-instruments endpoint. To charge a saved card, set `payment_type` to `card` and provide both this `token` and the associated `customer_id` instead of raw card details.
     ///
     /// Example: `ba85dfee-c3cf-48a6-84f5-d7d761fbba50`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`token`](ProcessRequest::token).")
+    )]
     pub token: Option<String>,
 }
 /// Returns the checkout resource after a processing attempt.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ProcessResponse200 {
     /// Amount to be charged to the payer, expressed in major units.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`amount`](ProcessResponse200::amount).")
+    )]
     pub amount: Option<f32>,
     /// Merchant-defined reference for the checkout. Use it to correlate the SumUp checkout with your own order, cart, subscription, or payment attempt in your systems.
     ///
@@ -1058,23 +2127,55 @@ pub struct ProcessResponse200 {
     ///
     /// Example: `f00a8f74-b05d-4605-bd73-2a901bae5802`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`checkout_reference`](ProcessResponse200::checkout_reference)."
+        )
+    )]
     pub checkout_reference: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`currency`](ProcessResponse200::currency).")
+    )]
     pub currency: Option<Currency>,
     /// Merchant-scoped identifier of the customer associated with the checkout. Use it when storing payment instruments or reusing saved customer context for recurring and returning-payer flows.
     ///
     /// Example: `831ff8d4cd5958ab5670`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`customer_id`](ProcessResponse200::customer_id)."
+        )
+    )]
     pub customer_id: Option<String>,
     /// The timestamp of when the checkout was created.
     ///
     /// Example: `2020-02-29T10:56:56+00:00`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`date`](ProcessResponse200::date).")
+    )]
     pub date: Option<crate::datetime::DateTime>,
     /// Short merchant-defined description shown in SumUp tools and reporting. Use it to make the checkout easier to recognize in dashboards, support workflows, and reconciliation.
     ///
     /// Example: `Purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](ProcessResponse200::description)."
+        )
+    )]
     pub description: Option<String>,
     /// URL of the SumUp-hosted payment page that handles the payment flow. Returned when Hosted Checkout is enabled for the checkout.
     ///
@@ -1084,6 +2185,14 @@ pub struct ProcessResponse200 {
     ///
     /// Example: `https://checkout.sumup.com/pay/8f9316a3-cda9-42a9-9771-54d534315676`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`hosted_checkout_url`](ProcessResponse200::hosted_checkout_url)."
+        )
+    )]
     pub hosted_checkout_url: Option<String>,
     /// Unique SumUp identifier of the checkout resource.
     ///
@@ -1092,26 +2201,65 @@ pub struct ProcessResponse200 {
     ///
     /// Example: `4e425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`id`](ProcessResponse200::id).")
+    )]
     pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`mandate`](ProcessResponse200::mandate).")
+    )]
     pub mandate: Option<MandateResponse>,
     /// Short unique identifier for the merchant that receives the payment.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](ProcessResponse200::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     /// Name of the merchant.
     ///
     /// Example: `Sample Merchant`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_name`](ProcessResponse200::merchant_name)."
+        )
+    )]
     pub merchant_name: Option<String>,
     /// Details of the saved payment instrument created or reused during checkout processing.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`payment_instrument`](ProcessResponse200::payment_instrument)."
+        )
+    )]
     pub payment_instrument: Option<ProcessResponse200PaymentInstrument>,
     /// URL where the payer is redirected after a redirect-based payment or SCA flow completes.
     ///
     /// Example: `https://mysite.com/completed_purchase`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`redirect_url`](ProcessResponse200::redirect_url)."
+        )
+    )]
     pub redirect_url: Option<String>,
     /// Optional backend callback URL for checkout status notifications. SumUp sends an HTTP POST with `event_type` and the checkout `id`. Retrieve the checkout to verify its current status before updating your order. See the [webhook guide](https://developer.sumup.com/online-payments/webhooks/) for the payload and response requirements.
     ///
@@ -1120,11 +2268,23 @@ pub struct ProcessResponse200 {
     ///
     /// Example: `http://example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`return_url`](ProcessResponse200::return_url)."
+        )
+    )]
     pub return_url: Option<String>,
     /// Current high-level state of the checkout. `PENDING` means the checkout exists but is not yet completed, `PAID` means a payment succeeded, `FAILED` means the latest processing attempt failed, and `EXPIRED` means the checkout can no longer be processed.
     ///
     /// Example: `PENDING`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](ProcessResponse200::status).")
+    )]
     pub status: Option<ProcessResponse200Status>,
     /// Transaction code of the successful transaction with which the payment for the checkout is completed.
     ///
@@ -1133,6 +2293,14 @@ pub struct ProcessResponse200 {
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_code`](ProcessResponse200::transaction_code)."
+        )
+    )]
     pub transaction_code: Option<String>,
     /// Unique identifier of the successful transaction that completed payment for the checkout.
     ///
@@ -1141,12 +2309,27 @@ pub struct ProcessResponse200 {
     ///
     /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_id`](ProcessResponse200::transaction_id)."
+        )
+    )]
     pub transaction_id: Option<String>,
     /// Payment attempts and resulting transaction records linked to this checkout. Use the Transactions endpoints when you need the authoritative payment result and event history.
     ///
     /// Constraints:
     /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`transactions`](ProcessResponse200::transactions)."
+        )
+    )]
     pub transactions: Option<Vec<ProcessResponse200TransactionsItem>>,
     /// Optional expiration timestamp. The checkout must be processed before this moment, otherwise it becomes unusable. If omitted, the checkout does not have an explicit expiry time.
     ///
@@ -1156,6 +2339,13 @@ pub struct ProcessResponse200 {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::nullable::deserialize"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`valid_until`](ProcessResponse200::valid_until)."
+        )
+    )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -1164,29 +2354,72 @@ pub enum ProcessResponse {
     Status200(ProcessResponse200),
     Status202(CheckoutAccepted),
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListAvailablePaymentMethodsParams {
     /// Payment amount in major units, for example `9.99` for EUR 9.99. When filtering by `amount`, also provide `currency`.
     ///
     /// Example: `9.99`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`amount`](ListAvailablePaymentMethodsParams::amount)."
+        )
+    )]
     pub amount: Option<f64>,
     /// Three-letter ISO 4217 currency code for which the payment methods should be eligible, for example `EUR`.
     ///
     /// Example: `EUR`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`currency`](ListAvailablePaymentMethodsParams::currency)."
+        )
+    )]
     pub currency: Option<String>,
 }
 /// Available payment methods
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListAvailablePaymentMethodsResponse {
     /// Payment methods available to the merchant for the checkout.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`available_payment_methods`](ListAvailablePaymentMethodsResponse::available_payment_methods)."
+        )
+    )]
     pub available_payment_methods:
         Option<Vec<ListAvailablePaymentMethodsResponseAvailablePaymentMethodsItem>>,
 }
 /// Merchant validation details from the Apple Pay session in the payer's browser.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateApplePaySessionRequest {
     /// Hostname of the website displaying the Apple Pay payment sheet, without a URL scheme or path. Use the domain registered for Apple Pay.
     ///
@@ -1194,6 +2427,7 @@ pub struct CreateApplePaySessionRequest {
     /// - format: `hostname`
     ///
     /// Example: `example.com`
+    #[builder(setter(into, doc = "Sets [`context`](CreateApplePaySessionRequest::context)."))]
     pub context: String,
     /// Apple Pay validation URL received as `validationURL` in the browser's `onvalidatemerchant` event.
     ///
@@ -1201,6 +2435,7 @@ pub struct CreateApplePaySessionRequest {
     /// - format: `uri`
     ///
     /// Example: `https://apple-pay-gateway-cert.apple.com/paymentservices/startSession`
+    #[builder(setter(into, doc = "Sets [`target`](CreateApplePaySessionRequest::target)."))]
     pub target: String,
 }
 /// Successful request. Returns the Apple Pay merchant session object

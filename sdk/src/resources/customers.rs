@@ -7,49 +7,106 @@
 //! Use the Customers endpoints to create, retrieve, or update customer details and to list or deactivate saved payment instruments. For subsequent payments, process a new checkout with the saved instrument's `token` and its associated `customer_id`.
 use super::common::*;
 /// Saved payer details identified by the `customer_id` supplied by your integration. A customer can have saved payment instruments for subsequent payments.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Customer {
     /// Identifier you supply when creating the customer. Use an ID from your own system and retain it for subsequent customer, checkout, and saved-payment-instrument requests.
     ///
     /// Example: `831ff8d4cd5958ab5670`
+    #[builder(setter(into, doc = "Sets [`customer_id`](Customer::customer_id)."))]
     pub customer_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`personal_details`](Customer::personal_details)."
+        )
+    )]
     pub personal_details: Option<PersonalDetails>,
 }
 /// Details of a customer validation error.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CustomerValidationError {
     /// Platform code for the error.
     ///
     /// Example: `INVALID`
+    #[builder(setter(
+        into,
+        doc = "Sets [`error_code`](CustomerValidationError::error_code)."
+    ))]
     pub error_code: String,
     /// Short description of the error.
     ///
     /// Example: `customer_id`
+    #[builder(setter(
+        into,
+        doc = "Sets [`error_message`](CustomerValidationError::error_message)."
+    ))]
     pub error_message: String,
     /// Unique identifier of this error occurrence.
     ///
     /// Example: `32a44c6c-85d3-49e8-86bf-a5bba98c4621`
+    #[builder(setter(into, doc = "Sets [`instance`](CustomerValidationError::instance)."))]
     pub instance: String,
 }
 /// Details of a saved payment instrument.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct PaymentInstrumentResponse {
     /// Indicates whether the payment instrument is active and can be used for payments. To deactivate it, send a `DELETE` request to the resource endpoint.
     ///
     /// Constraints:
     /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`active`](PaymentInstrumentResponse::active)."
+        )
+    )]
     pub active: Option<bool>,
     /// Details of the payment card.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`card`](PaymentInstrumentResponse::card).")
+    )]
     pub card: Option<PaymentInstrumentResponseCard>,
     /// The timestamp of when the payment instrument was created.
     ///
     /// Example: `2021-03-30T10:06:07.000+00:00`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`created_at`](PaymentInstrumentResponse::created_at)."
+        )
+    )]
     pub created_at: Option<crate::datetime::DateTime>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`mandate`](PaymentInstrumentResponse::mandate)."
+        )
+    )]
     pub mandate: Option<MandateResponse>,
     /// Token identifying the customer's saved payment card. Pass it as `token`, together with the associated `customer_id` and `payment_type = card`, when processing a checkout with this instrument.
     ///
@@ -58,16 +115,40 @@ pub struct PaymentInstrumentResponse {
     ///
     /// Example: `bcfc8e5f-3b47-4cb9-854b-3b7a4cce7be3`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`token`](PaymentInstrumentResponse::token)."
+        )
+    )]
     pub token: Option<String>,
     /// Type of the payment instrument.
     ///
     /// Example: `card`
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`r#type`](PaymentInstrumentResponse::r#type)."
+        )
+    )]
     pub r#type: Option<PaymentInstrumentResponseType>,
 }
 /// Details of the payment card.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct PaymentInstrumentResponseCard {
     /// Last 4 digits of the payment card number.
     ///
@@ -78,9 +159,24 @@ pub struct PaymentInstrumentResponseCard {
     ///
     /// Example: `3456`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`last_4_digits`](PaymentInstrumentResponseCard::last_4_digits)."
+        )
+    )]
     pub last_4_digits: Option<String>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`r#type`](PaymentInstrumentResponseCard::r#type)."
+        )
+    )]
     pub r#type: Option<CardType>,
 }
 /// Type of the payment instrument.
@@ -94,19 +190,46 @@ pub enum PaymentInstrumentResponseType {
     Other(String),
 }
 /// Details of the customer.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateRequest {
     /// Identifier you supply when creating the customer. Use an ID from your own system and retain it for subsequent customer, checkout, and saved-payment-instrument requests.
     ///
     /// Example: `831ff8d4cd5958ab5670`
+    #[builder(setter(into, doc = "Sets [`customer_id`](CreateRequest::customer_id)."))]
     pub customer_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`personal_details`](CreateRequest::personal_details)."
+        )
+    )]
     pub personal_details: Option<PersonalDetails>,
 }
 /// Customer fields to update.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`personal_details`](UpdateRequest::personal_details)."
+        )
+    )]
     pub personal_details: Option<PersonalDetails>,
 }
 /// Returns the list of saved payment instruments for the customer.

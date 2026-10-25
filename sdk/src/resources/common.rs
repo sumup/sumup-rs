@@ -1,46 +1,96 @@
 // The contents of this file are generated; do not modify them.
 
 /// Profile's personal address information.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct AddressLegacy {
     /// City name from the address.
     ///
     /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`city`](AddressLegacy::city).")
+    )]
     pub city: Option<String>,
     /// Two letter country code formatted according to [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
     ///
     /// Example: `DE`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`country`](AddressLegacy::country).")
+    )]
     pub country: Option<String>,
     /// First line of the address with details of the street name and number.
     ///
     /// Example: `Sample street`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`line_1`](AddressLegacy::line_1).")
+    )]
     pub line_1: Option<String>,
     /// Second line of the address with details of the building, unit, apartment, and floor numbers.
     ///
     /// Example: `ap. 5`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`line_2`](AddressLegacy::line_2).")
+    )]
     pub line_2: Option<String>,
     /// Postal code from the address.
     ///
     /// Example: `10115`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`postal_code`](AddressLegacy::postal_code)."
+        )
+    )]
     pub postal_code: Option<String>,
     /// State name or abbreviation from the address.
     ///
     /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`state`](AddressLegacy::state).")
+    )]
     pub state: Option<String>,
 }
 /// Object attributes that are modifiable only by SumUp applications.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Attributes {
     #[serde(
         flatten,
         default,
         skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    #[builder(
+        default,
+        setter(doc = "Sets [`additional_properties`](Attributes::additional_properties).")
     )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -189,17 +239,34 @@ pub enum EntryMode {
     Other(String),
 }
 /// Details of an API error.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Error {
     /// Platform code for the error.
     ///
     /// Example: `NOT_FOUND`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`error_code`](Error::error_code).")
+    )]
     pub error_code: Option<String>,
     /// Short description of the error.
     ///
     /// Example: `Resource not found`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`message`](Error::message).")
+    )]
     pub message: Option<String>,
 }
 impl std::fmt::Display for Error {
@@ -212,22 +279,47 @@ impl std::fmt::Display for Error {
 }
 impl std::error::Error for Error {}
 /// Error payload with the invalid parameter reference.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ErrorExtended {
     /// Platform code for the error.
     ///
     /// Example: `NOT_FOUND`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`error_code`](ErrorExtended::error_code)."
+        )
+    )]
     pub error_code: Option<String>,
     /// Short description of the error.
     ///
     /// Example: `Resource not found`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`message`](ErrorExtended::message).")
+    )]
     pub message: Option<String>,
     /// Parameter name (with relative location) to which the error applies. Parameters from embedded resources are displayed using dot notation. For example, `card.name` refers to the `name` parameter embedded in the `card` object.
     ///
     /// Example: `card.name`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`param`](ErrorExtended::param).")
+    )]
     pub param: Option<String>,
 }
 impl std::fmt::Display for ErrorExtended {
@@ -240,22 +332,55 @@ impl std::fmt::Display for ErrorExtended {
 }
 impl std::error::Error for ErrorExtended {}
 /// Details of an error returned for a forbidden request.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ErrorForbidden {
     /// Platform code for the error.
     ///
     /// Example: `FORBIDDEN`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`error_code`](ErrorForbidden::error_code)."
+        )
+    )]
     pub error_code: Option<String>,
     /// Short description of the error.
     ///
     /// Example: `request_not_allowed`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`error_message`](ErrorForbidden::error_message)."
+        )
+    )]
     pub error_message: Option<String>,
     /// HTTP status code for the error.
     ///
     /// Example: `403`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`status_code`](ErrorForbidden::status_code)."
+        )
+    )]
     pub status_code: Option<String>,
 }
 impl std::fmt::Display for ErrorForbidden {
@@ -265,7 +390,10 @@ impl std::fmt::Display for ErrorForbidden {
 }
 impl std::error::Error for ErrorForbidden {}
 /// Pending invitation for membership.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Invite {
     /// Email address of the invited user.
     ///
@@ -273,27 +401,54 @@ pub struct Invite {
     /// - format: `email`
     ///
     /// Example: `boaty.mcboatface@sumup.com`
+    #[builder(setter(into, doc = "Sets [`email`](Invite::email)."))]
     pub email: String,
+    #[builder(setter(doc = "Sets [`expires_at`](Invite::expires_at)."))]
     pub expires_at: crate::datetime::DateTime,
 }
 /// Details of the mandate linked to the saved payment instrument.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct MandateResponse {
     /// Short unique identifier for the merchant for which the mandate is valid.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](MandateResponse::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     /// Current lifecycle status of the mandate.
     ///
     /// Example: `active`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](MandateResponse::status).")
+    )]
     pub status: Option<MandateResponseStatus>,
     /// Type of mandate stored for the checkout or payment instrument.
     ///
     /// Example: `recurrent`
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`r#type`](MandateResponse::r#type).")
+    )]
     pub r#type: Option<String>,
 }
 /// The status of the membership.
@@ -316,12 +471,25 @@ pub enum MembershipStatus {
 ///
 /// Constraints:
 /// - max properties: 64
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Metadata {
     #[serde(
         flatten,
         default,
         skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    #[builder(
+        default,
+        setter(doc = "Sets [`additional_properties`](Metadata::additional_properties).")
     )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -356,34 +524,78 @@ pub enum PaymentType {
     Other(String),
 }
 /// Personal details for the customer.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct PersonalDetails {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`address`](PersonalDetails::address).")
+    )]
     pub address: Option<AddressLegacy>,
     /// Date of birth of the customer in `YYYY-MM-DD` format, without a time or timezone.
     ///
     /// Example: `1993-12-31`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`birth_date`](PersonalDetails::birth_date)."
+        )
+    )]
     pub birth_date: Option<crate::datetime::Date>,
     /// Email address of the customer.
     ///
     /// Example: `user@example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`email`](PersonalDetails::email).")
+    )]
     pub email: Option<String>,
     /// First name of the customer.
     ///
     /// Example: `John`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`first_name`](PersonalDetails::first_name)."
+        )
+    )]
     pub first_name: Option<String>,
     /// Last name of the customer.
     ///
     /// Example: `Doe`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`last_name`](PersonalDetails::last_name)."
+        )
+    )]
     pub last_name: Option<String>,
     /// Phone number of the customer.
     ///
     /// Example: `+491635559723`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`phone`](PersonalDetails::phone).")
+    )]
     pub phone: Option<String>,
     /// Identification number used for tax purposes, such as a CPF in Brazil.
     ///
@@ -392,17 +604,28 @@ pub struct PersonalDetails {
     ///
     /// Example: `423.378.593-47`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`tax_id`](PersonalDetails::tax_id).")
+    )]
     pub tax_id: Option<String>,
 }
 /// A RFC 9457 problem details object.
 ///
 /// Additional properties specific to the problem type may be present.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Problem {
     /// A human-readable explanation specific to this occurrence of the problem.
     ///
     /// Example: `The requested resource doesn't exist or does not belong to you.`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`detail`](Problem::detail).")
+    )]
     pub detail: Option<String>,
     /// A URI reference that identifies the specific occurrence of the problem.
     ///
@@ -411,16 +634,28 @@ pub struct Problem {
     ///
     /// Example: `https://api.sumup.com/v0.1/checkouts/4e425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`instance`](Problem::instance).")
+    )]
     pub instance: Option<String>,
     /// The HTTP status code generated by the origin server for this occurrence of the problem.
     ///
     /// Example: `404`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](Problem::status).")
+    )]
     pub status: Option<i64>,
     /// A short, human-readable summary of the problem type.
     ///
     /// Example: `Requested resource couldn't be found.`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`title`](Problem::title).")
+    )]
     pub title: Option<String>,
     /// A URI reference that identifies the problem type.
     ///
@@ -429,11 +664,16 @@ pub struct Problem {
     ///
     /// Example: `https://developer.sumup.com/problem/not-found`
     #[serde(rename = "type")]
+    #[builder(setter(into, doc = "Sets [`r#type`](Problem::r#type)."))]
     pub r#type: String,
     #[serde(
         flatten,
         default,
         skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    #[builder(
+        default,
+        setter(doc = "Sets [`additional_properties`](Problem::additional_properties).")
     )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -449,19 +689,40 @@ impl std::fmt::Display for Problem {
 }
 impl std::error::Error for Problem {}
 /// Core details shared by transaction resources.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct TransactionBase {
     /// Total amount of the transaction in major units of `currency`, for example `10.1` for EUR 10.10.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`amount`](TransactionBase::amount).")
+    )]
     pub amount: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`currency`](TransactionBase::currency).")
+    )]
     pub currency: Option<Currency>,
     /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`id`](TransactionBase::id).")
+    )]
     pub id: Option<String>,
     /// Number of installments for a deferred payment.
     ///
@@ -470,46 +731,122 @@ pub struct TransactionBase {
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installments_count`](TransactionBase::installments_count)."
+        )
+    )]
     pub installments_count: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`payment_type`](TransactionBase::payment_type)."
+        )
+    )]
     pub payment_type: Option<PaymentType>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](TransactionBase::status).")
+    )]
     pub status: Option<TransactionStatus>,
     /// The timestamp of when the transaction was created.
     ///
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`timestamp`](TransactionBase::timestamp).")
+    )]
     pub timestamp: Option<crate::datetime::DateTime>,
     /// SumUp transaction code, for example `TEENSK4W2K`. Use it to look up the transaction with the `transaction_code` query parameter. This is separate from the transaction's `id` and the card issuer's `auth_code`.
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_code`](TransactionBase::transaction_code)."
+        )
+    )]
     pub transaction_code: Option<String>,
 }
 /// Checkout-specific fields associated with a transaction.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct TransactionCheckoutInfo {
     /// Authorization code for the transaction sent by the payment card issuer or bank. Applicable only to card payments.
     ///
     /// Example: `053201`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`auth_code`](TransactionCheckoutInfo::auth_code)."
+        )
+    )]
     pub auth_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`entry_mode`](TransactionCheckoutInfo::entry_mode)."
+        )
+    )]
     pub entry_mode: Option<EntryMode>,
     /// Unique code of the registered merchant to whom the payment is made.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](TransactionCheckoutInfo::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     /// Tip included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `3`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`tip_amount`](TransactionCheckoutInfo::tip_amount)."
+        )
+    )]
     pub tip_amount: Option<f32>,
     /// VAT included in the total transaction amount, in major units of the transaction's currency.
     ///
     /// Example: `6`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`vat_amount`](TransactionCheckoutInfo::vat_amount)."
+        )
+    )]
     pub vat_amount: Option<f32>,
 }
 /// Numeric identifier of a transaction event. Use it as `tx_event_id` when requesting receipt details for a specific event. This is separate from the transaction ID and the transaction history pagination references.
