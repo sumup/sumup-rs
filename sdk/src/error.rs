@@ -11,10 +11,12 @@ pub enum SdkError<E = UnknownApiBody> {
     InvalidRequest(String),
     /// Errors originating from the underlying HTTP client (network, TLS, etc.).
     Network(reqwest::Error),
+    /// An HTTP response arrived, but its body could not be read.
+    Response(Box<ResponseError>),
     /// The server returned an API response with an expected error payload.
-    Api(E),
+    Api(Box<ApiErrorResponse<E>>),
     /// The server returned an unexpected status or payload.
-    Unexpected(reqwest::StatusCode, UnknownApiBody),
+    Unexpected(Box<ApiErrorResponse<UnknownApiBody>>),
 }
 
 impl<E> SdkError<E> {
@@ -23,29 +25,75 @@ impl<E> SdkError<E> {
         Self::Network(error)
     }
 
-    /// Creates a new API error using the supplied body payload.
-    pub fn api(body: E) -> Self {
-        Self::Api(body)
+    /// Reads an API error while retaining its HTTP response context.
+    #[doc(hidden)]
+    pub async fn from_response(
+        response: reqwest::Response,
+        decode: impl FnOnce(&[u8]) -> Result<E, serde_json::Error>,
+    ) -> Self {
+        let status = response.status();
+        let headers = response.headers().clone();
+        let raw_body = match response.bytes().await {
+            Ok(bytes) => bytes.to_vec(),
+            Err(source) => {
+                return Self::Response(Box::new(ResponseError {
+                    status,
+                    headers,
+                    source,
+                }));
+            }
+        };
+        match decode(&raw_body) {
+            Ok(body) => Self::Api(Box::new(ApiErrorResponse {
+                status,
+                headers,
+                body,
+                raw_body,
+            })),
+            Err(_) => Self::Unexpected(Box::new(ApiErrorResponse {
+                status,
+                headers,
+                body: UnknownApiBody::from_bytes(&raw_body),
+                raw_body,
+            })),
+        }
     }
 
-    /// Creates an unexpected API error preserving the raw payload.
-    pub fn unexpected(status: reqwest::StatusCode, body: UnknownApiBody) -> Self {
-        Self::Unexpected(status, body)
+    /// Reads an unrecognized API response without losing its status or payload.
+    #[doc(hidden)]
+    pub async fn unexpected_response(response: reqwest::Response) -> Self {
+        let status = response.status();
+        let headers = response.headers().clone();
+        match response.bytes().await {
+            Ok(bytes) => Self::Unexpected(Box::new(ApiErrorResponse {
+                status,
+                headers,
+                body: UnknownApiBody::from_bytes(&bytes),
+                raw_body: bytes.to_vec(),
+            })),
+            Err(source) => Self::Response(Box::new(ResponseError {
+                status,
+                headers,
+                source,
+            })),
+        }
     }
 
     /// Returns the HTTP status code associated with this error when available.
     pub fn status(&self) -> Option<reqwest::StatusCode> {
         match self {
             Self::Network(err) => err.status(),
-            Self::Unexpected(status, _) => Some(*status),
-            Self::Api(_) | Self::InvalidRequest(_) => None,
+            Self::Response(error) => Some(error.status),
+            Self::Unexpected(response) => Some(response.status),
+            Self::Api(response) => Some(response.status),
+            Self::InvalidRequest(_) => None,
         }
     }
 
     /// Returns the captured error body when the server responded with an expected error payload.
     pub fn body(&self) -> Option<&E> {
         match self {
-            Self::Api(body) => Some(body),
+            Self::Api(response) => Some(&response.body),
             _ => None,
         }
     }
@@ -53,7 +101,7 @@ impl<E> SdkError<E> {
     /// Returns the captured unexpected body, when available.
     pub fn unexpected_body(&self) -> Option<&UnknownApiBody> {
         match self {
-            Self::Unexpected(_, body) => Some(body),
+            Self::Unexpected(response) => Some(&response.body),
             _ => None,
         }
     }
@@ -61,7 +109,25 @@ impl<E> SdkError<E> {
     /// Consumes the error, yielding the captured API body when available.
     pub fn into_body(self) -> Option<E> {
         match self {
-            Self::Api(body) => Some(body),
+            Self::Api(response) => Some(response.body),
+            _ => None,
+        }
+    }
+    /// Returns the response headers for an API failure.
+    pub fn headers(&self) -> Option<&reqwest::header::HeaderMap> {
+        match self {
+            Self::Response(error) => Some(&error.headers),
+            Self::Api(response) => Some(&response.headers),
+            Self::Unexpected(response) => Some(&response.headers),
+            _ => None,
+        }
+    }
+
+    /// Returns the original response bytes for an API failure.
+    pub fn raw_body(&self) -> Option<&[u8]> {
+        match self {
+            Self::Api(response) => Some(&response.raw_body),
+            Self::Unexpected(response) => Some(&response.raw_body),
             _ => None,
         }
     }
@@ -81,9 +147,18 @@ where
         match self {
             Self::InvalidRequest(reason) => write!(f, "invalid request: {reason}"),
             Self::Network(err) => write!(f, "network error: {}", err),
-            Self::Api(body) => write!(f, "API error: {:?}", body),
-            Self::Unexpected(status, body) => {
-                write!(f, "unexpected API error ({}): {}", status, body)
+            Self::Response(error) => {
+                write!(f, "response error ({}): {}", error.status, error.source)
+            }
+            Self::Api(response) => {
+                write!(f, "API error ({}): {:?}", response.status, response.body)
+            }
+            Self::Unexpected(response) => {
+                write!(
+                    f,
+                    "unexpected API error ({}): {}",
+                    response.status, response.body
+                )
             }
         }
     }
@@ -96,6 +171,40 @@ where
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Network(err) => Some(err),
+            Self::Response(error) => Some(&error.source),
+            _ => None,
+        }
+    }
+}
+
+/// An HTTP response whose body could not be read.
+#[derive(Debug)]
+pub struct ResponseError {
+    pub status: reqwest::StatusCode,
+    pub headers: reqwest::header::HeaderMap,
+    pub source: reqwest::Error,
+}
+
+/// An API response with typed error details and its original HTTP context.
+#[derive(Debug)]
+pub struct ApiErrorResponse<E> {
+    pub status: reqwest::StatusCode,
+    pub headers: reqwest::header::HeaderMap,
+    pub body: E,
+    pub raw_body: Vec<u8>,
+}
+
+/// Provides typed Problem details for generated error bodies.
+pub trait ProblemDetails {
+    fn problem(&self) -> Option<&crate::resources::common::Problem>;
+}
+
+impl<E: ProblemDetails> SdkError<E> {
+    /// Returns typed Problem details when this API failure contains them.
+    pub fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Api(response) => response.body.problem(),
+            Self::Unexpected(response) => response.body.problem(),
             _ => None,
         }
     }
@@ -105,6 +214,8 @@ where
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum UnknownApiBody {
+    /// A Problem response received outside the documented error cases.
+    Problem(crate::resources::common::Problem),
     /// JSON payload when the body was valid JSON but schema is unknown.
     Json(serde_json::Value),
     /// Plain text fallback.
@@ -120,6 +231,9 @@ impl UnknownApiBody {
             return Self::Empty;
         }
 
+        if let Ok(problem) = serde_json::from_slice::<crate::resources::common::Problem>(bytes) {
+            return Self::Problem(problem);
+        }
         if let Ok(json) = serde_json::from_slice(bytes) {
             Self::Json(json)
         } else if let Ok(text) = std::str::from_utf8(bytes) {
@@ -135,9 +249,19 @@ impl UnknownApiBody {
     }
 }
 
+impl ProblemDetails for UnknownApiBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Problem(problem) => Some(problem),
+            _ => None,
+        }
+    }
+}
+
 impl std::fmt::Display for UnknownApiBody {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Problem(problem) => write!(f, "{}", problem),
             Self::Json(value) => write!(f, "{}", value),
             Self::Text(text) => write!(f, "{}", text),
             Self::Empty => write!(f, "<empty>"),

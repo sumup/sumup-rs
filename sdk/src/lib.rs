@@ -129,32 +129,24 @@
 //!
 //! ## Error Handling
 //!
-//! All SDK calls return a [`SdkResult`] whose error side is a [`SdkError`]. When the
-//! SumUp API responds with a non-success status, the SDK builds an
-//! `SdkError::Api` containing an endpoint-specific payload (e.g. a `Unauthorized`
-//! enum variant). Any undocumented status codes fall back to
-//! `SdkError::Unexpected`, which preserves the HTTP status and best-effort body
-//! parsing. Requests rejected by local validation return `SdkError::InvalidRequest`.
-//! You can inspect failures like this:
+//! Failed calls return a [`SdkError`]. Use `problem()` to read typed Problem details
+//! when the API provides them:
 //!
 //! ```no_run
-//! # use sumup::{Client, error::SdkError};
-//! # use sumup::resources::checkouts::ListErrorBody;
+//! # use sumup::Client;
 //! # async fn example() {
 //! let client = Client::default();
-//! match client.checkouts().list(Default::default()).await {
-//!     Ok(checkouts) => println!("retrieved {} checkouts", checkouts.len()),
-//!     Err(SdkError::Api(body)) => match body {
-//!         ListErrorBody::Unauthorized(details) => eprintln!("unauthorized: {:?}", details),
-//!     },
-//!     Err(SdkError::Unexpected(status, body)) => {
-//!         eprintln!("unexpected {} response: {}", status, body);
+//! if let Err(error) = client.checkouts().get("your-checkout-id").await {
+//!     if let Some(problem) = error.problem() {
+//!         eprintln!("{}: {}", problem.r#type, problem.detail.as_deref().unwrap_or("Request failed"));
 //!     }
-//!     Err(SdkError::Network(err)) => panic!("network error: {}", err),
-//!     Err(SdkError::InvalidRequest(reason)) => eprintln!("invalid request: {}", reason),
+//!     eprintln!("{error}");
 //! }
 //! # }
 //! ```
+//!
+//! Use [`SdkError::status`], [`SdkError::headers`], and [`SdkError::raw_body`]
+//! to inspect the HTTP response. [`SdkError::body`] provides other typed error details.
 //!
 //! ## Features
 //!
@@ -194,7 +186,9 @@ pub mod resources;
 pub use crate::resources::*;
 pub use auth::Authorization;
 pub use client::Client;
-pub use error::{SdkError, SdkResult, UnknownApiBody};
+pub use error::{
+    ApiErrorResponse, ProblemDetails, ResponseError, SdkError, SdkResult, UnknownApiBody,
+};
 pub use nullable::Nullable;
 pub use secret::Secret;
 pub use version::VERSION;

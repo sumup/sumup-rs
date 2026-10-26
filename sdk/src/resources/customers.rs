@@ -119,11 +119,28 @@ pub enum CreateErrorBody {
     Forbidden(ErrorForbidden),
     Conflict(Error),
 }
+impl crate::error::ProblemDetails for CreateErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(body) => crate::error::ProblemDetails::problem(body),
+            Self::Unauthorized(problem) => Some(problem),
+            _ => None,
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
+}
+impl crate::error::ProblemDetails for GetErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+            _ => None,
+        }
+    }
 }
 #[derive(Debug, PartialEq)]
 pub enum UpdateErrorBody {
@@ -131,11 +148,27 @@ pub enum UpdateErrorBody {
     Forbidden(ErrorForbidden),
     NotFound(Error),
 }
+impl crate::error::ProblemDetails for UpdateErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+            _ => None,
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum ListPaymentInstrumentsErrorBody {
     Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
+}
+impl crate::error::ProblemDetails for ListPaymentInstrumentsErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+            _ => None,
+        }
+    }
 }
 #[derive(Debug, PartialEq)]
 pub enum DeactivatePaymentInstrumentErrorBody {
@@ -143,6 +176,14 @@ pub enum DeactivatePaymentInstrumentErrorBody {
     Unauthorized(Problem),
     Forbidden(ErrorForbidden),
     NotFound(Error),
+}
+impl crate::error::ProblemDetails for DeactivatePaymentInstrumentErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+            _ => None,
+        }
+    }
 }
 /// Client for the Customers API endpoints.
 #[derive(Debug)]
@@ -194,33 +235,32 @@ impl<'a> CustomersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::api(CreateErrorBody::BadRequest(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    Ok(CreateErrorBody::BadRequest(
+                        crate::error::UnknownApiBody::from_bytes(raw),
+                    ))
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::Unauthorized(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::Forbidden(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<ErrorForbidden>(raw).map(CreateErrorBody::Forbidden)
+                })
+                .await)
             }
             reqwest::StatusCode::CONFLICT => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::Conflict(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw).map(CreateErrorBody::Conflict)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Retrieve a customer
@@ -258,24 +298,24 @@ impl<'a> CustomersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::Forbidden(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<ErrorForbidden>(raw).map(GetErrorBody::Forbidden)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw).map(GetErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Update a customer
@@ -317,26 +357,24 @@ impl<'a> CustomersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(UpdateErrorBody::Unauthorized(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(UpdateErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api(UpdateErrorBody::Forbidden(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<ErrorForbidden>(raw).map(UpdateErrorBody::Forbidden)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(UpdateErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw).map(UpdateErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// List payment instruments
@@ -378,28 +416,27 @@ impl<'a> CustomersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListPaymentInstrumentsErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(ListPaymentInstrumentsErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListPaymentInstrumentsErrorBody::Forbidden(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<ErrorForbidden>(raw)
+                        .map(ListPaymentInstrumentsErrorBody::Forbidden)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    ListPaymentInstrumentsErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw)
+                        .map(ListPaymentInstrumentsErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Deactivate a payment instrument
@@ -440,34 +477,34 @@ impl<'a> CustomersClient<'a> {
         match status {
             reqwest::StatusCode::NO_CONTENT => Ok(()),
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    DeactivatePaymentInstrumentErrorBody::BadRequest(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw)
+                        .map(DeactivatePaymentInstrumentErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    DeactivatePaymentInstrumentErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(DeactivatePaymentInstrumentErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let body: ErrorForbidden = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    DeactivatePaymentInstrumentErrorBody::Forbidden(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<ErrorForbidden>(raw)
+                        .map(DeactivatePaymentInstrumentErrorBody::Forbidden)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    DeactivatePaymentInstrumentErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw)
+                        .map(DeactivatePaymentInstrumentErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
 }

@@ -429,6 +429,14 @@ pub enum GetErrorBody {
     Unauthorized(Problem),
     NotFound(Error),
 }
+impl crate::error::ProblemDetails for GetErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+            _ => None,
+        }
+    }
+}
 /// Client for the Receipts API endpoints.
 #[derive(Debug)]
 pub struct ReceiptsClient<'a> {
@@ -482,24 +490,24 @@ impl<'a> ReceiptsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::BadRequest(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw).map(GetErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw).map(GetErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
 }

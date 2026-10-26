@@ -975,15 +975,42 @@ pub enum RefundErrorBody {
     Conflict(Problem),
     UnprocessableEntity(Problem),
 }
+impl crate::error::ProblemDetails for RefundErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::Forbidden(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+            Self::Conflict(problem) => Some(problem),
+            Self::UnprocessableEntity(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     Unauthorized(Problem),
     NotFound(Error),
 }
+impl crate::error::ProblemDetails for GetErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+            _ => None,
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
     BadRequest(Error),
     Unauthorized(Problem),
+}
+impl crate::error::ProblemDetails for ListErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+            _ => None,
+        }
+    }
 }
 /// Client for the Transactions API endpoints.
 #[derive(Debug)]
@@ -1046,36 +1073,36 @@ impl<'a> TransactionsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(RefundErrorBody::BadRequest(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(RefundErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(RefundErrorBody::Forbidden(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(RefundErrorBody::Forbidden)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(RefundErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(RefundErrorBody::NotFound)
+                })
+                .await)
             }
             reqwest::StatusCode::CONFLICT => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(RefundErrorBody::Conflict(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(RefundErrorBody::Conflict)
+                })
+                .await)
             }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    RefundErrorBody::UnprocessableEntity(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(RefundErrorBody::UnprocessableEntity)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Retrieve a transaction
@@ -1129,20 +1156,18 @@ impl<'a> TransactionsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::Unauthorized(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw).map(GetErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// List transactions
@@ -1224,20 +1249,18 @@ impl<'a> TransactionsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Error = response.json().await?;
-                Err(crate::error::SdkError::api(ListErrorBody::BadRequest(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Error>(raw).map(ListErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(ListErrorBody::Unauthorized)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
 }

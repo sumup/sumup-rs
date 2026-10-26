@@ -343,11 +343,7 @@ where
     let status = response.status();
     match status {
         reqwest::StatusCode::OK => response.json().await.map_err(Into::into),
-        _ => {
-            let body_bytes = response.bytes().await?;
-            let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-            Err(crate::error::SdkError::unexpected(status, body))
-        }
+        _ => Err(crate::error::SdkError::unexpected_response(response).await),
     }
 }
 
@@ -1032,7 +1028,7 @@ mod tests {
             .await
             .expect_err("return SDK error");
 
-        assert!(matches!(error, crate::error::SdkError::Unexpected(_, _)));
+        assert!(matches!(error, crate::error::SdkError::Unexpected(_)));
         assert_eq!(error.status(), Some(reqwest::StatusCode::NOT_FOUND));
         assert_eq!(
             error.unexpected_body(),

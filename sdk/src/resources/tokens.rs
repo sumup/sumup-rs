@@ -60,6 +60,15 @@ pub enum CreateErrorBody {
     Unauthorized(Problem),
     Forbidden(Problem),
 }
+impl crate::error::ProblemDetails for CreateErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::Unauthorized(problem) => Some(problem),
+            Self::Forbidden(problem) => Some(problem),
+        }
+    }
+}
 /// Client for the Tokens API endpoints.
 #[derive(Debug)]
 pub struct TokensClient<'a> {
@@ -115,28 +124,24 @@ impl<'a> TokensClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::BadRequest(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::Unauthorized(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::Forbidden(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateErrorBody::Forbidden)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
 }

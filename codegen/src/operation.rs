@@ -709,6 +709,7 @@ fn generate_error_handling(
     let enum_ident = Ident::new(&enum_name, Span::call_site());
 
     let mut variant_defs = Vec::new();
+    let mut problem_arms = Vec::new();
     let mut seen_variants: Vec<String> = Vec::new();
     let mut match_arms = Vec::new();
 
@@ -722,9 +723,16 @@ fn generate_error_handling(
             match &body_kind {
                 BodyKind::Schema(ident) => {
                     variant_defs.push(quote! { #variant_ident(#ident), });
+                    if ident == "Problem" {
+                        problem_arms
+                            .push(quote! { Self::#variant_ident(problem) => Some(problem), });
+                    }
                 }
                 BodyKind::Unknown => {
                     variant_defs.push(quote! { #variant_ident(crate::error::UnknownApiBody), });
+                    problem_arms.push(quote! {
+                        Self::#variant_ident(body) => crate::error::ProblemDetails::problem(body),
+                    });
                 }
                 BodyKind::Empty => {
                     variant_defs.push(quote! { #variant_ident, });
@@ -737,34 +745,48 @@ fn generate_error_handling(
             BodyKind::Schema(ident) => {
                 match_arms.push(quote! {
                     #status_const => {
-                        let body: #ident = response.json().await?;
-                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident(body)))
+                        Err(crate::error::SdkError::from_response(response, |raw| {
+                            serde_json::from_slice::<#ident>(raw).map(#enum_ident::#variant_ident)
+                        }).await)
                     }
                 });
             }
             BodyKind::Unknown => {
                 match_arms.push(quote! {
                     #status_const => {
-                        let body_bytes = response.bytes().await?;
-                        let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident(body)))
+                        Err(crate::error::SdkError::from_response(response, |raw| {
+                            Ok(#enum_ident::#variant_ident(crate::error::UnknownApiBody::from_bytes(raw)))
+                        }).await)
                     }
                 });
             }
             BodyKind::Empty => {
                 match_arms.push(quote! {
                     #status_const => {
-                        Err(crate::error::SdkError::api(#enum_ident::#variant_ident))
+                        Err(crate::error::SdkError::from_response(response, |_| Ok(#enum_ident::#variant_ident)).await)
                     }
                 });
             }
         }
     }
 
+    let problem_body = if problem_arms.is_empty() {
+        quote! { None }
+    } else if problem_arms.len() == variant_defs.len() {
+        quote! { match self { #(#problem_arms)* } }
+    } else {
+        quote! { match self { #(#problem_arms)* _ => None } }
+    };
+
     let body_definition = Some(quote! {
         #[derive(Debug, PartialEq)]
         pub enum #enum_ident {
             #(#variant_defs)*
+        }
+        impl crate::error::ProblemDetails for #enum_ident {
+            fn problem(&self) -> Option<&crate::resources::common::Problem> {
+                #problem_body
+            }
         }
     });
 
@@ -866,9 +888,7 @@ fn generate_no_success_response_handling(
             match status {
                 #(#error_arms)*
                 _ => {
-                    let body_bytes = response.bytes().await?;
-                    let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                    Err(crate::error::SdkError::unexpected(status, body))
+                    Err(crate::error::SdkError::unexpected_response(response).await)
                 }
             }
         }
@@ -907,9 +927,7 @@ fn generate_single_response_handling(
                 }
                 #(#error_arms)*
                 _ => {
-                    let body_bytes = response.bytes().await?;
-                    let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                    Err(crate::error::SdkError::unexpected(status, body))
+                    Err(crate::error::SdkError::unexpected_response(response).await)
                 }
             }
         })
@@ -920,9 +938,7 @@ fn generate_single_response_handling(
                 #status_const => Ok(()),
                 #(#error_arms)*
                 _ => {
-                    let body_bytes = response.bytes().await?;
-                    let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                    Err(crate::error::SdkError::unexpected(status, body))
+                    Err(crate::error::SdkError::unexpected_response(response).await)
                 }
             }
         })
@@ -1023,9 +1039,7 @@ fn generate_multi_response_handling(
             #(#match_arms)*
             #(#error_arms)*
             _ => {
-                let body = response.text().await?;
-                let body = crate::error::UnknownApiBody::from_text(body);
-                Err(crate::error::SdkError::unexpected(status, body))
+                Err(crate::error::SdkError::unexpected_response(response).await)
             }
         }
     })
