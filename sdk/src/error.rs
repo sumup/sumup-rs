@@ -11,6 +11,8 @@ pub enum SdkError<E = UnknownApiBody> {
     InvalidRequest(String),
     /// Errors originating from the underlying HTTP client (network, TLS, etc.).
     Network(reqwest::Error),
+    /// An HTTP response arrived, but its body could not be read.
+    Response(Box<ResponseError>),
     /// The server returned an API response with an expected error payload.
     Api(Box<ApiErrorResponse<E>>),
     /// The server returned an unexpected status or payload.
@@ -33,7 +35,13 @@ impl<E> SdkError<E> {
         let headers = response.headers().clone();
         let raw_body = match response.bytes().await {
             Ok(bytes) => bytes.to_vec(),
-            Err(error) => return Self::Network(error),
+            Err(source) => {
+                return Self::Response(Box::new(ResponseError {
+                    status,
+                    headers,
+                    source,
+                }));
+            }
         };
         match decode(&raw_body) {
             Ok(body) => Self::Api(Box::new(ApiErrorResponse {
@@ -63,7 +71,11 @@ impl<E> SdkError<E> {
                 body: UnknownApiBody::from_bytes(&bytes),
                 raw_body: bytes.to_vec(),
             })),
-            Err(error) => Self::Network(error),
+            Err(source) => Self::Response(Box::new(ResponseError {
+                status,
+                headers,
+                source,
+            })),
         }
     }
 
@@ -71,6 +83,7 @@ impl<E> SdkError<E> {
     pub fn status(&self) -> Option<reqwest::StatusCode> {
         match self {
             Self::Network(err) => err.status(),
+            Self::Response(error) => Some(error.status),
             Self::Unexpected(response) => Some(response.status),
             Self::Api(response) => Some(response.status),
             Self::InvalidRequest(_) => None,
@@ -103,6 +116,7 @@ impl<E> SdkError<E> {
     /// Returns the response headers for an API failure.
     pub fn headers(&self) -> Option<&reqwest::header::HeaderMap> {
         match self {
+            Self::Response(error) => Some(&error.headers),
             Self::Api(response) => Some(&response.headers),
             Self::Unexpected(response) => Some(&response.headers),
             _ => None,
@@ -133,6 +147,9 @@ where
         match self {
             Self::InvalidRequest(reason) => write!(f, "invalid request: {reason}"),
             Self::Network(err) => write!(f, "network error: {}", err),
+            Self::Response(error) => {
+                write!(f, "response error ({}): {}", error.status, error.source)
+            }
             Self::Api(response) => {
                 write!(f, "API error ({}): {:?}", response.status, response.body)
             }
@@ -154,9 +171,18 @@ where
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Network(err) => Some(err),
+            Self::Response(error) => Some(&error.source),
             _ => None,
         }
     }
+}
+
+/// An HTTP response whose body could not be read.
+#[derive(Debug)]
+pub struct ResponseError {
+    pub status: reqwest::StatusCode,
+    pub headers: reqwest::header::HeaderMap,
+    pub source: reqwest::Error,
 }
 
 /// An API response with typed error details and its original HTTP context.

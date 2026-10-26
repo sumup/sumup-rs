@@ -62,3 +62,41 @@ async fn undocumented_problem_has_typed_details() {
         Some("Unavailable")
     );
 }
+
+#[tokio::test]
+async fn interrupted_error_bodies_preserve_http_context() {
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+    for status in [401, 502] {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut stream = BufReader::new(stream);
+            loop {
+                let mut line = String::new();
+                assert!(stream.read_line(&mut line).await.unwrap() > 0);
+                if line == "\r\n" {
+                    break;
+                }
+            }
+            // The declared body length is deliberately larger than the bytes sent.
+            let response = format!(
+                "HTTP/1.1 {status} Error\r\nContent-Length: 100\r\nRetry-After: 7\r\nConnection: close\r\n\r\nbad"
+            );
+            stream
+                .get_mut()
+                .write_all(response.as_bytes())
+                .await
+                .unwrap();
+        });
+        let client = Client::new().with_base_url(format!("http://{address}"));
+        let error = client.checkouts().get("checkout").await.unwrap_err();
+        server.await.unwrap();
+        assert_eq!(error.status().unwrap().as_u16(), status);
+        assert_eq!(error.headers().unwrap()["retry-after"], "7");
+        assert!(matches!(error, sumup::SdkError::Response(_)));
+        assert!(std::error::Error::source(&error).is_some());
+        assert!(error.problem().is_none());
+        assert!(error.raw_body().is_none());
+    }
+}

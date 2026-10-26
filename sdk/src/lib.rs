@@ -150,6 +150,7 @@
 //!     Err(SdkError::Unexpected(response)) => {
 //!         eprintln!("unexpected {} response: {}", response.status, response.body);
 //!     }
+//!     Err(SdkError::Response(err)) => eprintln!("could not read response ({}): {}", err.status, err.source),
 //!     Err(SdkError::Network(err)) => panic!("network error: {}", err),
 //!     Err(SdkError::InvalidRequest(reason)) => eprintln!("invalid request: {}", reason),
 //! }
@@ -194,7 +195,9 @@ pub mod resources;
 pub use crate::resources::*;
 pub use auth::Authorization;
 pub use client::Client;
-pub use error::{ApiErrorResponse, ProblemDetails, SdkError, SdkResult, UnknownApiBody};
+pub use error::{
+    ApiErrorResponse, ProblemDetails, ResponseError, SdkError, SdkResult, UnknownApiBody,
+};
 pub use nullable::Nullable;
 pub use secret::Secret;
 pub use version::VERSION;
