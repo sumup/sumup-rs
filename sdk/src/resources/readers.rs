@@ -38,15 +38,15 @@ pub struct Amount {
     /// Example: `1000`
     pub value: i64,
 }
-/// Reader Checkout
+/// Payment details for a Reader Checkout.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequest {
     /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
     /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aade: Option<CreateReaderCheckoutRequestAade>,
-    /// Affiliate metadata for the transaction.
-    /// It is a field that allow for integrators to track the source of the transaction.
+    /// Optional affiliate metadata associated with the checkout's payment.
+    /// Provide both `app_id` and `key` when including this object.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -54,7 +54,7 @@ pub struct CreateReaderCheckoutRequest {
     )]
     pub affiliate: Option<crate::Nullable<CreateReaderCheckoutRequestAffiliate>>,
     /// The card type of the card used for the transaction.
-    /// Is is required only for some countries (e.g: Brazil).
+    /// It is required only for some countries (e.g: Brazil).
     ///
     /// Example: `credit`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,7 +66,7 @@ pub struct CreateReaderCheckoutRequest {
     /// It may vary according to the merchant country.
     /// For example, in Brazil, the maximum number of installments is 12.
     ///
-    /// Omit if the merchant country does support installments.
+    /// Omit if the merchant country does not support installments.
     /// Otherwise, the checkout will be rejected.
     ///
     /// Constraints:
@@ -79,6 +79,14 @@ pub struct CreateReaderCheckoutRequest {
         deserialize_with = "crate::nullable::deserialize"
     )]
     pub installments: Option<crate::Nullable<i64>>,
+    /// The payment method type for the transaction. Defaults to `card`.
+    ///
+    /// Use `pix` to initiate a Pix QR-code payment flow on the device.
+    /// Pix is only supported for Brazilian merchants; other merchants will receive a 422 error.
+    ///
+    /// Example: `card`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_type: Option<CreateReaderCheckoutRequestPaymentType>,
     /// Webhook URL to which the payment result will be sent.
     /// It must be a HTTPS url.
     ///
@@ -88,9 +96,14 @@ pub struct CreateReaderCheckoutRequest {
     /// Example: `https://www.example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
-    /// List of tipping rates to be displayed to the cardholder.
-    /// The rates are in percentage and should be between 0.01 and 0.99.
-    /// The list should be sorted in ascending order.
+    /// Exactly three distinct tipping rates to be displayed to the cardholder.
+    /// Each rate is a fraction between 0.01 and 1.00 in increments of 0.01.
+    /// The rates are sorted in ascending order by the server.
+    ///
+    /// Constraints:
+    /// - min items: 3
+    /// - max items: 3
+    /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_rates: Option<Vec<f32>>,
     /// Time in seconds the cardholder has to select a tip rate.
@@ -121,6 +134,11 @@ pub struct CreateReaderCheckoutResponse {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GetReaderCheckoutResponse {
     pub data: GetReaderCheckoutResponseData,
+}
+/// Menu lock settings reported by the reader, or the last saved settings when offline.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct GetReaderSettingsResponse {
+    pub data: GetReaderSettingsResponseData,
 }
 /// A physical card reader device that can accept in-person payments.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -244,6 +262,20 @@ pub enum ReaderStatus {
 pub struct StatusResponse {
     pub data: StatusResponseData,
 }
+/// Menu lock settings to update for a Solo reader.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct UpdateReaderSettingsRequest {
+    /// Menu lock configuration. Provide at least one of `enabled` or `passcode`.
+    ///
+    /// Constraints:
+    /// - min properties: 1
+    pub menu_lock: UpdateReaderSettingsRequestMenuLock,
+}
+/// Menu lock settings applied to the reader.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct UpdateReaderSettingsResponse {
+    pub data: UpdateReaderSettingsResponseData,
+}
 /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
 /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -261,8 +293,7 @@ pub struct CreateReaderCheckoutRequestAade {
     /// Example: `B71D7A555072E3EE4D2FD3F457A29115830E6CBA;;20251112214713;796;104;900;900;54889039`
     pub signature_data: String,
 }
-/// Additional metadata for the transaction.
-/// It is key-value object that can be associated with the transaction.
+/// Optional key-value metadata associated with the transaction.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequestAffiliateTags {
     #[serde(
@@ -272,33 +303,32 @@ pub struct CreateReaderCheckoutRequestAffiliateTags {
     )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
-/// Affiliate metadata for the transaction.
-/// It is a field that allow for integrators to track the source of the transaction.
+/// Optional affiliate metadata associated with the checkout's payment.
+/// Provide both `app_id` and `key` when including this object.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateReaderCheckoutRequestAffiliate {
-    /// Application ID of the affiliate.
-    /// It is a unique identifier for the application and should be set by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Integrator application identifier from the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Required when the affiliate object is provided.
     ///
     /// Example: `com.example.app`
     pub app_id: String,
-    /// Foreign transaction ID of the affiliate.
-    /// It is a unique identifier for the transaction.
-    /// It can be used later to fetch the transaction details via the [Transactions API](https://developer.sumup.com/api/transactions/get).
+    /// Integrator-owned transaction reference. Optional.
+    /// Can be used to retrieve the transaction via the [Transactions API](https://developer.sumup.com/api/transactions/get).
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
-    pub foreign_transaction_id: String,
-    /// Key of the affiliate.
-    /// It is a unique identifier for the key  and should be generated by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub foreign_transaction_id: Option<String>,
+    /// Affiliate key generated in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Required when the affiliate object is provided.
     ///
     /// Example: `123e4567-e89b-12d3-a456-426614174000`
     pub key: String,
-    /// Additional metadata for the transaction.
-    /// It is key-value object that can be associated with the transaction.
+    /// Optional key-value metadata associated with the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<serde_json::Value>,
 }
 /// The card type of the card used for the transaction.
-/// Is is required only for some countries (e.g: Brazil).
+/// It is required only for some countries (e.g: Brazil).
 ///
 /// Example: `credit`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -307,6 +337,21 @@ pub enum CreateReaderCheckoutRequestCardType {
     Credit,
     #[serde(rename = "debit")]
     Debit,
+    #[serde(untagged)]
+    Other(String),
+}
+/// The payment method type for the transaction. Defaults to `card`.
+///
+/// Use `pix` to initiate a Pix QR-code payment flow on the device.
+/// Pix is only supported for Brazilian merchants; other merchants will receive a 422 error.
+///
+/// Example: `card`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CreateReaderCheckoutRequestPaymentType {
+    #[serde(rename = "card")]
+    Card,
+    #[serde(rename = "pix")]
+    Pix,
     #[serde(untagged)]
     Other(String),
 }
@@ -344,14 +389,13 @@ pub struct CreateReaderCheckoutResponseData {
     /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checkout_id: Option<String>,
-    /// The client transaction ID is a unique identifier for the transaction that is generated for the client.
-    ///
-    /// It can be used later to fetch the transaction details via the [Transactions API](https://developer.sumup.com/api/transactions/get).
+    /// Unique identifier for the transaction associated with this checkout.
+    /// Use this value to match the checkout with payment events and transaction records.
     ///
     /// Example: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
     pub client_transaction_id: String,
 }
-/// Type of the card. Required for some countries
+/// Type of the card, or null when no card type was specified.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum GetReaderCheckoutResponseDataCardType {
     #[serde(rename = "credit")]
@@ -414,7 +458,7 @@ pub struct GetReaderCheckoutResponseDataTotalAmount {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GetReaderCheckoutResponseData {
-    /// Type of the card. Required for some countries
+    /// Type of the card, or null when no card type was specified.
     pub card_type: GetReaderCheckoutResponseDataCardType,
     /// Unique identifier for the checkout
     ///
@@ -427,14 +471,9 @@ pub struct GetReaderCheckoutResponseData {
     pub created_at: crate::datetime::DateTime,
     /// Number of installments for the transaction. Required for some countries.
     pub installments: i64,
-    /// Payment failure reason
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "crate::nullable::deserialize"
-    )]
-    pub payment_failure_reason: Option<crate::Nullable<String>>,
-    /// Payment status from payments v2 event
+    /// Reason for the payment failure, or null when no failure reason is available.
+    pub payment_failure_reason: String,
+    /// Status of the payment, or null when no payment status is available.
     pub payment_status: String,
     /// Type of the payment. Required for some countries
     pub payment_type: GetReaderCheckoutResponseDataPaymentType,
@@ -454,6 +493,28 @@ pub struct GetReaderCheckoutResponseData {
     pub updated_at: crate::datetime::DateTime,
     /// Checkout expiration timestamp. After this time, the checkout will be automatically cancelled.
     pub valid_until: crate::datetime::DateTime,
+}
+/// Menu lock configuration. Fields may be absent if no value is available.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct GetReaderSettingsResponseDataMenuLock {
+    /// Whether menu lock is enabled.
+    ///
+    /// Example: `true`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Four-digit PIN used to unlock the reader's menu.
+    ///
+    /// Constraints:
+    /// - pattern: `^[0-9]{4}$`
+    ///
+    /// Example: `1234`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub passcode: Option<crate::secret::Secret>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct GetReaderSettingsResponseData {
+    /// Menu lock configuration. Fields may be absent if no value is available.
+    pub menu_lock: GetReaderSettingsResponseDataMenuLock,
 }
 /// Identifier of the model of the device.
 ///
@@ -567,6 +628,62 @@ pub struct StatusResponseData {
     /// Example: `ONLINE`
     pub status: StatusResponseDataStatus,
 }
+/// Menu lock configuration. Provide at least one of `enabled` or `passcode`.
+///
+/// Constraints:
+/// - min properties: 1
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct UpdateReaderSettingsRequestMenuLock {
+    /// Whether menu lock is enabled.
+    ///
+    /// Example: `true`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Four-digit PIN used to unlock the reader's menu.
+    ///
+    /// Constraints:
+    /// - pattern: `^[0-9]{4}$`
+    ///
+    /// Example: `1234`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub passcode: Option<crate::secret::Secret>,
+}
+/// Settings included in the update. Omitted fields are not returned.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct UpdateReaderSettingsResponseDataMenuLock {
+    /// Whether menu lock is enabled.
+    ///
+    /// Example: `true`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Four-digit PIN used to unlock the reader's menu.
+    ///
+    /// Constraints:
+    /// - pattern: `^[0-9]{4}$`
+    ///
+    /// Example: `1234`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub passcode: Option<crate::secret::Secret>,
+}
+/// Indicates that the reader applied the settings update.
+///
+/// Example: `applied`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum UpdateReaderSettingsResponseDataStatus {
+    #[serde(rename = "applied")]
+    Applied,
+    #[serde(untagged)]
+    Other(String),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct UpdateReaderSettingsResponseData {
+    /// Settings included in the update. Omitted fields are not returned.
+    pub menu_lock: UpdateReaderSettingsResponseDataMenuLock,
+    /// Indicates that the reader applied the settings update.
+    ///
+    /// Example: `applied`
+    pub status: UpdateReaderSettingsResponseDataStatus,
+}
 /// Optional object containing data for transactions from ERP integrators in Greece that comply with the AADE 1155 protocol.
 /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -584,8 +701,7 @@ pub struct CreateCheckoutRequestAade {
     /// Example: `B71D7A555072E3EE4D2FD3F457A29115830E6CBA;;20251112214713;796;104;900;900;54889039`
     pub signature_data: String,
 }
-/// Additional metadata for the transaction.
-/// It is key-value object that can be associated with the transaction.
+/// Optional key-value metadata associated with the transaction.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateCheckoutRequestAffiliateTags {
     #[serde(
@@ -595,33 +711,32 @@ pub struct CreateCheckoutRequestAffiliateTags {
     )]
     pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
 }
-/// Affiliate metadata for the transaction.
-/// It is a field that allow for integrators to track the source of the transaction.
+/// Optional affiliate metadata associated with the checkout's payment.
+/// Provide both `app_id` and `key` when including this object.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CreateCheckoutRequestAffiliate {
-    /// Application ID of the affiliate.
-    /// It is a unique identifier for the application and should be set by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Integrator application identifier from the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Required when the affiliate object is provided.
     ///
     /// Example: `com.example.app`
     pub app_id: String,
-    /// Foreign transaction ID of the affiliate.
-    /// It is a unique identifier for the transaction.
-    /// It can be used later to fetch the transaction details via the [Transactions API](https://developer.sumup.com/api/transactions/get).
+    /// Integrator-owned transaction reference. Optional.
+    /// Can be used to retrieve the transaction via the [Transactions API](https://developer.sumup.com/api/transactions/get).
     ///
     /// Example: `19e12390-72cf-4f9f-80b5-b0c8a67fa43f`
-    pub foreign_transaction_id: String,
-    /// Key of the affiliate.
-    /// It is a unique identifier for the key  and should be generated by the integrator in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub foreign_transaction_id: Option<String>,
+    /// Affiliate key generated in the [Affiliate Keys](https://developer.sumup.com/affiliate-keys) page.
+    /// Required when the affiliate object is provided.
     ///
     /// Example: `123e4567-e89b-12d3-a456-426614174000`
     pub key: String,
-    /// Additional metadata for the transaction.
-    /// It is key-value object that can be associated with the transaction.
+    /// Optional key-value metadata associated with the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<serde_json::Value>,
 }
 /// The card type of the card used for the transaction.
-/// Is is required only for some countries (e.g: Brazil).
+/// It is required only for some countries (e.g: Brazil).
 ///
 /// Example: `credit`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -630,6 +745,21 @@ pub enum CreateCheckoutRequestCardType {
     Credit,
     #[serde(rename = "debit")]
     Debit,
+    #[serde(untagged)]
+    Other(String),
+}
+/// The payment method type for the transaction. Defaults to `card`.
+///
+/// Use `pix` to initiate a Pix QR-code payment flow on the device.
+/// Pix is only supported for Brazilian merchants; other merchants will receive a 422 error.
+///
+/// Example: `card`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CreateCheckoutRequestPaymentType {
+    #[serde(rename = "card")]
+    Card,
+    #[serde(rename = "pix")]
+    Pix,
     #[serde(untagged)]
     Other(String),
 }
@@ -691,8 +821,8 @@ pub struct CreateCheckoutRequest {
     /// When such regulatory/business requirements apply, this object must be provided and contains the data needed to validate the transaction with the AADE signature provider.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aade: Option<CreateCheckoutRequestAade>,
-    /// Affiliate metadata for the transaction.
-    /// It is a field that allow for integrators to track the source of the transaction.
+    /// Optional affiliate metadata associated with the checkout's payment.
+    /// Provide both `app_id` and `key` when including this object.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -700,7 +830,7 @@ pub struct CreateCheckoutRequest {
     )]
     pub affiliate: Option<crate::Nullable<CreateCheckoutRequestAffiliate>>,
     /// The card type of the card used for the transaction.
-    /// Is is required only for some countries (e.g: Brazil).
+    /// It is required only for some countries (e.g: Brazil).
     ///
     /// Example: `credit`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -712,7 +842,7 @@ pub struct CreateCheckoutRequest {
     /// It may vary according to the merchant country.
     /// For example, in Brazil, the maximum number of installments is 12.
     ///
-    /// Omit if the merchant country does support installments.
+    /// Omit if the merchant country does not support installments.
     /// Otherwise, the checkout will be rejected.
     ///
     /// Constraints:
@@ -725,6 +855,14 @@ pub struct CreateCheckoutRequest {
         deserialize_with = "crate::nullable::deserialize"
     )]
     pub installments: Option<crate::Nullable<i64>>,
+    /// The payment method type for the transaction. Defaults to `card`.
+    ///
+    /// Use `pix` to initiate a Pix QR-code payment flow on the device.
+    /// Pix is only supported for Brazilian merchants; other merchants will receive a 422 error.
+    ///
+    /// Example: `card`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub payment_type: Option<CreateCheckoutRequestPaymentType>,
     /// Webhook URL to which the payment result will be sent.
     /// It must be a HTTPS url.
     ///
@@ -734,9 +872,14 @@ pub struct CreateCheckoutRequest {
     /// Example: `https://www.example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
-    /// List of tipping rates to be displayed to the cardholder.
-    /// The rates are in percentage and should be between 0.01 and 0.99.
-    /// The list should be sorted in ascending order.
+    /// Exactly three distinct tipping rates to be displayed to the cardholder.
+    /// Each rate is a fraction between 0.01 and 1.00 in increments of 0.01.
+    /// The rates are sorted in ascending order by the server.
+    ///
+    /// Constraints:
+    /// - min items: 3
+    /// - max items: 3
+    /// - items must be unique
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tip_rates: Option<Vec<f32>>,
     /// Time in seconds the cardholder has to select a tip rate.
@@ -811,6 +954,19 @@ pub enum CreateCheckoutErrorBody {
 pub enum GetCheckoutErrorBody {
     Unauthorized(Problem),
     NotFound(Problem),
+}
+#[derive(Debug, PartialEq)]
+pub enum GetReaderSettingsErrorBody {
+    Unauthorized(Problem),
+    NotFound(Problem),
+    UnprocessableEntity(Problem),
+}
+#[derive(Debug, PartialEq)]
+pub enum UpdateReaderSettingsErrorBody {
+    BadRequest(Problem),
+    Unauthorized(Problem),
+    NotFound(Problem),
+    UnprocessableEntity(Problem),
 }
 #[derive(Debug, PartialEq)]
 pub enum GetStatusErrorBody {
@@ -1113,6 +1269,10 @@ impl<'a> ReadersClient<'a> {
     ///
     /// **Note**: If the target device is a Solo, it must be in version 3.3.24.3 or higher.
     ///
+    ///
+    /// Optionally include an `affiliate` object to attach integrator metadata to the payment.
+    /// Provide both `app_id` and `key` when including this object.
+    ///
     /// Responses:
     /// - 201: The Checkout got successfully created for the given reader.
     /// - 400: Response when given params (or one of them) are invalid
@@ -1233,6 +1393,158 @@ impl<'a> ReadersClient<'a> {
                 Err(crate::error::SdkError::api(GetCheckoutErrorBody::NotFound(
                     body,
                 )))
+            }
+            _ => {
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
+            }
+        }
+    }
+    /// Get Reader Settings
+    ///
+    /// Returns the menu lock settings for a Solo reader.
+    ///
+    /// For an online reader, returns the current settings. For an offline reader,
+    /// returns the last saved settings, which may differ from its current configuration.
+    /// Returns `404` if the reader is offline and no saved settings are available.
+    ///
+    /// The response may include the menu lock PIN.
+    ///
+    /// Responses:
+    /// - 200: Reader settings retrieved successfully.
+    /// - 401: Unauthorized
+    /// - 404: The reader was not found, or it is offline and has no saved settings.
+    /// - 422: The reader model is not supported, or the reader could not return its settings.
+    pub async fn get_reader_settings(
+        &self,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
+    ) -> crate::error::SdkResult<GetReaderSettingsResponse, GetReaderSettingsErrorBody> {
+        let path = format!(
+            "/v0.1/merchants/{}/readers/{}/settings",
+            merchant_code.as_ref(),
+            reader_id.as_ref()
+        );
+        let url = format!("{}{}", self.client.base_url(), path);
+        let mut request = self
+            .client
+            .http_client()
+            .get(&url)
+            .header("User-Agent", crate::version::user_agent())
+            .timeout(self.client.timeout());
+        if let Some(authorization) = self.client.authorization() {
+            request = request.header("Authorization", format!("Bearer {}", authorization));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
+        let response = request.send().await?;
+        let status = response.status();
+        match status {
+            reqwest::StatusCode::OK => {
+                let data: GetReaderSettingsResponse = response.json().await?;
+                Ok(data)
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetReaderSettingsErrorBody::Unauthorized(body),
+                ))
+            }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetReaderSettingsErrorBody::NotFound(body),
+                ))
+            }
+            reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    GetReaderSettingsErrorBody::UnprocessableEntity(body),
+                ))
+            }
+            _ => {
+                let body_bytes = response.bytes().await?;
+                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
+                Err(crate::error::SdkError::unexpected(status, body))
+            }
+        }
+    }
+    /// Update Reader Settings
+    ///
+    /// Updates the menu lock settings for a Solo reader. The reader must be online.
+    /// A successful response confirms that the reader applied the update.
+    ///
+    /// Include at least one of `menu_lock.enabled` or `menu_lock.passcode`.
+    /// Omitted settings keep their current values. The response contains only the
+    /// settings included in the request.
+    ///
+    /// When enabling menu lock for a reader without a PIN, include a four-digit PIN
+    /// in `menu_lock.passcode` in the same request.
+    ///
+    /// Responses:
+    /// - 200: Reader settings updated successfully.
+    /// - 400: The request body is malformed.
+    /// - 401: Unauthorized
+    /// - 404: The reader was not found.
+    /// - 422: The settings are invalid, the reader is offline, the reader model is not
+    ///   supported, or the reader could not apply the update.
+    pub async fn update_reader_settings(
+        &self,
+        merchant_code: impl AsRef<str>,
+        reader_id: impl AsRef<str>,
+        body: UpdateReaderSettingsRequest,
+    ) -> crate::error::SdkResult<UpdateReaderSettingsResponse, UpdateReaderSettingsErrorBody> {
+        let path = format!(
+            "/v0.1/merchants/{}/readers/{}/settings",
+            merchant_code.as_ref(),
+            reader_id.as_ref()
+        );
+        let url = format!("{}{}", self.client.base_url(), path);
+        let mut request = self
+            .client
+            .http_client()
+            .patch(&url)
+            .header("User-Agent", crate::version::user_agent())
+            .timeout(self.client.timeout())
+            .json(&body);
+        if let Some(authorization) = self.client.authorization() {
+            request = request.header("Authorization", format!("Bearer {}", authorization));
+        }
+        for (header_name, header_value) in self.client.runtime_headers() {
+            request = request.header(*header_name, header_value);
+        }
+        let response = request.send().await?;
+        let status = response.status();
+        match status {
+            reqwest::StatusCode::OK => {
+                let data: UpdateReaderSettingsResponse = response.json().await?;
+                Ok(data)
+            }
+            reqwest::StatusCode::BAD_REQUEST => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateReaderSettingsErrorBody::BadRequest(body),
+                ))
+            }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateReaderSettingsErrorBody::Unauthorized(body),
+                ))
+            }
+            reqwest::StatusCode::NOT_FOUND => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateReaderSettingsErrorBody::NotFound(body),
+                ))
+            }
+            reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
+                let body: Problem = response.json().await?;
+                Err(crate::error::SdkError::api(
+                    UpdateReaderSettingsErrorBody::UnprocessableEntity(body),
+                ))
             }
             _ => {
                 let body_bytes = response.bytes().await?;

@@ -10,5 +10,6 @@ pub mod payouts;
 pub mod readers;
 pub mod receipts;
 pub mod roles;
+pub mod tokens;
 pub mod transactions;
 pub use common::*;
