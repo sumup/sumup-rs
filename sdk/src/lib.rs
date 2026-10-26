@@ -144,11 +144,11 @@
 //! let client = Client::default();
 //! match client.checkouts().list(Default::default()).await {
 //!     Ok(checkouts) => println!("retrieved {} checkouts", checkouts.len()),
-//!     Err(SdkError::Api(body)) => match body {
+//!     Err(SdkError::Api(response)) => match response.body {
 //!         ListErrorBody::Unauthorized(details) => eprintln!("unauthorized: {:?}", details),
 //!     },
-//!     Err(SdkError::Unexpected(status, body)) => {
-//!         eprintln!("unexpected {} response: {}", status, body);
+//!     Err(SdkError::Unexpected(response)) => {
+//!         eprintln!("unexpected {} response: {}", response.status, response.body);
 //!     }
 //!     Err(SdkError::Network(err)) => panic!("network error: {}", err),
 //!     Err(SdkError::InvalidRequest(reason)) => eprintln!("invalid request: {}", reason),
@@ -194,7 +194,7 @@ pub mod resources;
 pub use crate::resources::*;
 pub use auth::Authorization;
 pub use client::Client;
-pub use error::{SdkError, SdkResult, UnknownApiBody};
+pub use error::{ApiErrorResponse, ProblemDetails, SdkError, SdkResult, UnknownApiBody};
 pub use nullable::Nullable;
 pub use secret::Secret;
 pub use version::VERSION;

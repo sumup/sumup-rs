@@ -146,6 +146,14 @@ pub enum ListErrorBody {
     BadRequest(Problem),
     Unauthorized(Problem),
 }
+impl crate::error::ProblemDetails for ListErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::Unauthorized(problem) => Some(problem),
+        }
+    }
+}
 /// Client for the Memberships API endpoints.
 #[derive(Debug)]
 pub struct MembershipsClient<'a> {
@@ -226,20 +234,18 @@ impl<'a> MembershipsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(ListErrorBody::BadRequest(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(ListErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(ListErrorBody::Unauthorized)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
 }

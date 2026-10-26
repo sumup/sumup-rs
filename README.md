@@ -138,3 +138,21 @@ Published releases synchronize this catalog to
 `sumup/sumup-developer` as `src/codesamples/rust.json`.
 
 [docs-badge]: https://img.shields.io/badge/SumUp-documentation-white.svg?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgY29sb3I9IndoaXRlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogICAgPHBhdGggZD0iTTIyLjI5IDBIMS43Qy43NyAwIDAgLjc3IDAgMS43MVYyMi4zYzAgLjkzLjc3IDEuNyAxLjcxIDEuN0gyMi4zYy45NCAwIDEuNzEtLjc3IDEuNzEtMS43MVYxLjdDMjQgLjc3IDIzLjIzIDAgMjIuMjkgMFptLTcuMjIgMTguMDdhNS42MiA1LjYyIDAgMCAxLTcuNjguMjQuMzYuMzYgMCAwIDEtLjAxLS40OWw3LjQ0LTcuNDRhLjM1LjM1IDAgMCAxIC40OSAwIDUuNiA1LjYgMCAwIDEtLjI0IDcuNjlabTEuNTUtMTEuOS03LjQ0IDcuNDVhLjM1LjM1IDAgMCAxLS41IDAgNS42MSA1LjYxIDAgMCAxIDcuOS03Ljk2bC4wMy4wM2MuMTMuMTMuMTQuMzUuMDEuNDlaIiBmaWxsPSJjdXJyZW50Q29sb3IiLz4KPC9zdmc+
+
+## Handling errors
+
+API errors retain their HTTP status, headers, and original response bytes. Read typed
+Problem details directly when available:
+
+```rust
+if let Err(error) = client.checkouts().get("your-checkout-id").await {
+    if let Some(problem) = error.problem() {
+        println!("{}: {:?}", problem.r#type, problem.detail);
+    }
+    println!("{:?}", error.status());
+}
+```
+
+Use `body()` for the endpoint's typed error enum, `headers()` for response headers,
+and `raw_body()` for the original bytes. When matching `SdkError::Api(response)`,
+the typed body is in `response.body`.

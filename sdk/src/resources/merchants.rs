@@ -673,13 +673,34 @@ use crate::client::Client;
 pub enum GetErrorBody {
     NotFound(Problem),
 }
+impl crate::error::ProblemDetails for GetErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum ListPersonsErrorBody {
     NotFound(Problem),
 }
+impl crate::error::ProblemDetails for ListPersonsErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum GetPersonErrorBody {
     NotFound(Problem),
+}
+impl crate::error::ProblemDetails for GetPersonErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
 }
 /// Client for the Merchants API endpoints.
 #[derive(Debug)]
@@ -727,14 +748,12 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// List Persons
@@ -770,16 +789,12 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(ListPersonsErrorBody::NotFound(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(ListPersonsErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Get Person
@@ -820,16 +835,12 @@ impl<'a> MerchantsClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetPersonErrorBody::NotFound(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetPersonErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
 }

@@ -118,24 +118,62 @@ use crate::client::Client;
 pub enum ListErrorBody {
     NotFound(Problem),
 }
+impl crate::error::ProblemDetails for ListErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum CreateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
+}
+impl crate::error::ProblemDetails for CreateErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
 }
 #[derive(Debug, PartialEq)]
 pub enum DeleteErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
 }
+impl crate::error::ProblemDetails for DeleteErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     NotFound(Problem),
+}
+impl crate::error::ProblemDetails for GetErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
 }
 #[derive(Debug, PartialEq)]
 pub enum UpdateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
+}
+impl crate::error::ProblemDetails for UpdateErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
 }
 /// Client for the Roles API endpoints.
 #[derive(Debug)]
@@ -183,14 +221,12 @@ impl<'a> RolesClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(ListErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(ListErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Create a role
@@ -229,20 +265,18 @@ impl<'a> RolesClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::BadRequest(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Delete a role
@@ -281,20 +315,18 @@ impl<'a> RolesClient<'a> {
         match status {
             reqwest::StatusCode::OK => Ok(()),
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(DeleteErrorBody::BadRequest(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(DeleteErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(DeleteErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(DeleteErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Retrieve a role
@@ -335,14 +367,12 @@ impl<'a> RolesClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Update a role
@@ -388,20 +418,18 @@ impl<'a> RolesClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(UpdateErrorBody::BadRequest(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(UpdateErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(UpdateErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(UpdateErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
 }

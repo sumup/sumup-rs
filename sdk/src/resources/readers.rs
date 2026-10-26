@@ -781,24 +781,62 @@ use crate::client::Client;
 pub enum ListErrorBody {
     Unauthorized(Problem),
 }
+impl crate::error::ProblemDetails for ListErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum CreateErrorBody {
     BadRequest(Problem),
     NotFound(Problem),
     Conflict(Problem),
 }
+impl crate::error::ProblemDetails for CreateErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+            Self::Conflict(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum DeleteErrorBody {
     NotFound(Problem),
+}
+impl crate::error::ProblemDetails for DeleteErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
 }
 #[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
     NotFound(Problem),
 }
+impl crate::error::ProblemDetails for GetErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum UpdateErrorBody {
     Forbidden(Problem),
     NotFound(Problem),
+}
+impl crate::error::ProblemDetails for UpdateErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Forbidden(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
 }
 #[derive(Debug, PartialEq)]
 pub enum CreateCheckoutErrorBody {
@@ -807,16 +845,43 @@ pub enum CreateCheckoutErrorBody {
     NotFound(Problem),
     UnprocessableEntity(Problem),
 }
+impl crate::error::ProblemDetails for CreateCheckoutErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::Unauthorized(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+            Self::UnprocessableEntity(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum GetCheckoutErrorBody {
     Unauthorized(Problem),
     NotFound(Problem),
+}
+impl crate::error::ProblemDetails for GetCheckoutErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
 }
 #[derive(Debug, PartialEq)]
 pub enum GetStatusErrorBody {
     BadRequest(Problem),
     Unauthorized(Problem),
     NotFound(Problem),
+}
+impl crate::error::ProblemDetails for GetStatusErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::Unauthorized(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+        }
+    }
 }
 #[derive(Debug, PartialEq)]
 pub enum TerminateCheckoutErrorBody {
@@ -825,12 +890,32 @@ pub enum TerminateCheckoutErrorBody {
     NotFound(Problem),
     UnprocessableEntity(Problem),
 }
+impl crate::error::ProblemDetails for TerminateCheckoutErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::Unauthorized(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+            Self::UnprocessableEntity(problem) => Some(problem),
+        }
+    }
+}
 #[derive(Debug, PartialEq)]
 pub enum CreateGoCheckoutErrorBody {
     BadRequest(Problem),
     Unauthorized(Problem),
     NotFound(Problem),
     UnprocessableEntity(Problem),
+}
+impl crate::error::ProblemDetails for CreateGoCheckoutErrorBody {
+    fn problem(&self) -> Option<&crate::resources::common::Problem> {
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::Unauthorized(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+            Self::UnprocessableEntity(problem) => Some(problem),
+        }
+    }
 }
 /// Client for the Readers API endpoints.
 #[derive(Debug)]
@@ -878,16 +963,12 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(ListErrorBody::Unauthorized(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(ListErrorBody::Unauthorized)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Create a Reader
@@ -927,24 +1008,24 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::BadRequest(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateErrorBody::NotFound)
+                })
+                .await)
             }
             reqwest::StatusCode::CONFLICT => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(CreateErrorBody::Conflict(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateErrorBody::Conflict)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Delete a reader
@@ -982,14 +1063,12 @@ impl<'a> ReadersClient<'a> {
         match status {
             reqwest::StatusCode::OK => Ok(()),
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(DeleteErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(DeleteErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Retrieve a Reader
@@ -1030,14 +1109,12 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Update a Reader
@@ -1083,20 +1160,18 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::FORBIDDEN => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(UpdateErrorBody::Forbidden(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(UpdateErrorBody::Forbidden)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(UpdateErrorBody::NotFound(body)))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(UpdateErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Create a Reader Checkout
@@ -1152,34 +1227,32 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::BadRequest(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateCheckoutErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(CreateCheckoutErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateCheckoutErrorBody::NotFound)
+                })
+                .await)
             }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateCheckoutErrorBody::UnprocessableEntity(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(CreateCheckoutErrorBody::UnprocessableEntity)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Get a Reader Checkout
@@ -1223,22 +1296,18 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetCheckoutErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetCheckoutErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetCheckoutErrorBody::NotFound(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetCheckoutErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Get a Reader Status
@@ -1299,28 +1368,24 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetStatusErrorBody::BadRequest(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetStatusErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    GetStatusErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetStatusErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(GetStatusErrorBody::NotFound(
-                    body,
-                )))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(GetStatusErrorBody::NotFound)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Terminate a Reader Checkout
@@ -1374,34 +1439,33 @@ impl<'a> ReadersClient<'a> {
         match status {
             reqwest::StatusCode::ACCEPTED => Ok(()),
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    TerminateCheckoutErrorBody::BadRequest(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(TerminateCheckoutErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    TerminateCheckoutErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(TerminateCheckoutErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    TerminateCheckoutErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(TerminateCheckoutErrorBody::NotFound)
+                })
+                .await)
             }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    TerminateCheckoutErrorBody::UnprocessableEntity(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(TerminateCheckoutErrorBody::UnprocessableEntity)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
     /// Create a Go Reader Payment
@@ -1449,34 +1513,33 @@ impl<'a> ReadersClient<'a> {
                 Ok(data)
             }
             reqwest::StatusCode::BAD_REQUEST => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateGoCheckoutErrorBody::BadRequest(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(CreateGoCheckoutErrorBody::BadRequest)
+                })
+                .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateGoCheckoutErrorBody::Unauthorized(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(CreateGoCheckoutErrorBody::Unauthorized)
+                })
+                .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateGoCheckoutErrorBody::NotFound(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw).map(CreateGoCheckoutErrorBody::NotFound)
+                })
+                .await)
             }
             reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
-                let body: Problem = response.json().await?;
-                Err(crate::error::SdkError::api(
-                    CreateGoCheckoutErrorBody::UnprocessableEntity(body),
-                ))
+                Err(crate::error::SdkError::from_response(response, |raw| {
+                    serde_json::from_slice::<Problem>(raw)
+                        .map(CreateGoCheckoutErrorBody::UnprocessableEntity)
+                })
+                .await)
             }
-            _ => {
-                let body_bytes = response.bytes().await?;
-                let body = crate::error::UnknownApiBody::from_bytes(body_bytes.as_ref());
-                Err(crate::error::SdkError::unexpected(status, body))
-            }
+            _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
 }
