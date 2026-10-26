@@ -16,6 +16,7 @@ use quote::quote;
 use operation::GeneratedClientMethods;
 
 pub mod body;
+mod builder;
 pub mod client;
 pub mod event;
 mod oas;

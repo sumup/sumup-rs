@@ -60,7 +60,7 @@ pub(crate) fn generate_operation_bodies_with_registry(
         nested_schemas.extend(query_types);
 
         if let Some(params_struct) =
-            generate_query_params_struct(op, &operation_name, &operation_origin, symbols)?
+            generate_query_params_struct(spec, op, &operation_name, &operation_origin, symbols)?
         {
             body_structs.push(params_struct);
         }
@@ -103,6 +103,7 @@ pub(crate) fn generate_operation_bodies_with_registry(
 
 /// Creates a query params struct for the operation when query parameters are defined.
 fn generate_query_params_struct(
+    spec: &OpenAPI,
     operation: &openapiv3::Operation,
     operation_name: &str,
     operation_origin: &str,
@@ -199,12 +200,13 @@ fn generate_query_params_struct(
         });
     }
 
-    Ok(Some(quote! {
+    let tokens = quote! {
         #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
         pub struct #struct_name {
             #(#fields,)*
         }
-    }))
+    };
+    Ok(Some(crate::builder::generate(spec, tokens, symbols)?))
 }
 
 /// Infers the Rust type for a query parameter schema.
@@ -820,13 +822,17 @@ fn generate_schema_struct(
             quote! { #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)] }
         };
 
-        Ok(quote! {
-            #description
-            #derives
-            pub struct #struct_name {
-                #(#fields)*
-            }
-        })
+        crate::builder::generate(
+            spec,
+            quote! {
+                #description
+                #derives
+                pub struct #struct_name {
+                    #(#fields)*
+                }
+            },
+            symbols,
+        )
     } else if !schema.all_of.is_empty() {
         if let Some((combined_properties, combined_required, combined_additional_properties)) =
             crate::schema::flatten_all_of_object(spec, &schema.all_of)?
@@ -857,13 +863,17 @@ fn generate_schema_struct(
                 quote! { #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)] }
             };
 
-            Ok(quote! {
-                #description
-                #derives
-                pub struct #struct_name {
-                    #(#fields)*
-                }
-            })
+            crate::builder::generate(
+                spec,
+                quote! {
+                    #description
+                    #derives
+                    pub struct #struct_name {
+                        #(#fields)*
+                    }
+                },
+                symbols,
+            )
         } else {
             let dummy_ref = openapiv3::ObjectOrReference::Object(schema.clone());
             let base_type = crate::schema::infer_rust_type(true, false, None, &dummy_ref);
@@ -914,9 +924,15 @@ mod tests {
         }))
         .unwrap();
         let mut symbols = crate::symbol::SymbolRegistry::new("test");
-        let tokens = generate_query_params_struct(&operation, "List", "GET /items", &mut symbols)
-            .unwrap()
-            .unwrap();
+        let spec = parse_spec(json!({
+            "openapi": "3.1.0",
+            "info": {"title": "test", "version": "1"},
+            "paths": {}
+        }));
+        let tokens =
+            generate_query_params_struct(&spec, &operation, "List", "GET /items", &mut symbols)
+                .unwrap()
+                .unwrap();
         let code = crate::format_generated_code(tokens);
         assert!(code.contains("pub optional_filter: Option<String>"));
         assert!(code.contains("pub required_filter: String"));

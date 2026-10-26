@@ -9,11 +9,15 @@
 //! Tokens expire 15 minutes after creation. Use `expires_in` to determine the remaining lifetime and create a new token when needed. This endpoint does not return a refresh token. Treat merchant tokens as secrets: send them over HTTPS and keep them out of URLs, logs, and source code.
 use super::common::*;
 /// A short-lived credential for the requested merchant account and actions. Pass access_token to a SumUp SDK that supports merchant tokens.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Token {
     /// Secret token to pass to the SDK. Treat this value as an opaque string; do not parse it or depend on its format.
     ///
     /// Example: `MERCHANT_TOKEN`
+    #[builder(setter(into, doc = "Sets [`access_token`](Token::access_token)."))]
     pub access_token: String,
     /// Remaining lifetime of the token in seconds when the response is created. Tokens expire 15 minutes after creation. Request a new token when needed.
     ///
@@ -21,10 +25,12 @@ pub struct Token {
     /// - value >= 0
     ///
     /// Example: `899`
+    #[builder(setter(doc = "Sets [`expires_in`](Token::expires_in)."))]
     pub expires_in: i64,
     /// Authentication scheme used by the token. Always Bearer.
     ///
     /// Example: `Bearer`
+    #[builder(setter(doc = "Sets [`token_type`](Token::token_type)."))]
     pub token_type: TokenTokenType,
 }
 /// Authentication scheme used by the token. Always Bearer.
@@ -44,13 +50,23 @@ pub enum CreateRequestActionsItem {
     Other(String),
 }
 /// Actions the merchant token should allow.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateRequest {
     /// Actions the token allows for this merchant account.
     ///
     /// Constraints:
     /// - min items: 1
     /// - items must be unique
+    #[builder(setter(doc = "Sets [`actions`](CreateRequest::actions)."))]
     pub actions: Vec<CreateRequestActionsItem>,
 }
 use crate::client::Client;

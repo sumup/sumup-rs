@@ -65,7 +65,7 @@ impl SampleTypes {
         name: &Ident,
         value: &Value,
     ) -> Result<String, String> {
-        self.value(module, &syn::parse_quote!(#name), Some(value), 0)
+        self.value(module, &syn::parse_quote!(#name), Some(value), 0, false)
     }
 
     fn value(
@@ -74,6 +74,7 @@ impl SampleTypes {
         ty: &Type,
         value: Option<&Value>,
         depth: usize,
+        string_setter: bool,
     ) -> Result<String, String> {
         if depth > 40 {
             return Err("recursive sample type exceeds maximum depth".into());
@@ -94,7 +95,7 @@ impl SampleTypes {
                 .collect::<Vec<_>>(),
             _ => Vec::new(),
         };
-        let nested = |ty, value| self.value(module, ty, value, depth + 1);
+        let nested = |ty, value| self.value(module, ty, value, depth + 1, false);
         match name.as_str() {
             "Option" => {
                 let Some(value) = value else {
@@ -148,10 +149,12 @@ impl SampleTypes {
                 });
             }
             "String" => {
-                return Ok(format!(
-                    "{:?}.to_string()",
-                    value.and_then(Value::as_str).unwrap_or_default()
-                ));
+                let literal = format!("{:?}", value.and_then(Value::as_str).unwrap_or_default());
+                return Ok(if string_setter {
+                    literal
+                } else {
+                    format!("{literal}.to_string()")
+                });
             }
             "Secret" => {
                 return Ok(format!(
@@ -207,13 +210,9 @@ impl SampleTypes {
             .ok_or_else(|| format!("unknown sample type {module}::{name}"))?;
         let type_path = format!("sumup::resources::{module}::{name}");
         match item {
-            Item::Type(item) => self.value(module, &item.ty, value, depth + 1),
+            Item::Type(item) => self.value(module, &item.ty, value, depth + 1, string_setter),
             Item::Struct(item) => {
-                let mut fields = Vec::new();
-                let mut omitted = false;
-                let has_default = item.attrs.iter().any(|attr| {
-                    attr.path().is_ident("derive") && quote!(#attr).to_string().contains("Default")
-                });
+                let mut setters = Vec::new();
                 let names = item
                     .fields
                     .iter()
@@ -238,19 +237,34 @@ impl SampleTypes {
                     } else {
                         value.and_then(|value| value.get(name))
                     };
-                    if field_value.is_none() && has_default {
-                        omitted = true;
+                    let ty = if let Some(inner) = crate::builder::option_inner(&field.ty) {
+                        if field_value.is_none()
+                            || (field_value.is_some_and(Value::is_null)
+                                && !matches!(inner, Type::Path(path) if path.path.segments.last().is_some_and(|s| s.ident == "Nullable")))
+                        {
+                            continue;
+                        }
+                        inner
+                    } else {
+                        &field.ty
+                    };
+                    if flatten
+                        && extra
+                            .as_ref()
+                            .and_then(Value::as_object)
+                            .is_none_or(|values| values.is_empty())
+                    {
                         continue;
                     }
-                    fields.push(format!(
-                        "{ident}: {}",
-                        self.value(module, &field.ty, field_value, depth + 1)?
+                    setters.push(format!(
+                        ".{ident}({})",
+                        self.value(module, ty, field_value, depth + 1, true)?
                     ));
                 }
-                if omitted {
-                    fields.push("..Default::default()".into());
-                }
-                Ok(format!("{type_path} {{ {} }}", fields.join(", ")))
+                Ok(format!(
+                    "{type_path}::builder(){}.build()",
+                    setters.join("")
+                ))
             }
             Item::Enum(item) => {
                 let text = value.and_then(Value::as_str);
@@ -266,7 +280,7 @@ impl SampleTypes {
                     }
                 }
                 if let Some(variant) = item.variants.iter().find(|variant| matches!(&variant.fields, syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1)) {
-                    return Ok(format!("{type_path}::{}({})", variant.ident, self.value(module, &variant.fields.iter().next().unwrap().ty, value, depth + 1)?));
+                    return Ok(format!("{type_path}::{}({})", variant.ident, self.value(module, &variant.fields.iter().next().unwrap().ty, value, depth + 1, false)?));
                 }
                 Err(format!("no matching variant for {type_path}: {value:?}"))
             }

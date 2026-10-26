@@ -9,44 +9,59 @@ use super::common::*;
 /// A record can represent either:
 /// - an actual payout sent to the merchant (`type = PAYOUT`)
 /// - a deduction applied against merchant funds for a refund, chargeback, direct debit return, or balance adjustment
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct FinancialPayout {
     /// Amount of the payout or deduction in major units.
     ///
     /// Example: `132.45`
+    #[builder(setter(doc = "Sets [`amount`](FinancialPayout::amount)."))]
     pub amount: f32,
     /// Three-letter ISO 4217 currency code of the payout.
     ///
     /// Example: `EUR`
+    #[builder(setter(into, doc = "Sets [`currency`](FinancialPayout::currency)."))]
     pub currency: String,
     /// Payout date associated with the record, in `YYYY-MM-DD` format.
     ///
     /// Example: `2024-02-29`
+    #[builder(setter(doc = "Sets [`date`](FinancialPayout::date)."))]
     pub date: crate::datetime::Date,
     /// Fee amount associated with the payout record, in major units.
     ///
     /// Example: `3.12`
+    #[builder(setter(doc = "Sets [`fee`](FinancialPayout::fee)."))]
     pub fee: f32,
     /// Unique identifier of the payout-related record.
     ///
     /// Example: `123456789`
+    #[builder(setter(doc = "Sets [`id`](FinancialPayout::id)."))]
     pub id: i64,
     /// Processor or payout reference associated with the record.
     ///
     /// Example: `payout-2024-02-29`
+    #[builder(setter(into, doc = "Sets [`reference`](FinancialPayout::reference)."))]
     pub reference: String,
     /// Merchant-facing outcome of the payout record.
     ///
     /// Example: `SUCCESSFUL`
+    #[builder(setter(doc = "Sets [`status`](FinancialPayout::status)."))]
     pub status: FinancialPayoutStatus,
     /// Transaction code of the original sale associated with the payout or deduction.
     ///
     /// Example: `TEENSK4W2K`
+    #[builder(setter(
+        into,
+        doc = "Sets [`transaction_code`](FinancialPayout::transaction_code)."
+    ))]
     pub transaction_code: String,
     /// High-level payout record category.
     ///
     /// Example: `PAYOUT`
     #[serde(rename = "type")]
+    #[builder(setter(doc = "Sets [`r#type`](FinancialPayout::r#type)."))]
     pub r#type: FinancialPayoutType,
 }
 /// Ordered list of payout and payout-deduction records.
@@ -99,20 +114,35 @@ pub enum ListParamsOrder {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListParams {
     /// Start date of the payout period filter, inclusive, in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) `date` format (`YYYY-MM-DD`).
     ///
     /// Example: `2024-02-01`
+    #[builder(setter(doc = "Sets [`start_date`](ListParams::start_date)."))]
     pub start_date: crate::datetime::Date,
     /// End date of the payout period filter, inclusive, in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) `date` format (`YYYY-MM-DD`). Must be greater than or equal to `start_date`.
     ///
     /// Example: `2024-02-29`
+    #[builder(setter(doc = "Sets [`end_date`](ListParams::end_date)."))]
     pub end_date: crate::datetime::Date,
     /// Response format for the payout list.
     ///
     /// Example: `json`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`format`](ListParams::format).")
+    )]
     pub format: Option<ListParamsFormat>,
     /// Maximum number of payout records to return.
     ///
@@ -122,11 +152,19 @@ pub struct ListParams {
     ///
     /// Example: `10`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`limit`](ListParams::limit).")
+    )]
     pub limit: Option<i64>,
     /// Sort direction for the returned payouts.
     ///
     /// Example: `desc`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`order`](ListParams::order).")
+    )]
     pub order: Option<ListParamsOrder>,
 }
 use crate::client::Client;

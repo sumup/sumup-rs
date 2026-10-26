@@ -33,77 +33,142 @@ impl crate::events::EventSpec for RoleUpdated {
 /// Event notification for this event type.
 pub type RoleUpdatedEvent = crate::events::Event<RoleUpdated>;
 /// A custom role that can be used to assign set of permissions to members.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Role {
     /// The timestamp of when the role was created.
     ///
     /// Example: `2023-01-20T15:16:17Z`
+    #[builder(setter(doc = "Sets [`created_at`](Role::created_at)."))]
     pub created_at: crate::datetime::DateTime,
     /// User-defined description of the role.
     ///
     /// Example: `Manges the shop and the employees.`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`description`](Role::description).")
+    )]
     pub description: Option<String>,
     /// Unique identifier of the role.
     ///
     /// Example: `role_WZsm7QTPhVrompscmPhoGTXXcrd58fr9MOhP`
+    #[builder(setter(into, doc = "Sets [`id`](Role::id)."))]
     pub id: String,
     /// True if the role is provided by SumUp.
     ///
     /// Example: `true`
+    #[builder(setter(doc = "Sets [`is_predefined`](Role::is_predefined)."))]
     pub is_predefined: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`metadata`](Role::metadata).")
+    )]
     pub metadata: Option<Metadata>,
     /// User-defined name of the role.
     ///
     /// Example: `Senior Shop Manager II`
+    #[builder(setter(into, doc = "Sets [`name`](Role::name)."))]
     pub name: String,
     /// List of permission granted by this role.
     ///
     /// Constraints:
     /// - max items: 100
+    #[builder(setter(doc = "Sets [`permissions`](Role::permissions)."))]
     pub permissions: Vec<String>,
     /// The timestamp of when the role was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
+    #[builder(setter(doc = "Sets [`updated_at`](Role::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
 }
 /// Returns a list of Role objects.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ListResponse {
+    #[builder(setter(doc = "Sets [`items`](ListResponse::items)."))]
     pub items: Vec<Role>,
 }
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct CreateRequest {
     /// User-defined description of the role.
     ///
     /// Example: `Manges the shop and the employees.`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](CreateRequest::description)."
+        )
+    )]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`metadata`](CreateRequest::metadata).")
+    )]
     pub metadata: Option<Metadata>,
     /// User-defined name of the role.
     ///
     /// Example: `Senior Shop Manager II`
+    #[builder(setter(into, doc = "Sets [`name`](CreateRequest::name)."))]
     pub name: String,
     /// User's permissions.
     ///
     /// Constraints:
     /// - min items: 1
     /// - max items: 100
+    #[builder(setter(doc = "Sets [`permissions`](CreateRequest::permissions)."))]
     pub permissions: Vec<String>,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct UpdateRequest {
     /// User-defined description of the role.
     ///
     /// Example: `Manges the shop and the employees.`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](UpdateRequest::description)."
+        )
+    )]
     pub description: Option<String>,
     /// User-defined name of the role.
     ///
     /// Example: `Senior Shop Manager II`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`name`](UpdateRequest::name).")
+    )]
     pub name: Option<String>,
     /// User's permissions.
     ///
@@ -111,6 +176,13 @@ pub struct UpdateRequest {
     /// - min items: 1
     /// - max items: 100
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`permissions`](UpdateRequest::permissions)."
+        )
+    )]
     pub permissions: Option<Vec<String>>,
 }
 use crate::client::Client;

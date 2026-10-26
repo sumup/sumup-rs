@@ -3,36 +3,94 @@
 //! Retrieve structured receipt data for a transaction, including payment, merchant, and acquirer details. Use this data to display a receipt in your application. The response is JSON, rather than a rendered receipt document.
 use super::common::*;
 /// Structured receipt details for a transaction. The transaction's `amount`, `vat_amount`, and `tip_amount`, as well as event amounts, are returned as decimal strings in major currency units, for example `"10.10"` for EUR 10.10.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct Receipt {
     /// Acquirer-specific metadata related to the card authorization.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`acquirer_data`](Receipt::acquirer_data).")
+    )]
     pub acquirer_data: Option<ReceiptAcquirerData>,
     /// EMV-specific metadata returned for card-present payments.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`emv_data`](Receipt::emv_data).")
+    )]
     pub emv_data: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`merchant_data`](Receipt::merchant_data).")
+    )]
     pub merchant_data: Option<ReceiptMerchantData>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`transaction_data`](Receipt::transaction_data)."
+        )
+    )]
     pub transaction_data: Option<ReceiptTransaction>,
 }
 /// Payment card details displayed on the receipt.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptCard {
     /// Last four digits of the payment card number.
     ///
     /// Example: `3456`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`last_4_digits`](ReceiptCard::last_4_digits)."
+        )
+    )]
     pub last_4_digits: Option<String>,
     /// Issuing card network of the payment card.
     ///
     /// Example: `VISA`
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`r#type`](ReceiptCard::r#type).")
+    )]
     pub r#type: Option<String>,
 }
 /// Transaction event details as rendered on the receipt.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptEvent {
     /// Amount associated with the transaction event, in major units.
     ///
@@ -42,256 +100,672 @@ pub struct ReceiptEvent {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::string_or_number::deserialize_option"
     )]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`amount`](ReceiptEvent::amount).")
+    )]
     pub amount: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(default, setter(strip_option, doc = "Sets [`id`](ReceiptEvent::id)."))]
     pub id: Option<TransactionEventId>,
     /// Receipt number associated with the event.
     ///
     /// Example: `123456`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`receipt_no`](ReceiptEvent::receipt_no)."
+        )
+    )]
     pub receipt_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`status`](ReceiptEvent::status).")
+    )]
     pub status: Option<TransactionEventStatus>,
     /// The timestamp of when the transaction event occurred.
     ///
     /// Example: `2020-05-25T10:49:42.784Z`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`timestamp`](ReceiptEvent::timestamp).")
+    )]
     pub timestamp: Option<crate::datetime::DateTime>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_id`](ReceiptEvent::transaction_id)."
+        )
+    )]
     pub transaction_id: Option<TransactionId>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`r#type`](ReceiptEvent::r#type).")
+    )]
     pub r#type: Option<TransactionEventType>,
 }
 /// Merchant details displayed on a transaction receipt.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptMerchantData {
     /// Locale used for rendering localized receipt fields.
     ///
     /// Example: `de-DE`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`locale`](ReceiptMerchantData::locale)."
+        )
+    )]
     pub locale: Option<String>,
     /// Merchant profile details displayed on the receipt.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`merchant_profile`](ReceiptMerchantData::merchant_profile)."
+        )
+    )]
     pub merchant_profile: Option<ReceiptMerchantDataMerchantProfile>,
 }
 /// Card reader details displayed on the receipt.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptReader {
     /// Unique identifier of the physical card reader.
     ///
     /// Example: `U1DT3NA00-CN`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`code`](ReceiptReader::code).")
+    )]
     pub code: Option<String>,
     /// Model of the physical card reader.
     ///
     /// Example: `solo`
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`r#type`](ReceiptReader::r#type).")
+    )]
     pub r#type: Option<String>,
 }
 /// Transaction details displayed on a receipt.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptTransaction {
     /// Total transaction amount, in major units.
     ///
     /// Example: `10.10`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`amount`](ReceiptTransaction::amount)."
+        )
+    )]
     pub amount: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`card`](ReceiptTransaction::card).")
+    )]
     pub card: Option<ReceiptCard>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`card_reader`](ReceiptTransaction::card_reader)."
+        )
+    )]
     pub card_reader: Option<ReceiptReader>,
     /// Three-letter ISO 4217 currency code of the transaction.
     ///
     /// Example: `EUR`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`currency`](ReceiptTransaction::currency)."
+        )
+    )]
     pub currency: Option<String>,
     /// Entry mode of the payment details.
     ///
     /// Example: `CUSTOMER_ENTRY`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`entry_mode`](ReceiptTransaction::entry_mode)."
+        )
+    )]
     pub entry_mode: Option<String>,
     /// Transaction events displayed on the receipt.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`events`](ReceiptTransaction::events).")
+    )]
     pub events: Option<Vec<ReceiptEvent>>,
     /// Number of installments.
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installments_count`](ReceiptTransaction::installments_count)."
+        )
+    )]
     pub installments_count: Option<i64>,
     /// Short unique identifier for the merchant.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](ReceiptTransaction::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     /// Payment type used for the transaction.
     ///
     /// Example: `ECOM`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`payment_type`](ReceiptTransaction::payment_type)."
+        )
+    )]
     pub payment_type: Option<String>,
     /// Whether the transaction was processed as credit or debit.
     ///
     /// Example: `CREDIT`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`process_as`](ReceiptTransaction::process_as)."
+        )
+    )]
     pub process_as: Option<ReceiptTransactionProcessAs>,
     /// Products associated with the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`products`](ReceiptTransaction::products).")
+    )]
     pub products: Option<Vec<ReceiptTransactionProductsItem>>,
     /// Receipt number associated with the transaction.
     ///
     /// Example: `123456`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`receipt_no`](ReceiptTransaction::receipt_no)."
+        )
+    )]
     pub receipt_no: Option<String>,
     /// Current processing status of the transaction.
     ///
     /// Example: `SUCCESSFUL`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`status`](ReceiptTransaction::status)."
+        )
+    )]
     pub status: Option<String>,
     /// The timestamp of when the transaction was created.
     ///
     /// Example: `2020-02-29T10:56:56.876Z`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`timestamp`](ReceiptTransaction::timestamp)."
+        )
+    )]
     pub timestamp: Option<crate::datetime::DateTime>,
     /// Tip included in the transaction amount, in major units.
     ///
     /// Example: `3.00`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`tip_amount`](ReceiptTransaction::tip_amount)."
+        )
+    )]
     pub tip_amount: Option<String>,
     /// Transaction code returned after processing the transaction.
     ///
     /// Example: `TEENSK4W2K`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_code`](ReceiptTransaction::transaction_code)."
+        )
+    )]
     pub transaction_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_id`](ReceiptTransaction::transaction_id)."
+        )
+    )]
     pub transaction_id: Option<TransactionId>,
     /// VAT included in the transaction amount, in major units.
     ///
     /// Example: `6.00`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`vat_amount`](ReceiptTransaction::vat_amount)."
+        )
+    )]
     pub vat_amount: Option<String>,
     /// VAT breakdown for the transaction.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`vat_rates`](ReceiptTransaction::vat_rates)."
+        )
+    )]
     pub vat_rates: Option<Vec<ReceiptTransactionVatRatesItem>>,
     /// Cardholder verification method.
     ///
     /// Example: `none`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`verification_method`](ReceiptTransaction::verification_method)."
+        )
+    )]
     pub verification_method: Option<String>,
 }
 /// Acquirer-specific metadata related to the card authorization.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptAcquirerData {
     /// Authorization code returned by the acquirer.
     ///
     /// Example: `053201`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`authorization_code`](ReceiptAcquirerData::authorization_code)."
+        )
+    )]
     pub authorization_code: Option<String>,
     /// Local timestamp of the card authorization.
     ///
     /// Example: `2020-02-29T11:56:56+01:00`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`local_time`](ReceiptAcquirerData::local_time)."
+        )
+    )]
     pub local_time: Option<String>,
     /// Return code reported by the acquirer.
     ///
     /// Example: `00`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`return_code`](ReceiptAcquirerData::return_code)."
+        )
+    )]
     pub return_code: Option<String>,
     /// Identifier of the terminal used for the authorization.
     ///
     /// Example: `12345678`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`tid`](ReceiptAcquirerData::tid).")
+    )]
     pub tid: Option<String>,
 }
 /// Business address of the merchant.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptMerchantDataMerchantProfileAddress {
     /// First line of the merchant address.
     ///
     /// Example: `Sample street 1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`address_line1`](ReceiptMerchantDataMerchantProfileAddress::address_line1)."
+        )
+    )]
     pub address_line1: Option<String>,
     /// Second line of the merchant address.
     ///
     /// Example: `Floor 2`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`address_line2`](ReceiptMerchantDataMerchantProfileAddress::address_line2)."
+        )
+    )]
     pub address_line2: Option<String>,
     /// City of the merchant address.
     ///
     /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`city`](ReceiptMerchantDataMerchantProfileAddress::city)."
+        )
+    )]
     pub city: Option<String>,
     /// Two-letter ISO 3166-1 alpha-2 country code of the merchant address.
     ///
     /// Example: `DE`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`country`](ReceiptMerchantDataMerchantProfileAddress::country)."
+        )
+    )]
     pub country: Option<String>,
     /// English name of the country in the merchant address.
     ///
     /// Example: `Germany`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`country_en_name`](ReceiptMerchantDataMerchantProfileAddress::country_en_name)."
+        )
+    )]
     pub country_en_name: Option<String>,
     /// Localized name of the country in the merchant address.
     ///
     /// Example: `Deutschland`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`country_native_name`](ReceiptMerchantDataMerchantProfileAddress::country_native_name)."
+        )
+    )]
     pub country_native_name: Option<String>,
     /// Landline phone number of the merchant.
     ///
     /// Example: `+493012345678`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`landline`](ReceiptMerchantDataMerchantProfileAddress::landline)."
+        )
+    )]
     pub landline: Option<String>,
     /// Postal code of the merchant address.
     ///
     /// Example: `10115`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`post_code`](ReceiptMerchantDataMerchantProfileAddress::post_code)."
+        )
+    )]
     pub post_code: Option<String>,
     /// Region or state of the merchant address.
     ///
     /// Example: `Berlin`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`region_name`](ReceiptMerchantDataMerchantProfileAddress::region_name)."
+        )
+    )]
     pub region_name: Option<String>,
 }
 /// Merchant profile details displayed on the receipt.
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptMerchantDataMerchantProfile {
     /// Business address of the merchant.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`address`](ReceiptMerchantDataMerchantProfile::address)."
+        )
+    )]
     pub address: Option<ReceiptMerchantDataMerchantProfileAddress>,
     /// Business name of the merchant.
     ///
     /// Example: `Coffee House`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`business_name`](ReceiptMerchantDataMerchantProfile::business_name)."
+        )
+    )]
     pub business_name: Option<String>,
     /// Company registration number of the merchant.
     ///
     /// Example: `HRB 123456`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`company_registration_number`](ReceiptMerchantDataMerchantProfile::company_registration_number)."
+        )
+    )]
     pub company_registration_number: Option<String>,
     /// Email address of the merchant.
     ///
     /// Example: `merchant@example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`email`](ReceiptMerchantDataMerchantProfile::email)."
+        )
+    )]
     pub email: Option<String>,
     /// Language configured for the merchant profile.
     ///
     /// Example: `de`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`language`](ReceiptMerchantDataMerchantProfile::language)."
+        )
+    )]
     pub language: Option<String>,
     /// Short unique identifier for the merchant.
     ///
     /// Example: `MH4H92C7`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`merchant_code`](ReceiptMerchantDataMerchantProfile::merchant_code)."
+        )
+    )]
     pub merchant_code: Option<String>,
     /// VAT identification number of the merchant.
     ///
     /// Example: `DE123456789`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`vat_id`](ReceiptMerchantDataMerchantProfile::vat_id)."
+        )
+    )]
     pub vat_id: Option<String>,
     /// Website of the merchant.
     ///
     /// Example: `https://example.com`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`website`](ReceiptMerchantDataMerchantProfile::website)."
+        )
+    )]
     pub website: Option<String>,
 }
 /// Whether the transaction was processed as credit or debit.
@@ -306,17 +780,42 @@ pub enum ReceiptTransactionProcessAs {
     #[serde(untagged)]
     Other(String),
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptTransactionProductsItem {
     /// Product description.
     ///
     /// Example: `Cappuccino`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`description`](ReceiptTransactionProductsItem::description)."
+        )
+    )]
     pub description: Option<String>,
     /// Product name.
     ///
     /// Example: `Coffee`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`name`](ReceiptTransactionProductsItem::name)."
+        )
+    )]
     pub name: Option<String>,
     /// Product price.
     ///
@@ -325,6 +824,13 @@ pub struct ReceiptTransactionProductsItem {
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`price`](ReceiptTransactionProductsItem::price)."
+        )
     )]
     pub price: Option<f64>,
     /// Product price including VAT.
@@ -335,11 +841,25 @@ pub struct ReceiptTransactionProductsItem {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::string_or_number::deserialize_option"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`price_with_vat`](ReceiptTransactionProductsItem::price_with_vat)."
+        )
+    )]
     pub price_with_vat: Option<f64>,
     /// Product quantity.
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`quantity`](ReceiptTransactionProductsItem::quantity)."
+        )
+    )]
     pub quantity: Option<i64>,
     /// VAT amount for a single product.
     ///
@@ -348,6 +868,13 @@ pub struct ReceiptTransactionProductsItem {
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`single_vat_amount`](ReceiptTransactionProductsItem::single_vat_amount)."
+        )
     )]
     pub single_vat_amount: Option<f64>,
     /// Total price calculated as the product price multiplied by the quantity.
@@ -358,6 +885,13 @@ pub struct ReceiptTransactionProductsItem {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::string_or_number::deserialize_option"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`total_price`](ReceiptTransactionProductsItem::total_price)."
+        )
+    )]
     pub total_price: Option<f64>,
     /// Total product price including VAT.
     ///
@@ -366,6 +900,13 @@ pub struct ReceiptTransactionProductsItem {
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::string_or_number::deserialize_option"
+    )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`total_with_vat`](ReceiptTransactionProductsItem::total_with_vat)."
+        )
     )]
     pub total_with_vat: Option<f64>,
     /// Total VAT amount for the product quantity.
@@ -376,6 +917,13 @@ pub struct ReceiptTransactionProductsItem {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::string_or_number::deserialize_option"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`vat_amount`](ReceiptTransactionProductsItem::vat_amount)."
+        )
+    )]
     pub vat_amount: Option<f64>,
     /// VAT rate.
     ///
@@ -385,41 +933,99 @@ pub struct ReceiptTransactionProductsItem {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "crate::string_or_number::deserialize_option"
     )]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`vat_rate`](ReceiptTransactionProductsItem::vat_rate)."
+        )
+    )]
     pub vat_rate: Option<f64>,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct ReceiptTransactionVatRatesItem {
     /// Gross amount to which the VAT rate applies.
     ///
     /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`gross`](ReceiptTransactionVatRatesItem::gross)."
+        )
+    )]
     pub gross: Option<f32>,
     /// Net amount to which the VAT rate applies.
     ///
     /// Example: `8.49`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`net`](ReceiptTransactionVatRatesItem::net)."
+        )
+    )]
     pub net: Option<f32>,
     /// VAT rate applied to the transaction amount.
     ///
     /// Example: `0.19`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`rate`](ReceiptTransactionVatRatesItem::rate)."
+        )
+    )]
     pub rate: Option<f32>,
     /// VAT amount included in the gross amount.
     ///
     /// Example: `1.61`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`vat`](ReceiptTransactionVatRatesItem::vat)."
+        )
+    )]
     pub vat: Option<f32>,
 }
-#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
 pub struct GetParams {
     /// Short unique identifier for the merchant.
     ///
     /// Example: `MH4H92C7`
+    #[builder(setter(into, doc = "Sets [`mid`](GetParams::mid)."))]
     pub mid: String,
     /// Unique identifier of the transaction event to include on the receipt.
     ///
     /// Example: `9567461191`
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`tx_event_id`](GetParams::tx_event_id).")
+    )]
     pub tx_event_id: Option<i64>,
 }
 use crate::client::Client;

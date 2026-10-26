@@ -302,7 +302,11 @@ pub(crate) fn generate_structs_for_schemas_with_registry(
             } else {
                 quote! {#[derive(Debug,Clone,PartialEq,serde::Serialize,serde::Deserialize)]}
             };
-            items.push(quote! {#doc #dep #derive pub struct #id{#(#fields)*}});
+            items.push(crate::builder::generate(
+                spec,
+                quote! {#doc #dep #derive pub struct #id{#(#fields)*}},
+                symbols,
+            )?);
             if errors.contains(name) {
                 items.push(error_impl(&id, &p, &r));
             }
@@ -471,7 +475,11 @@ fn nested(
     } else {
         quote! {#[derive(Debug,Clone,PartialEq,serde::Serialize,serde::Deserialize)]}
     };
-    out.push(quote! {#doc #derive pub struct #id{#(#fields)*}});
+    out.push(crate::builder::generate(
+        spec,
+        quote! {#doc #derive pub struct #id{#(#fields)*}},
+        symbols,
+    )?);
     Ok(())
 }
 

@@ -95,6 +95,24 @@ let http_client = Client::http_client_builder()
 let client = Client::default().with_client(http_client);
 ```
 
+## Request Builders
+
+Build requests and query parameters with `builder()`:
+
+```rust
+use sumup::{Currency, checkouts};
+
+let request = checkouts::CreateRequest::builder()
+    .checkout_reference("order-123")
+    .amount(10.0)
+    .currency(Currency::EUR)
+    .merchant_code("MCODE")
+    .description("Coffee")
+    .build();
+```
+
+Required fields must be set before `build()` compiles. Optional setters accept the value directly, without `Some(...)`, nullable fields accept `Nullable::Null` or `Nullable::Value(value)`. Struct literals and direct field updates are also supported.
+
 ## Features
 
 By default the SDK enables `chrono` datetime support and reqwest's default TLS

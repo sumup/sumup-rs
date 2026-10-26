@@ -73,19 +73,12 @@
 //! # use sumup::{Client, Currency, checkouts};
 //! # async fn example(client: Client) {
 //! // Create a checkout
-//! let checkout = client.checkouts().create(checkouts::CreateRequest {
-//!     checkout_reference: "unique-ref".to_string(),
-//!     amount: 10.0,
-//!     currency: Currency::EUR,
-//!     merchant_code: "MCODE".to_string(),
-//!     description: None,
-//!     return_url: None,
-//!     customer_id: None,
-//!     purpose: None,
-//!     valid_until: None,
-//!     redirect_url: None,
-//!     hosted_checkout: None,
-//! })
+//! let checkout = client.checkouts().create(checkouts::CreateRequest::builder()
+//!     .checkout_reference("unique-ref")
+//!     .amount(10.0)
+//!     .currency(Currency::EUR)
+//!     .merchant_code("MCODE")
+//!     .build())
 //! .await
 //! .expect("create checkout");
 //! println!("created checkout {}", checkout.id.unwrap_or_default());
@@ -96,16 +89,40 @@
 //!     .transactions()
 //!     .list(
 //!         "MERCHANT_CODE",
-//!         ListParams {
-//!             limit: Some(10),
-//!             ..Default::default()
-//!         },
+//!         ListParams::builder().limit(10).build(),
 //!     )
 //!     .await
 //!     .expect("list transactions");
 //! let count = transactions.items.as_ref().map_or(0, |items| items.len());
 //! println!("fetched {} historical transactions", count);
 //! # }
+//! ```
+//!
+//! ## Request Builders
+//!
+//! Build requests and query parameters with `builder()`. Omit optional fields to
+//! leave them absent, or pass values directly without `Some(...)`. For nullable
+//! fields, use [`Nullable::Null`] to send an explicit `null`, or [`Nullable::Value`]
+//! to send a value.
+//!
+//! ```
+//! use sumup::readers::CreateRequest;
+//!
+//! let request = CreateRequest::builder()
+//!     .name("Front desk")
+//!     .pairing_code("12345678")
+//!     .build();
+//! assert!(request.metadata.is_none());
+//! ```
+//!
+//! Required fields must be set before calling `build()`. Omitting one is a
+//! compile-time error:
+//!
+//! ```compile_fail
+//! use sumup::readers::CreateRequest;
+//!
+//! let request = CreateRequest::builder().name("Front desk").build();
+//! // Missing required pairing_code.
 //! ```
 //!
 //! ## DateTime Support
