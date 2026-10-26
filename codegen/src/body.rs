@@ -488,6 +488,15 @@ fn generate_request_body_struct(
     let struct_name = operation_request_type_ident(operation_name);
     let struct_name_str = struct_name.to_string();
 
+    // A matching component already supplies the operation's request type.
+    if let openapiv3::ObjectOrReference::Ref { ref_path, .. } = schema_ref
+        && ref_path
+            .strip_prefix("#/components/schemas/")
+            .is_some_and(|name| name.to_upper_camel_case() == struct_name_str)
+    {
+        return Ok(None);
+    }
+
     symbols.reserve(
         struct_name_str,
         format!("request body for {operation_origin}"),
@@ -911,6 +920,63 @@ mod tests {
         let code = crate::format_generated_code(tokens);
         assert!(code.contains("pub optional_filter: Option<String>"));
         assert!(code.contains("pub required_filter: String"));
+    }
+
+    #[test]
+    fn matching_request_component_is_reused() {
+        let spec = parse_spec(json!({
+            "openapi": "3.1.0",
+            "info": { "title": "test", "version": "1.0.0" },
+            "paths": {
+                "/settings": {
+                    "patch": {
+                        "operationId": "UpdateReaderSettings",
+                        "x-codegen": { "method_name": "update_reader_settings" },
+                        "tags": ["Readers"],
+                        "requestBody": {
+                            "required": true,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/UpdateReaderSettingsRequest"
+                                    }
+                                }
+                            }
+                        },
+                        "responses": { "204": { "description": "ok" } }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "UpdateReaderSettingsRequest": {
+                        "type": "object",
+                        "properties": { "enabled": { "type": "boolean" } }
+                    }
+                }
+            }
+        }));
+        let mut symbols = crate::symbol::SymbolRegistry::new("readers");
+        let schemas = crate::schema::generate_structs_for_schemas_with_registry(
+            &spec,
+            &std::collections::HashSet::from(["UpdateReaderSettingsRequest".into()]),
+            &std::collections::HashSet::new(),
+            &mut symbols,
+        )
+        .unwrap();
+        let bodies = generate_operation_bodies_with_registry(&spec, "Readers", &mut symbols)
+            .expect("matching request component should not collide");
+        let code = crate::format_generated_code(quote! { #schemas #bodies });
+        assert_eq!(
+            code.matches("pub struct UpdateReaderSettingsRequest {")
+                .count(),
+            1
+        );
+        assert!(code.contains("pub enabled: Option<bool>"));
+        let client = crate::generate_tag_client(&spec, "Readers").unwrap();
+        assert!(
+            crate::format_generated_code(client).contains("body: UpdateReaderSettingsRequest,")
+        );
     }
 
     #[test]
