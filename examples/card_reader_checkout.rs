@@ -46,6 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 },
                 affiliate: None,
                 card_type: None,
+                payment_type: None,
                 description: Some("sumup-rs card reader checkout example".into()),
                 installments: None,
                 return_url: None,
