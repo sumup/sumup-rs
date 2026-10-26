@@ -1284,6 +1284,7 @@ pub enum ProcessErrorBody {
 impl crate::error::ProblemDetails for ProcessErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
         match self {
+            Self::BadRequest(body) => crate::error::ProblemDetails::problem(body),
             Self::Unauthorized(problem) => Some(problem),
             _ => None,
         }
@@ -1305,7 +1306,10 @@ pub enum CreateApplePaySessionErrorBody {
 }
 impl crate::error::ProblemDetails for CreateApplePaySessionErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
-        None
+        match self {
+            Self::BadRequest(body) => crate::error::ProblemDetails::problem(body),
+            _ => None,
+        }
     }
 }
 /// Client for the Checkouts API endpoints.

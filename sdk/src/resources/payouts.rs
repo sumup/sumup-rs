@@ -138,8 +138,8 @@ pub enum ListErrorBody {
 impl crate::error::ProblemDetails for ListErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
         match self {
+            Self::BadRequest(body) => crate::error::ProblemDetails::problem(body),
             Self::Unauthorized(problem) => Some(problem),
-            _ => None,
         }
     }
 }

@@ -730,6 +730,9 @@ fn generate_error_handling(
                 }
                 BodyKind::Unknown => {
                     variant_defs.push(quote! { #variant_ident(crate::error::UnknownApiBody), });
+                    problem_arms.push(quote! {
+                        Self::#variant_ident(body) => crate::error::ProblemDetails::problem(body),
+                    });
                 }
                 BodyKind::Empty => {
                     variant_defs.push(quote! { #variant_ident, });

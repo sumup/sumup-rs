@@ -122,6 +122,7 @@ pub enum CreateErrorBody {
 impl crate::error::ProblemDetails for CreateErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
         match self {
+            Self::BadRequest(body) => crate::error::ProblemDetails::problem(body),
             Self::Unauthorized(problem) => Some(problem),
             _ => None,
         }

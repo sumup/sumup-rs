@@ -100,3 +100,30 @@ async fn interrupted_error_bodies_preserve_http_context() {
         assert!(error.raw_body().is_none());
     }
 }
+
+#[tokio::test]
+async fn documented_error_without_a_body_schema_exposes_problem_details() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/v0.1/customers"))
+        .respond_with(ResponseTemplate::new(400).set_body_json(serde_json::json!({
+            "type": "about:blank", "detail": "Invalid customer"
+        })))
+        .mount(&server)
+        .await;
+    let client = Client::new().with_base_url(server.uri());
+    let error = client
+        .customers()
+        .create(sumup::resources::customers::CreateRequest {
+            customer_id: "customer".into(),
+            personal_details: None,
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(
+        error.problem().unwrap().detail.as_deref(),
+        Some("Invalid customer")
+    );
+    assert_eq!(error.status(), Some(reqwest::StatusCode::BAD_REQUEST));
+    assert!(error.body().is_some());
+}
