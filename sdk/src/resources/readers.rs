@@ -32,22 +32,6 @@ pub struct Affiliate {
     #[builder(setter(into, doc = "Sets [`key`](Affiliate::key)."))]
     pub key: String,
 }
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct Amount {
-    /// Currency ISO 4217 code
-    ///
-    /// Example: `MXN`
-    #[builder(setter(into, doc = "Sets [`currency`](Amount::currency)."))]
-    pub currency: String,
-    /// Amount in minor units (e.g. cents).
-    ///
-    /// Example: `1000`
-    #[builder(setter(doc = "Sets [`value`](Amount::value)."))]
-    pub value: i64,
-}
 /// Payment details for a Reader Checkout.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,

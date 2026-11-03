@@ -140,6 +140,10 @@ impl Client {
     pub fn roles(&self) -> crate::resources::roles::RolesClient<'_> {
         crate::resources::roles::RolesClient::new(self)
     }
+    /// Returns a client for the Sales API endpoints.
+    pub fn sales(&self) -> crate::resources::sales::SalesClient<'_> {
+        crate::resources::sales::SalesClient::new(self)
+    }
     /// Returns a client for the Tokens API endpoints.
     pub fn tokens(&self) -> crate::resources::tokens::TokensClient<'_> {
         crate::resources::tokens::TokensClient::new(self)
