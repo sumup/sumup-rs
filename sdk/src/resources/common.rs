@@ -71,6 +71,22 @@ pub struct AddressLegacy {
     )]
     pub state: Option<String>,
 }
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct Amount {
+    /// Currency ISO 4217 code
+    ///
+    /// Example: `MXN`
+    #[builder(setter(into, doc = "Sets [`currency`](Amount::currency)."))]
+    pub currency: String,
+    /// Amount in minor units (e.g. cents).
+    ///
+    /// Example: `1000`
+    #[builder(setter(doc = "Sets [`value`](Amount::value)."))]
+    pub value: i64,
+}
 /// Object attributes that are modifiable only by SumUp applications.
 #[derive(
     Debug,
