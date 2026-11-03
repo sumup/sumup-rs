@@ -277,7 +277,7 @@ pub struct BasePerson {
     /// - min length: 1
     /// - max length: 60
     ///
-    /// Example: `Bond`
+    /// Example: `Rossi`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -294,7 +294,7 @@ pub struct BasePerson {
     /// - min length: 1
     /// - max length: 60
     ///
-    /// Example: `James Herrald`
+    /// Example: `Sofia`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -319,23 +319,6 @@ pub struct BasePerson {
         setter(strip_option, doc = "Sets [`identifiers`](BasePerson::identifiers).")
     )]
     pub identifiers: Option<PersonalIdentifiers>,
-    /// Middle name(s) of the End-User. Note that in some cultures, people can have multiple middle names; all can be present, with the names being separated by space characters. Also note that in some cultures, middle names are not used.
-    ///
-    /// Constraints:
-    /// - min length: 1
-    /// - max length: 60
-    ///
-    /// Example: `Maria Sophie`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            into,
-            doc = "Sets [`middle_name`](BasePerson::middle_name)."
-        )
-    )]
-    pub middle_name: Option<String>,
     /// The Person's nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
     ///
     /// Constraints:
@@ -1040,7 +1023,7 @@ pub struct Person {
     /// - min length: 1
     /// - max length: 60
     ///
-    /// Example: `Bond`
+    /// Example: `Rossi`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -1053,7 +1036,7 @@ pub struct Person {
     /// - min length: 1
     /// - max length: 60
     ///
-    /// Example: `James Herrald`
+    /// Example: `Sofia`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -1074,19 +1057,6 @@ pub struct Person {
         setter(strip_option, doc = "Sets [`identifiers`](Person::identifiers).")
     )]
     pub identifiers: Option<PersonalIdentifiers>,
-    /// Middle name(s) of the End-User. Note that in some cultures, people can have multiple middle names; all can be present, with the names being separated by space characters. Also note that in some cultures, middle names are not used.
-    ///
-    /// Constraints:
-    /// - min length: 1
-    /// - max length: 60
-    ///
-    /// Example: `Maria Sophie`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`middle_name`](Person::middle_name).")
-    )]
-    pub middle_name: Option<String>,
     /// The Person's nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
     ///
     /// Constraints:

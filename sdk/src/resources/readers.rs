@@ -2144,7 +2144,8 @@ impl<'a> ReadersClient<'a> {
     /// - 200: Reader settings retrieved successfully.
     /// - 401: Unauthorized
     /// - 404: The reader was not found, or it is offline and has no saved settings.
-    /// - 422: The reader model is not supported, or the reader could not return its settings.
+    /// - 422: The reader model is not supported, the firmware version is unsupported, or the
+    ///   reader could not return its settings.
     pub async fn get_reader_settings(
         &self,
         merchant_code: impl AsRef<str>,
@@ -2216,7 +2217,8 @@ impl<'a> ReadersClient<'a> {
     /// - 401: Unauthorized
     /// - 404: The reader was not found.
     /// - 422: The settings are invalid, the reader is offline, the reader model is not
-    ///   supported, or the reader could not apply the update.
+    ///   supported, the firmware version is unsupported, or the reader could not apply the
+    ///   update.
     pub async fn update_reader_settings(
         &self,
         merchant_code: impl AsRef<str>,
