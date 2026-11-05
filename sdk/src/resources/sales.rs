@@ -2,6 +2,26 @@
 
 //! Operations related to reading sales data.
 use super::common::*;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum SaleCompleted {}
+impl crate::event::private::Sealed for SaleCompleted {}
+impl crate::events::EventSpec for SaleCompleted {
+    const EVENT_TYPE: &'static str = "sales.completed";
+    type FetchedObject = Sale;
+}
+/// Event notification for this event type.
+pub type SaleCompletedEvent = crate::events::Event<SaleCompleted>;
+/// Marker type for this event notification.
+#[derive(Debug, Clone)]
+pub enum SaleUpdated {}
+impl crate::event::private::Sealed for SaleUpdated {}
+impl crate::events::EventSpec for SaleUpdated {
+    const EVENT_TYPE: &'static str = "sales.updated";
+    type FetchedObject = Sale;
+}
+/// Event notification for this event type.
+pub type SaleUpdatedEvent = crate::events::Event<SaleUpdated>;
 /// The brand of the card.
 /// Input is case-insensitive; the canonical form is lowercase snake_case.
 /// **VALUES**: [amex, cup, diners, discover, elo, elv, hipercard, jcb, maestro, mastercard, visa, visa_electron,

@@ -257,6 +257,40 @@ impl EventsHandler {
     {
         self.register::<crate::resources::roles::RoleUpdated, _>(callback)
     }
+    /// Registers an async callback for `sales.completed` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_sale_completed<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::sales::SaleCompletedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::sales::SaleCompleted, _>(callback)
+    }
+    /// Registers an async callback for `sales.updated` notifications.
+    ///
+    /// The callback receives the typed event and a clone of the client.
+    /// Returns an error if a callback is already registered for this event.
+    pub fn on_sale_updated<HandlerFuture>(
+        &mut self,
+        callback: impl Fn(crate::resources::sales::SaleUpdatedEvent, crate::Client) -> HandlerFuture
+        + Send
+        + Sync
+        + 'static,
+    ) -> Result<&mut Self, EventHandlerRegistrationError>
+    where
+        HandlerFuture: std::future::Future + Send + 'static,
+        HandlerFuture::Output: IntoEventHandlerResult + 'static,
+    {
+        self.register::<crate::resources::sales::SaleUpdated, _>(callback)
+    }
 }
 /// Event notification parsed by the SDK.
 ///
@@ -280,6 +314,8 @@ pub enum EventNotification {
     RoleCreated(crate::resources::roles::RoleCreatedEvent),
     RoleDeleted(crate::resources::roles::RoleDeletedEvent),
     RoleUpdated(crate::resources::roles::RoleUpdatedEvent),
+    SaleCompleted(crate::resources::sales::SaleCompletedEvent),
+    SaleUpdated(crate::resources::sales::SaleUpdatedEvent),
     Unknown(UnknownEvent),
 }
 impl EventNotification {
@@ -299,6 +335,8 @@ impl EventNotification {
             Self::RoleCreated(event) => event.event_type(),
             Self::RoleDeleted(event) => event.event_type(),
             Self::RoleUpdated(event) => event.event_type(),
+            Self::SaleCompleted(event) => event.event_type(),
+            Self::SaleUpdated(event) => event.event_type(),
             Self::Unknown(event) => &event.event_type,
         }
     }
@@ -367,6 +405,16 @@ pub(crate) fn parse_known_event(client: crate::Client, event: RawEvent) -> Event
         }
         <crate::resources::roles::RoleUpdated as EventSpec>::EVENT_TYPE => {
             EventNotification::RoleUpdated(crate::resources::roles::RoleUpdatedEvent::from_raw(
+                client, event,
+            ))
+        }
+        <crate::resources::sales::SaleCompleted as EventSpec>::EVENT_TYPE => {
+            EventNotification::SaleCompleted(crate::resources::sales::SaleCompletedEvent::from_raw(
+                client, event,
+            ))
+        }
+        <crate::resources::sales::SaleUpdated as EventSpec>::EVENT_TYPE => {
+            EventNotification::SaleUpdated(crate::resources::sales::SaleUpdatedEvent::from_raw(
                 client, event,
             ))
         }
