@@ -105,9 +105,12 @@ pub struct ReceiptEvent {
         setter(strip_option, doc = "Sets [`amount`](ReceiptEvent::amount).")
     )]
     pub amount: Option<f64>,
+    /// Numeric identifier of a transaction event. Use it as `tx_event_id` when requesting receipt details for a specific event. This is separate from the transaction ID and the transaction history pagination references.
+    ///
+    /// Example: `9567461191`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(strip_option, doc = "Sets [`id`](ReceiptEvent::id)."))]
-    pub id: Option<TransactionEventId>,
+    pub id: Option<i64>,
     /// Receipt number associated with the event.
     ///
     /// Example: `123456`
@@ -136,6 +139,9 @@ pub struct ReceiptEvent {
         setter(strip_option, doc = "Sets [`timestamp`](ReceiptEvent::timestamp).")
     )]
     pub timestamp: Option<crate::datetime::DateTime>,
+    /// Unique identifier of the transaction.
+    ///
+    /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -145,7 +151,7 @@ pub struct ReceiptEvent {
             doc = "Sets [`transaction_id`](ReceiptEvent::transaction_id)."
         )
     )]
-    pub transaction_id: Option<TransactionId>,
+    pub transaction_id: Option<String>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
@@ -416,6 +422,9 @@ pub struct ReceiptTransaction {
         )
     )]
     pub transaction_code: Option<String>,
+    /// Unique identifier of the transaction.
+    ///
+    /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -425,7 +434,7 @@ pub struct ReceiptTransaction {
             doc = "Sets [`transaction_id`](ReceiptTransaction::transaction_id)."
         )
     )]
-    pub transaction_id: Option<TransactionId>,
+    pub transaction_id: Option<String>,
     /// VAT included in the transaction amount, in major units.
     ///
     /// Example: `6.00`

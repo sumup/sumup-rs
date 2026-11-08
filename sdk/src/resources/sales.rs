@@ -1,7 +1,6 @@
 // The contents of this file are generated; do not modify them.
 
 //! Operations related to reading sales data.
-use super::common::*;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum SaleCompleted {}
@@ -22,16 +21,6 @@ impl crate::events::EventSpec for SaleUpdated {
 }
 /// Event notification for this event type.
 pub type SaleUpdatedEvent = crate::events::Event<SaleUpdated>;
-/// The brand of the card.
-/// Input is case-insensitive; the canonical form is lowercase snake_case.
-/// **VALUES**: [amex, cup, diners, discover, elo, elv, hipercard, jcb, maestro, mastercard, visa, visa_electron,
-/// visa_vpay, vr, eftpos, conecs, swile, girocard, interac, sumup, bancomat].
-///
-/// Constraints:
-/// - max length: 20
-///
-/// Example: `visa`
-pub type Brand = String;
 /// A category a line belongs to.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
@@ -87,18 +76,6 @@ pub enum DiscountClass {
     #[serde(untagged)]
     Other(String),
 }
-/// Specifies where discount was applied by user (either merchant or consumer):
-/// - CART: Applied to the whole cart (calculated and distributed per sale item)
-/// - ITEM: Applied to specific sale item
-///
-/// *Accepted values:* ["ITEM", "CART"].
-///
-/// Constraints:
-/// - min length: 4
-/// - max length: 4
-///
-/// Example: `CART`
-pub type DiscountLevel = String;
 /// Object representing information about single discount line.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
@@ -121,8 +98,16 @@ pub struct DiscountLine {
         )
     )]
     pub description: Option<String>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`gross_amount`](DiscountLine::gross_amount)."))]
-    pub gross_amount: PositiveAmount,
+    pub gross_amount: i64,
     /// An id used to associate a discount line with a specific discount.
     /// Since we can apply multiple discounts (e.g. 2x 10% whole cart off)
     /// we need to be able to identify which discount line belongs to which cart discount.
@@ -138,14 +123,41 @@ pub struct DiscountLine {
         setter(strip_option, into, doc = "Sets [`id`](DiscountLine::id).")
     )]
     pub id: Option<String>,
+    /// Specifies where discount was applied by user (either merchant or consumer):
+    /// - CART: Applied to the whole cart (calculated and distributed per sale item)
+    /// - ITEM: Applied to specific sale item
+    ///
+    /// *Accepted values:* ["ITEM", "CART"].
+    ///
+    /// Constraints:
+    /// - min length: 4
+    /// - max length: 4
+    ///
+    /// Example: `CART`
     #[builder(setter(into, doc = "Sets [`level`](DiscountLine::level)."))]
-    pub level: DiscountLevel,
+    pub level: String,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`net_amount`](DiscountLine::net_amount)."))]
-    pub net_amount: PositiveAmount,
+    pub net_amount: i64,
     #[builder(setter(doc = "Sets [`source`](DiscountLine::source)."))]
     pub source: DiscountSource,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`tax_amount`](DiscountLine::tax_amount)."))]
-    pub tax_amount: PositiveAmount,
+    pub tax_amount: i64,
     #[builder(setter(doc = "Sets [`value`](DiscountLine::value)."))]
     pub value: DiscountValue,
 }
@@ -520,12 +532,20 @@ pub struct DiscountSourceOffer {
 )]
 #[builder(doc)]
 pub struct DiscountValue {
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`absolute`](DiscountValue::absolute).")
     )]
-    pub absolute: Option<PositiveAmount>,
+    pub absolute: Option<i64>,
     /// The percentage in minor units (1/100000).
     ///
     /// Examples:
@@ -650,14 +670,30 @@ pub struct FinalPriceAmounts {
     /// - max items: 1000
     #[builder(setter(doc = "Sets [`taxes_final`](FinalPriceAmounts::taxes_final)."))]
     pub taxes_final: Vec<PositiveTaxLine>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(
         doc = "Sets [`total_gross_amount_final`](FinalPriceAmounts::total_gross_amount_final)."
     ))]
-    pub total_gross_amount_final: PositiveAmount,
+    pub total_gross_amount_final: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(
         doc = "Sets [`total_net_amount_final`](FinalPriceAmounts::total_net_amount_final)."
     ))]
-    pub total_net_amount_final: PositiveAmount,
+    pub total_net_amount_final: i64,
 }
 /// Outward identifiers and links for a line, kept in one place rather than scattered
 /// per item type.
@@ -734,22 +770,6 @@ pub struct ItemReferencesV10 {
     )]
     pub sku: Option<String>,
 }
-/// Classifies a sale line. Not a schema subclass.
-///
-/// Known values: `CATALOG`, `DEPOSIT`, `GIFT_CARD`, `CUSTOM`, `FEE`.
-///
-/// `FEE` lines represent merchant-charged fees on the sale (e.g. shipping, service
-/// charge, surcharge, cancellation). They participate in sale totals like any other
-/// line; type-specific data is carried in `features` (see `Feature` for the
-/// conventional feature keys).
-///
-/// This is intentionally an open string, NOT a closed enum: new values are added
-/// over time as pure data and consumers MUST tolerate unknown values, rendering the
-/// line from the generic envelope (name, quantity, price, taxes) and reading any
-/// extra information from `features`.
-///
-/// Example: `CATALOG`
-pub type ItemTypeV10 = String;
 /// Pricing for a single line, valid for every item type.
 ///
 /// Merges the standard amounts (with tax breakdown) and the final amounts (after
@@ -787,20 +807,48 @@ pub struct LineItemPriceV10 {
     /// - max items: 1000
     #[builder(setter(doc = "Sets [`taxes_final`](LineItemPriceV10::taxes_final)."))]
     pub taxes_final: Vec<TaxLine>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`total_gross_amount`](LineItemPriceV10::total_gross_amount)."))]
-    pub total_gross_amount: Amount,
+    pub total_gross_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(
         doc = "Sets [`total_gross_amount_final`](LineItemPriceV10::total_gross_amount_final)."
     ))]
-    pub total_gross_amount_final: Amount,
+    pub total_gross_amount_final: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`total_net_amount`](LineItemPriceV10::total_net_amount)."))]
-    pub total_net_amount: Amount,
+    pub total_net_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(
         doc = "Sets [`total_net_amount_final`](LineItemPriceV10::total_net_amount_final)."
     ))]
-    pub total_net_amount_final: Amount,
+    pub total_net_amount_final: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`unit_amount`](LineItemPriceV10::unit_amount)."))]
-    pub unit_amount: PositiveAmount,
+    pub unit_amount: i64,
 }
 /// Modifiers are reported under line items and can be build from Item Catalog objects.
 /// Modifiers has to be attached to an item and can't be sold and refunded alone.
@@ -844,29 +892,44 @@ pub enum PaymentStatusFilterV10 {
     #[serde(untagged)]
     Other(String),
 }
-/// The value of the amount in minor units of the currency according to the Sale.currency.scale.
-/// `value` can get large for some currencies and applications.
-/// Use Long type or a similar data type when parsing `value`.
-///
-/// Constraints:
-/// - value >= 0
-///
-/// Example: `100`
-pub type PositiveAmount = i64;
 /// Price information for items with positive amounts only.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
 )]
 #[builder(doc)]
 pub struct PositivePriceAmounts {
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(
         doc = "Sets [`total_gross_amount`](PositivePriceAmounts::total_gross_amount)."
     ))]
-    pub total_gross_amount: PositiveAmount,
+    pub total_gross_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`total_net_amount`](PositivePriceAmounts::total_net_amount)."))]
-    pub total_net_amount: PositiveAmount,
+    pub total_net_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`unit_amount`](PositivePriceAmounts::unit_amount)."))]
-    pub unit_amount: PositiveAmount,
+    pub unit_amount: i64,
 }
 /// Price information with positive amounts and detailed tax breakdown.
 #[derive(
@@ -881,16 +944,40 @@ pub struct PositivePriceWithTaxes {
     /// - max items: 1000
     #[builder(setter(doc = "Sets [`taxes`](PositivePriceWithTaxes::taxes)."))]
     pub taxes: Vec<PositiveTaxLine>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(
         doc = "Sets [`total_gross_amount`](PositivePriceWithTaxes::total_gross_amount)."
     ))]
-    pub total_gross_amount: PositiveAmount,
+    pub total_gross_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(
         doc = "Sets [`total_net_amount`](PositivePriceWithTaxes::total_net_amount)."
     ))]
-    pub total_net_amount: PositiveAmount,
+    pub total_net_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`unit_amount`](PositivePriceWithTaxes::unit_amount)."))]
-    pub unit_amount: PositiveAmount,
+    pub unit_amount: i64,
 }
 /// Tax line with positive amounts only.
 /// Information about tax together with amounts before and after its application such as:
@@ -902,8 +989,16 @@ pub struct PositivePriceWithTaxes {
 )]
 #[builder(doc)]
 pub struct PositiveTaxLine {
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`gross_amount`](PositiveTaxLine::gross_amount)."))]
-    pub gross_amount: PositiveAmount,
+    pub gross_amount: i64,
     /// Tax ID from the Tax Service (External Id)
     ///
     /// Constraints:
@@ -922,8 +1017,22 @@ pub struct PositiveTaxLine {
         setter(strip_option, into, doc = "Sets [`name`](PositiveTaxLine::name).")
     )]
     pub name: Option<String>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`net_amount`](PositiveTaxLine::net_amount)."))]
-    pub net_amount: PositiveAmount,
+    pub net_amount: i64,
+    /// The tax rate percentage in minor units (1/100000). For example 19000 = 19%.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `19000`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -932,9 +1041,17 @@ pub struct PositiveTaxLine {
             doc = "Sets [`percentage`](PositiveTaxLine::percentage)."
         )
     )]
-    pub percentage: Option<TaxRate>,
+    pub percentage: Option<i64>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`tax_amount`](PositiveTaxLine::tax_amount)."))]
-    pub tax_amount: PositiveAmount,
+    pub tax_amount: i64,
 }
 /// Base price information for items including unit amount and totals.
 #[derive(
@@ -942,12 +1059,30 @@ pub struct PositiveTaxLine {
 )]
 #[builder(doc)]
 pub struct PriceAmounts {
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`total_gross_amount`](PriceAmounts::total_gross_amount)."))]
-    pub total_gross_amount: Amount,
+    pub total_gross_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`total_net_amount`](PriceAmounts::total_net_amount)."))]
-    pub total_net_amount: Amount,
+    pub total_net_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`unit_amount`](PriceAmounts::unit_amount)."))]
-    pub unit_amount: PositiveAmount,
+    pub unit_amount: i64,
 }
 /// A RFC 9457 problem details object.
 ///
@@ -1020,22 +1155,23 @@ impl std::fmt::Display for ProblemV10 {
     }
 }
 impl std::error::Error for ProblemV10 {}
-/// Alternative payment method type when `method` is `apm`.
-/// Gift card is not an APM on this API.
-/// Input is case-insensitive; the canonical form is lowercase snake_case.
-/// **VALUES**: [qr_code_pix, sepa_dd, paypal, sumup_pay, twint, iris].
-///
-/// Constraints:
-/// - max length: 20
-pub type PublicApmType = String;
 /// Card brand, credit/debit processing type, and last four digits.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
 )]
 #[builder(doc)]
 pub struct PublicCardV10 {
+    /// The brand of the card.
+    /// Input is case-insensitive; the canonical form is lowercase snake_case.
+    /// **VALUES**: [amex, cup, diners, discover, elo, elv, hipercard, jcb, maestro, mastercard, visa, visa_electron,
+    /// visa_vpay, vr, eftpos, conecs, swile, girocard, interac, sumup, bancomat].
+    ///
+    /// Constraints:
+    /// - max length: 20
+    ///
+    /// Example: `visa`
     #[builder(setter(into, doc = "Sets [`brand`](PublicCardV10::brand)."))]
-    pub brand: Brand,
+    pub brand: String,
     /// The last 4 digits of the card used for the payment.
     ///
     /// Constraints:
@@ -1070,16 +1206,6 @@ pub struct PublicGiftCardPayment {
     #[builder(setter(into, doc = "Sets [`id`](PublicGiftCardPayment::id)."))]
     pub id: String,
 }
-/// Payment method on public sales read API v1.0.
-/// Digital wallets are first-class methods. Gift card payments use `gift_card`, not `apm`.
-/// Input is case-insensitive; the canonical form is lowercase snake_case.
-/// **VALUES**: [card, cash, apm, external, apple_pay, google_pay, whatsapp_pay, gift_card].
-///
-/// Constraints:
-/// - max length: 20
-///
-/// Example: `card`
-pub type PublicPaymentMethod = String;
 /// Payment on a closed sale, for bookkeeping and reconciliation.
 ///
 /// Acquirer/processing cost is not on this object. Merchant-charged fees (shipping, service
@@ -1089,8 +1215,23 @@ pub type PublicPaymentMethod = String;
 )]
 #[builder(doc)]
 pub struct PublicPaymentV10 {
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`amount`](PublicPaymentV10::amount)."))]
-    pub amount: PositiveAmount,
+    pub amount: i64,
+    /// Alternative payment method type when `method` is `apm`.
+    /// Gift card is not an APM on this API.
+    /// Input is case-insensitive; the canonical form is lowercase snake_case.
+    /// **VALUES**: [qr_code_pix, sepa_dd, paypal, sumup_pay, twint, iris].
+    ///
+    /// Constraints:
+    /// - max length: 20
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -1100,7 +1241,7 @@ pub struct PublicPaymentV10 {
             doc = "Sets [`apm_type`](PublicPaymentV10::apm_type)."
         )
     )]
-    pub apm_type: Option<PublicApmType>,
+    pub apm_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -1113,8 +1254,17 @@ pub struct PublicPaymentV10 {
         setter(strip_option, doc = "Sets [`gift_card`](PublicPaymentV10::gift_card).")
     )]
     pub gift_card: Option<PublicGiftCardPayment>,
+    /// Payment method on public sales read API v1.0.
+    /// Digital wallets are first-class methods. Gift card payments use `gift_card`, not `apm`.
+    /// Input is case-insensitive; the canonical form is lowercase snake_case.
+    /// **VALUES**: [card, cash, apm, external, apple_pay, google_pay, whatsapp_pay, gift_card].
+    ///
+    /// Constraints:
+    /// - max length: 20
+    ///
+    /// Example: `card`
     #[builder(setter(into, doc = "Sets [`method`](PublicPaymentV10::method)."))]
-    pub method: PublicPaymentMethod,
+    pub method: String,
     /// UTC date-time when SumUp recorded this payment’s exposed `status` (successful, failed,
     /// or canceled). Server processed time when available; otherwise the payment provider’s
     /// transaction time. Not the device clock.
@@ -1122,8 +1272,14 @@ pub struct PublicPaymentV10 {
     /// Example: `2017-07-21T17:32:28+01:00`
     #[builder(setter(doc = "Sets [`processed_at`](PublicPaymentV10::processed_at)."))]
     pub processed_at: crate::datetime::DateTime,
+    /// The reference to the actual payment used for this sale, e.g. the sumup transaction code.
+    ///
+    /// Constraints:
+    /// - max length: 50
+    ///
+    /// Example: `TERTYFQ4G3`
     #[builder(setter(into, doc = "Sets [`reference`](PublicPaymentV10::reference)."))]
-    pub reference: Reference,
+    pub reference: String,
     /// The status of the payment.
     ///
     /// Example: `SUCCESSFUL`
@@ -1141,20 +1297,6 @@ pub struct PublicPaymentV10 {
     #[builder(setter(into, doc = "Sets [`r#type`](PublicPaymentV10::r#type)."))]
     pub r#type: String,
 }
-/// The numerical value representing the quantity in the specified unit.
-///
-/// Constraints:
-/// - value >= 0
-///
-/// Example: `2.15332`
-pub type Quantity = f64;
-/// The reference to the actual payment used for this sale, e.g. the sumup transaction code.
-///
-/// Constraints:
-/// - max length: 50
-///
-/// Example: `TERTYFQ4G3`
-pub type Reference = String;
 /// Core model of the Sales API. Returned by `GET /sales` and `GET /sales/{sale_id}`.
 ///
 /// Non-finalised sales are never returned; only fully-paid sales.
@@ -1177,7 +1319,7 @@ pub struct Sale {
     #[builder(setter(doc = "Sets [`created_at`](Sale::created_at)."))]
     pub created_at: crate::datetime::DateTime,
     #[builder(setter(doc = "Sets [`currency`](Sale::currency)."))]
-    pub currency: Currency,
+    pub currency: SalesActivityCurrency,
     /// The ID of the sale.
     ///
     /// Example: `dbe3178d-4b83-5024-9b26-9b8e1b280514`
@@ -1320,8 +1462,14 @@ pub struct SaleLineItemV10 {
     pub note: Option<String>,
     #[builder(setter(doc = "Sets [`price`](SaleLineItemV10::price)."))]
     pub price: LineItemPriceV10,
+    /// The numerical value representing the quantity in the specified unit.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `2.15332`
     #[builder(setter(doc = "Sets [`quantity`](SaleLineItemV10::quantity)."))]
-    pub quantity: Quantity,
+    pub quantity: f64,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -1343,9 +1491,24 @@ pub struct SaleLineItemV10 {
         )
     )]
     pub service_type: Option<SaleLineItemV10ServiceType>,
+    /// Classifies a sale line. Not a schema subclass.
+    ///
+    /// Known values: `CATALOG`, `DEPOSIT`, `GIFT_CARD`, `CUSTOM`, `FEE`.
+    ///
+    /// `FEE` lines represent merchant-charged fees on the sale (e.g. shipping, service
+    /// charge, surcharge, cancellation). They participate in sale totals like any other
+    /// line; type-specific data is carried in `features` (see `Feature` for the
+    /// conventional feature keys).
+    ///
+    /// This is intentionally an open string, NOT a closed enum: new values are added
+    /// over time as pure data and consumers MUST tolerate unknown values, rendering the
+    /// line from the generic envelope (name, quantity, price, taxes) and reading any
+    /// extra information from `features`.
+    ///
+    /// Example: `CATALOG`
     #[serde(rename = "type")]
     #[builder(setter(into, doc = "Sets [`r#type`](SaleLineItemV10::r#type)."))]
-    pub r#type: ItemTypeV10,
+    pub r#type: String,
     #[builder(setter(doc = "Sets [`unit_of_measure`](SaleLineItemV10::unit_of_measure)."))]
     pub unit_of_measure: UnitOfMeasure,
 }
@@ -1405,10 +1568,20 @@ pub struct SalePriceV10 {
         )
     )]
     pub cart_discounts: Option<Vec<DiscountLine>>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`gross_amount`](SalePriceV10::gross_amount)."))]
-    pub gross_amount: Amount,
+    pub gross_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`net_amount`](SalePriceV10::net_amount)."))]
-    pub net_amount: Amount,
+    pub net_amount: i64,
     /// Tax lines aggregated across the sale (after cart-level discounts).
     /// Per-line tax detail remains on `items[].price.taxes` / `taxes_final`.
     ///
@@ -1435,7 +1608,7 @@ pub struct SaleSearchItem {
     #[builder(setter(doc = "Sets [`created_at`](SaleSearchItem::created_at)."))]
     pub created_at: crate::datetime::DateTime,
     #[builder(setter(doc = "Sets [`currency`](SaleSearchItem::currency)."))]
-    pub currency: Currency,
+    pub currency: SalesActivityCurrency,
     /// Sale identifier.
     ///
     /// Example: `dbe3178d-4b83-5024-9b26-9b8e1b280514`
@@ -1455,8 +1628,13 @@ pub struct SaleSearchItem {
     pub state: SaleStateV10,
     #[builder(setter(doc = "Sets [`tax_mode`](SaleSearchItem::tax_mode)."))]
     pub tax_mode: TaxMode,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`total_amount`](SaleSearchItem::total_amount)."))]
-    pub total_amount: Amount,
+    pub total_amount: i64,
     /// Identity UUID of the cashier who processed the sale. Omitted when the cashier
     /// identity is unknown.
     ///
@@ -1605,8 +1783,16 @@ pub struct SaleSearchResponse {
 )]
 #[builder(doc)]
 pub struct SaleSource {
+    /// The sale_channel is field that indicates the channel through
+    /// which the sale was made. For example, if the sale was made in the merchant app,
+    /// the sale_channel could be POS. If the sale was made on a kiosk, the
+    /// sale_channel is KIOSK.
+    ///
+    /// *Accepted values:* ["POS", "KIOSK", "ONLINE_STORE", "SOLO", "ORDER_AND_PAY", "INVOICE", "BOOKINGS", "ORDER_AGGREGATOR", "SUBSCRIPTIONS", "UNKNOWN"].
+    ///
+    /// Example: `POS`
     #[builder(setter(into, doc = "Sets [`channel`](SaleSource::channel)."))]
-    pub channel: SalesChannel,
+    pub channel: String,
     /// An external reference ID for connecting orders/sales between products
     ///
     /// Constraints:
@@ -1671,15 +1857,28 @@ pub enum SaleStateV10 {
     #[serde(untagged)]
     Other(String),
 }
-/// The sale_channel is field that indicates the channel through
-/// which the sale was made. For example, if the sale was made in the merchant app,
-/// the sale_channel could be POS. If the sale was made on a kiosk, the
-/// sale_channel is KIOSK.
-///
-/// *Accepted values:* ["POS", "KIOSK", "ONLINE_STORE", "SOLO", "ORDER_AND_PAY", "INVOICE", "BOOKINGS", "ORDER_AGGREGATOR", "SUBSCRIPTIONS", "UNKNOWN"].
-///
-/// Example: `POS`
-pub type SalesChannel = String;
+/// The currency of the sale.
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct SalesActivityCurrency {
+    /// 3-letter currency code as defined by ISO-4217.
+    ///
+    /// Constraints:
+    /// - format: `iso-4217`
+    /// - min length: 3
+    /// - max length: 3
+    ///
+    /// Example: `EUR`
+    #[builder(setter(into, doc = "Sets [`code`](SalesActivityCurrency::code)."))]
+    pub code: String,
+    /// The scaling factor to apply to the value to arrive at the currency's major unit. Providing a scale mitigates changes to the minor unit over time, for example due to inflation. For example, if `scale` is denoted by `s` and `value` is denoted by  `v` is the value, then one arrives at the major currency value by calculating `v / 10^s`.
+    ///
+    /// Example: `2`
+    #[builder(setter(doc = "Sets [`scale`](SalesActivityCurrency::scale)."))]
+    pub scale: i64,
+}
 /// Sale channel filter value. Multi-select uses **OR** within this field.
 ///
 /// Example: `POS`
@@ -1718,8 +1917,13 @@ pub enum SalesChannelFilterV10 {
 )]
 #[builder(doc)]
 pub struct TaxLine {
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`gross_amount`](TaxLine::gross_amount)."))]
-    pub gross_amount: Amount,
+    pub gross_amount: i64,
     /// Tax ID from the Tax Service (External Id)
     ///
     /// Constraints:
@@ -1738,16 +1942,32 @@ pub struct TaxLine {
         setter(strip_option, into, doc = "Sets [`name`](TaxLine::name).")
     )]
     pub name: Option<String>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`net_amount`](TaxLine::net_amount)."))]
-    pub net_amount: Amount,
+    pub net_amount: i64,
+    /// The tax rate percentage in minor units (1/100000). For example 19000 = 19%.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `19000`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`percentage`](TaxLine::percentage).")
     )]
-    pub percentage: Option<TaxRate>,
+    pub percentage: Option<i64>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
     #[builder(setter(doc = "Sets [`tax_amount`](TaxLine::tax_amount)."))]
-    pub tax_amount: Amount,
+    pub tax_amount: i64,
 }
 /// The tax mode used by merchant for displaying prices and calculating taxes:
 /// - NO_TAX: The prices don't contain any taxes, merchant don't report taxes
@@ -1768,13 +1988,6 @@ pub enum TaxMode {
     #[serde(untagged)]
     Other(String),
 }
-/// The tax rate percentage in minor units (1/100000). For example 19000 = 19%.
-///
-/// Constraints:
-/// - value >= 0
-///
-/// Example: `19000`
-pub type TaxRate = i64;
 /// The unit of measure of the item.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,

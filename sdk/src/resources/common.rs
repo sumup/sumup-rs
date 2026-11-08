@@ -71,22 +71,6 @@ pub struct AddressLegacy {
     )]
     pub state: Option<String>,
 }
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct Amount {
-    /// Currency ISO 4217 code
-    ///
-    /// Example: `MXN`
-    #[builder(setter(into, doc = "Sets [`currency`](Amount::currency)."))]
-    pub currency: String,
-    /// Amount in minor units (e.g. cents).
-    ///
-    /// Example: `1000`
-    #[builder(setter(doc = "Sets [`value`](Amount::value)."))]
-    pub value: i64,
-}
 /// Object attributes that are modifiable only by SumUp applications.
 #[derive(
     Debug,
@@ -647,8 +631,6 @@ pub struct Problem {
     ///
     /// Constraints:
     /// - format: `uri`
-    ///
-    /// Example: `https://api.sumup.com/v0.1/checkouts/4e425463-3e1b-431d-83fa-1e51c2925e99`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -865,10 +847,6 @@ pub struct TransactionCheckoutInfo {
     )]
     pub vat_amount: Option<f32>,
 }
-/// Numeric identifier of a transaction event. Use it as `tx_event_id` when requesting receipt details for a specific event. This is separate from the transaction ID and the transaction history pagination references.
-///
-/// Example: `9567461191`
-pub type TransactionEventId = i64;
 /// Status of the transaction event.
 ///
 /// Not every value is used for every event type.
@@ -922,10 +900,6 @@ pub enum TransactionEventType {
     #[serde(untagged)]
     Other(String),
 }
-/// Unique identifier of the transaction.
-///
-/// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
-pub type TransactionId = String;
 /// Current status of the transaction.
 ///
 /// - `PENDING`: The transaction has been created but its final outcome is not known yet.

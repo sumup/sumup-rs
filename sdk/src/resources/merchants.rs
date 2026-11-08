@@ -2,217 +2,6 @@
 
 //! A Merchant represents a single business which can use SumUp products like payment processing.
 use super::common::*;
-/// An address somewhere in the world. The address fields used depend on the country conventions. For example, in Great Britain, `city` is `post_town`. In the United States, the top-level administrative unit used in addresses is `state`, whereas in Chile it's `region`.
-/// Whether an address is valid or not depends on whether the locally required fields are present. Fields not supported in a country will be ignored.
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct Address {
-    /// In Spain, an autonomous community is the first sub-national level of political and administrative division.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Catalonia`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            into,
-            doc = "Sets [`autonomous_community`](Address::autonomous_community)."
-        )
-    )]
-    pub autonomous_community: Option<String>,
-    /// The city of the address.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Berlin`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`city`](Address::city).")
-    )]
-    pub city: Option<String>,
-    /// In many countries, terms cognate with "commune" are used, referring to the community living in the area and the common interest. Used in countries such as Chile.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Providencia`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`commune`](Address::commune).")
-    )]
-    pub commune: Option<String>,
-    #[builder(setter(into, doc = "Sets [`country`](Address::country)."))]
-    pub country: CountryCode,
-    /// A county is a geographic region of a country used for administrative or other purposes in some nations. Used in countries such as Ireland, Romania, etc.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Dublin County`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`county`](Address::county).")
-    )]
-    pub county: Option<String>,
-    /// A department (French: département, Spanish: departamento) is an administrative or political division in several countries. Used in countries such as Colombia.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Antioquia`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`department`](Address::department).")
-    )]
-    pub department: Option<String>,
-    /// A district is a type of administrative division that in some countries is managed by the local government. Used in countries such as Portugal.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Lisbon District`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`district`](Address::district).")
-    )]
-    pub district: Option<String>,
-    /// A postal address in Ireland.
-    ///
-    /// Constraints:
-    /// - max length: 10
-    ///
-    /// Example: `D02 X285`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`eircode`](Address::eircode).")
-    )]
-    pub eircode: Option<String>,
-    /// A municipality is usually a single administrative division having corporate status and powers of self-government or jurisdiction as granted by national and regional laws to which it is subordinate. Used in countries such as Colombia.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Medellín`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            into,
-            doc = "Sets [`municipality`](Address::municipality)."
-        )
-    )]
-    pub municipality: Option<String>,
-    /// Locality level of the address. Used in countries such as Brazil or Chile.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Copacabana`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            into,
-            doc = "Sets [`neighborhood`](Address::neighborhood)."
-        )
-    )]
-    pub neighborhood: Option<String>,
-    /// The postal code (aka. zip code) of the address.
-    ///
-    /// Constraints:
-    /// - max length: 10
-    ///
-    /// Example: `10999`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`post_code`](Address::post_code).")
-    )]
-    pub post_code: Option<String>,
-    /// A post town is a required part of all postal addresses in the United Kingdom and Ireland, and a basic unit of the postal delivery system.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `London`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`post_town`](Address::post_town).")
-    )]
-    pub post_town: Option<String>,
-    /// The province where the address is located. This may not be relevant in some countries.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Berlin`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`province`](Address::province).")
-    )]
-    pub province: Option<String>,
-    /// The region where the address is located. This may not be relevant in some countries.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `Baden Wuerttemberg`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`region`](Address::region).")
-    )]
-    pub region: Option<String>,
-    /// Most often, a country has a single state, with various administrative divisions. The term "state" is sometimes used to refer to the federated polities that make up the federation. Used in countries such as the United States and Brazil.
-    ///
-    /// Constraints:
-    /// - max length: 60
-    ///
-    /// Example: `California`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`state`](Address::state).")
-    )]
-    pub state: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            doc = "Sets [`street_address`](Address::street_address)."
-        )
-    )]
-    pub street_address: Option<Vec<String>>,
-    /// A US system of postal codes used by the United States Postal Service (USPS).
-    ///
-    /// Constraints:
-    /// - max length: 10
-    ///
-    /// Example: `94103`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`zip_code`](Address::zip_code).")
-    )]
-    pub zip_code: Option<String>,
-}
 /// Base schema for a Person associated with a Merchant. This can be a legal representative, business owner (ultimate beneficial owner), or an officer. A legal representative is the Person who registered the Merchant with SumUp. They should always have a `user_id`.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
@@ -224,7 +13,7 @@ pub struct BasePerson {
         default,
         setter(strip_option, doc = "Sets [`address`](BasePerson::address).")
     )]
-    pub address: Option<Address>,
+    pub address: Option<MerchantsAddress>,
     /// The date of birth of the individual, represented as an ISO 8601:2004 [ISO8601‑2004] YYYY-MM-DD format.
     ///
     /// Example: `1980-01-12`
@@ -234,6 +23,11 @@ pub struct BasePerson {
         setter(strip_option, doc = "Sets [`birthdate`](BasePerson::birthdate).")
     )]
     pub birthdate: Option<crate::datetime::Date>,
+    /// Reflects the status of changes submitted through the `PATCH` endpoints for the Merchant or Persons. If some changes have not been applied yet, the status will be `pending`. If all changes have been applied, the status `done`.
+    /// The status is only returned after write operations or on read endpoints when the `version` query parameter is provided.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -243,7 +37,13 @@ pub struct BasePerson {
             doc = "Sets [`change_status`](BasePerson::change_status)."
         )
     )]
-    pub change_status: Option<ChangeStatus>,
+    pub change_status: Option<String>,
+    /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code. This definition uses `oneOf` with a two-character string type to allow for support of future countries in client code.
+    ///
+    /// Constraints:
+    /// - pattern: `^[A-Z]{2}$`
+    ///
+    /// Example: `AR`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -253,7 +53,7 @@ pub struct BasePerson {
             doc = "Sets [`citizenship`](BasePerson::citizenship)."
         )
     )]
-    pub citizenship: Option<CountryCode>,
+    pub citizenship: Option<String>,
     /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code representing the country where the Person resides.
     ///
     /// Constraints:
@@ -318,7 +118,7 @@ pub struct BasePerson {
         default,
         setter(strip_option, doc = "Sets [`identifiers`](BasePerson::identifiers).")
     )]
-    pub identifiers: Option<PersonalIdentifiers>,
+    pub identifiers: Option<MerchantsPersonalIdentifiers>,
     /// The Person's nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
     ///
     /// Constraints:
@@ -339,6 +139,12 @@ pub struct BasePerson {
         setter(strip_option, doc = "Sets [`ownership`](BasePerson::ownership).")
     )]
     pub ownership: Option<Ownership>,
+    /// A publicly available phone number in [E.164](https://en.wikipedia.org/wiki/E.164) format.
+    ///
+    /// Constraints:
+    /// - max length: 16
+    ///
+    /// Example: `+420123456789`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -348,7 +154,7 @@ pub struct BasePerson {
             doc = "Sets [`phone_number`](BasePerson::phone_number)."
         )
     )]
-    pub phone_number: Option<PhoneNumber>,
+    pub phone_number: Option<String>,
     /// A list of roles the Person has in the Merchant or towards SumUp. A Merchant must have at least one Person with the relationship `representative`.
     ///
     /// Constraints:
@@ -372,12 +178,15 @@ pub struct BasePerson {
         setter(strip_option, into, doc = "Sets [`user_id`](BasePerson::user_id).")
     )]
     pub user_id: Option<String>,
+    /// The version of the resource. The version reflects a specific change submitted to the API via one of the `PATCH` endpoints.
+    ///
+    /// Example: `chng_01HS0KG3MPVEVWW85E3KNXH55J`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, into, doc = "Sets [`version`](BasePerson::version).")
     )]
-    pub version: Option<Version>,
+    pub version: Option<String>,
 }
 /// Settings used to apply the Merchant's branding to email receipts, invoices, checkouts, and other products.
 #[derive(
@@ -521,7 +330,7 @@ pub struct BusinessProfile {
         default,
         setter(strip_option, doc = "Sets [`address`](BusinessProfile::address).")
     )]
-    pub address: Option<Address>,
+    pub address: Option<MerchantsAddress>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -573,6 +382,12 @@ pub struct BusinessProfile {
         setter(strip_option, into, doc = "Sets [`name`](BusinessProfile::name).")
     )]
     pub name: Option<String>,
+    /// A publicly available phone number in [E.164](https://en.wikipedia.org/wiki/E.164) format.
+    ///
+    /// Constraints:
+    /// - max length: 16
+    ///
+    /// Example: `+420123456789`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -582,7 +397,7 @@ pub struct BusinessProfile {
             doc = "Sets [`phone_number`](BusinessProfile::phone_number)."
         )
     )]
-    pub phone_number: Option<PhoneNumber>,
+    pub phone_number: Option<String>,
     /// The business's publicly available website.
     ///
     /// Constraints:
@@ -601,12 +416,6 @@ pub struct BusinessProfile {
     )]
     pub website: Option<String>,
 }
-/// Reflects the status of changes submitted through the `PATCH` endpoints for the Merchant or Persons. If some changes have not been applied yet, the status will be `pending`. If all changes have been applied, the status `done`.
-/// The status is only returned after write operations or on read endpoints when the `version` query parameter is provided.
-///
-/// Constraints:
-/// - read-only
-pub type ChangeStatus = String;
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
 )]
@@ -636,25 +445,33 @@ pub struct Company {
         default,
         setter(strip_option, doc = "Sets [`address`](Company::address).")
     )]
-    pub address: Option<Address>,
+    pub address: Option<MerchantsAddress>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`attributes`](Company::attributes).")
     )]
-    pub attributes: Option<Attributes>,
+    pub attributes: Option<MerchantsAttributes>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`identifiers`](Company::identifiers).")
     )]
     pub identifiers: Option<CompanyIdentifiers>,
+    /// The unique legal type reference as defined in the country SDK. We do not rely on IDs as used by other services. Consumers of this API are expected to use the country SDK to map to any other IDs, translation keys, or descriptions.
+    ///
+    /// Constraints:
+    /// - pattern: `^[a-z]{2}\.[a-z_]+$`
+    /// - min length: 4
+    /// - max length: 64
+    ///
+    /// Example: `de.freiberufler`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, into, doc = "Sets [`legal_type`](Company::legal_type).")
     )]
-    pub legal_type: Option<LegalType>,
+    pub legal_type: Option<String>,
     /// The merchant category code for the account as specified by [ISO18245](https://www.iso.org/standard/33365.html). MCCs are used to classify businesses based on the goods or services they provide.
     ///
     /// Constraints:
@@ -684,6 +501,12 @@ pub struct Company {
         setter(strip_option, into, doc = "Sets [`name`](Company::name).")
     )]
     pub name: Option<String>,
+    /// A publicly available phone number in [E.164](https://en.wikipedia.org/wiki/E.164) format.
+    ///
+    /// Constraints:
+    /// - max length: 16
+    ///
+    /// Example: `+420123456789`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -693,7 +516,7 @@ pub struct Company {
             doc = "Sets [`phone_number`](Company::phone_number)."
         )
     )]
-    pub phone_number: Option<PhoneNumber>,
+    pub phone_number: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -702,7 +525,7 @@ pub struct Company {
             doc = "Sets [`trading_address`](Company::trading_address)."
         )
     )]
-    pub trading_address: Option<Address>,
+    pub trading_address: Option<MerchantsAddress>,
     /// HTTP(S) URL of the company's website.
     ///
     /// Constraints:
@@ -743,26 +566,6 @@ pub struct CompanyIdentifier {
 }
 /// A list of country-specific company identifiers.
 pub type CompanyIdentifiers = Vec<CompanyIdentifier>;
-/// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2)
-/// country code. This definition users `oneOf` with a two-character string
-/// type to allow for support of future countries in client code.
-///
-/// Constraints:
-/// - pattern: `^[A-Z]{2}$`
-/// - min length: 2
-/// - max length: 2
-///
-/// Example: `BR`
-pub type CountryCode = String;
-/// The unique legal type reference as defined in the country SDK. We do not rely on IDs as used by other services. Consumers of this API are expected to use the country SDK to map to any other IDs, translation keys, or descriptions.
-///
-/// Constraints:
-/// - pattern: `^[a-z]{2}\.[a-z_]+$`
-/// - min length: 4
-/// - max length: 64
-///
-/// Example: `de.freiberufler`
-pub type LegalType = String;
 #[derive(
     Debug,
     Clone,
@@ -824,6 +627,11 @@ pub struct Merchant {
         )
     )]
     pub business_type: Option<String>,
+    /// Reflects the status of changes submitted through the `PATCH` endpoints for the Merchant or Persons. If some changes have not been applied yet, the status will be `pending`. If all changes have been applied, the status `done`.
+    /// The status is only returned after write operations or on read endpoints when the `version` query parameter is provided.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -833,7 +641,7 @@ pub struct Merchant {
             doc = "Sets [`change_status`](Merchant::change_status)."
         )
     )]
-    pub change_status: Option<ChangeStatus>,
+    pub change_status: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -846,8 +654,14 @@ pub struct Merchant {
         setter(strip_option, doc = "Sets [`company`](Merchant::company).")
     )]
     pub company: Option<Company>,
+    /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code. This definition uses `oneOf` with a two-character string type to allow for support of future countries in client code.
+    ///
+    /// Constraints:
+    /// - pattern: `^[A-Z]{2}$`
+    ///
+    /// Example: `AR`
     #[builder(setter(into, doc = "Sets [`country`](Merchant::country)."))]
-    pub country: CountryCode,
+    pub country: String,
     /// The date and time when the resource was created. This is a string as defined in [RFC 3339, section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6).
     ///
     /// Constraints:
@@ -917,13 +731,296 @@ pub struct Merchant {
     /// Example: `2021-08-31T12:00:00Z`
     #[builder(setter(doc = "Sets [`updated_at`](Merchant::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
+    /// The version of the resource. The version reflects a specific change submitted to the API via one of the `PATCH` endpoints.
+    ///
+    /// Example: `chng_01HS0KG3MPVEVWW85E3KNXH55J`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, into, doc = "Sets [`version`](Merchant::version).")
     )]
-    pub version: Option<Version>,
+    pub version: Option<String>,
 }
+/// An address somewhere in the world. The address fields used depend on the country conventions. For example, in Great Britain, `city` is `post_town`. In the United States, the top-level administrative unit used in addresses is `state`, whereas in Chile it's `region`.
+/// Whether an address is valid or not depends on whether the locally required fields are present. Fields not supported in a country will be ignored.
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct MerchantsAddress {
+    /// In Spain, an autonomous community is the first sub-national level of political and administrative division.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Catalonia`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`autonomous_community`](MerchantsAddress::autonomous_community)."
+        )
+    )]
+    pub autonomous_community: Option<String>,
+    /// The city of the address.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Berlin`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`city`](MerchantsAddress::city).")
+    )]
+    pub city: Option<String>,
+    /// In many countries, terms cognate with "commune" are used, referring to the community living in the area and the common interest. Used in countries such as Chile.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Providencia`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`commune`](MerchantsAddress::commune)."
+        )
+    )]
+    pub commune: Option<String>,
+    /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code. This definition uses `oneOf` with a two-character string type to allow for support of future countries in client code.
+    ///
+    /// Constraints:
+    /// - pattern: `^[A-Z]{2}$`
+    ///
+    /// Example: `AR`
+    #[builder(setter(into, doc = "Sets [`country`](MerchantsAddress::country)."))]
+    pub country: String,
+    /// A county is a geographic region of a country used for administrative or other purposes in some nations. Used in countries such as Ireland, Romania, etc.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Dublin`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`county`](MerchantsAddress::county).")
+    )]
+    pub county: Option<String>,
+    /// A department (French: département, Spanish: departamento) is an administrative or political division in several countries. Used in countries such as Colombia.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Antioquia`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`department`](MerchantsAddress::department)."
+        )
+    )]
+    pub department: Option<String>,
+    /// A district is a type of administrative division that in some countries is managed by the local government. Used in countries such as Portugal.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Lisbon`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`district`](MerchantsAddress::district)."
+        )
+    )]
+    pub district: Option<String>,
+    /// A postal address in Ireland.
+    ///
+    /// Constraints:
+    /// - max length: 10
+    ///
+    /// Example: `D02 X285`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`eircode`](MerchantsAddress::eircode)."
+        )
+    )]
+    pub eircode: Option<String>,
+    /// A municipality is usually a single administrative division having corporate status and powers of self-government or jurisdiction as granted by national and regional laws to which it is subordinate. Used in countries such as Colombia.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Medellin`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`municipality`](MerchantsAddress::municipality)."
+        )
+    )]
+    pub municipality: Option<String>,
+    /// Locality level of the address. Used in countries such as Brazil or Chile.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Copacabana`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`neighborhood`](MerchantsAddress::neighborhood)."
+        )
+    )]
+    pub neighborhood: Option<String>,
+    /// The postal code (aka. zip code) of the address.
+    ///
+    /// Constraints:
+    /// - max length: 10
+    ///
+    /// Example: `10999`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`post_code`](MerchantsAddress::post_code)."
+        )
+    )]
+    pub post_code: Option<String>,
+    /// A post town is a required part of all postal addresses in the United Kingdom and Ireland, and a basic unit of the postal delivery system.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `London`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`post_town`](MerchantsAddress::post_town)."
+        )
+    )]
+    pub post_town: Option<String>,
+    /// The province where the address is located. This may not be relevant in some countries.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Ontario`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`province`](MerchantsAddress::province)."
+        )
+    )]
+    pub province: Option<String>,
+    /// The region where the address is located. This may not be relevant in some countries.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `Baden-Wuerttemberg`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`region`](MerchantsAddress::region).")
+    )]
+    pub region: Option<String>,
+    /// Most often, a country has a single state, with various administrative divisions. The term "state" is sometimes used to refer to the federated polities that make up the federation. Used in countries such as the United States and Brazil.
+    ///
+    /// Constraints:
+    /// - max length: 60
+    ///
+    /// Example: `California`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`state`](MerchantsAddress::state).")
+    )]
+    pub state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`street_address`](MerchantsAddress::street_address)."
+        )
+    )]
+    pub street_address: Option<Vec<String>>,
+    /// A US system of postal codes used by the United States Postal Service (USPS).
+    ///
+    /// Constraints:
+    /// - max length: 10
+    ///
+    /// Example: `94103`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`zip_code`](MerchantsAddress::zip_code)."
+        )
+    )]
+    pub zip_code: Option<String>,
+}
+/// Object metadata which should only be writable for internal applications, and readable by all clients.
+/// **Warning**: Updating Attributes will overwrite the existing data. Make sure to always include the complete JSON object.
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct MerchantsAttributes {
+    #[serde(
+        flatten,
+        default,
+        skip_serializing_if = "std::collections::HashMap::is_empty"
+    )]
+    #[builder(
+        default,
+        setter(
+            doc = "Sets [`additional_properties`](MerchantsAttributes::additional_properties)."
+        )
+    )]
+    pub additional_properties: std::collections::HashMap<String, String>,
+}
+/// A list of country-specific personal identifiers.
+///
+/// Constraints:
+/// - max items: 5
+pub type MerchantsPersonalIdentifiers = Vec<serde_json::Value>;
 /// A set of key-value pairs that you can attach to an object. This can be useful for storing additional information about the object in a structured format.
 ///
 /// **Warning**: Updating Meta will overwrite the existing data. Make sure to always include the complete JSON object.
@@ -974,7 +1071,7 @@ pub struct Person {
         default,
         setter(strip_option, doc = "Sets [`address`](Person::address).")
     )]
-    pub address: Option<Address>,
+    pub address: Option<MerchantsAddress>,
     /// The date of birth of the individual, represented as an ISO 8601:2004 [ISO8601‑2004] YYYY-MM-DD format.
     ///
     /// Example: `1980-01-12`
@@ -984,6 +1081,11 @@ pub struct Person {
         setter(strip_option, doc = "Sets [`birthdate`](Person::birthdate).")
     )]
     pub birthdate: Option<crate::datetime::Date>,
+    /// Reflects the status of changes submitted through the `PATCH` endpoints for the Merchant or Persons. If some changes have not been applied yet, the status will be `pending`. If all changes have been applied, the status `done`.
+    /// The status is only returned after write operations or on read endpoints when the `version` query parameter is provided.
+    ///
+    /// Constraints:
+    /// - read-only
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -993,13 +1095,19 @@ pub struct Person {
             doc = "Sets [`change_status`](Person::change_status)."
         )
     )]
-    pub change_status: Option<ChangeStatus>,
+    pub change_status: Option<String>,
+    /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code. This definition uses `oneOf` with a two-character string type to allow for support of future countries in client code.
+    ///
+    /// Constraints:
+    /// - pattern: `^[A-Z]{2}$`
+    ///
+    /// Example: `AR`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, into, doc = "Sets [`citizenship`](Person::citizenship).")
     )]
-    pub citizenship: Option<CountryCode>,
+    pub citizenship: Option<String>,
     /// An [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code representing the country where the Person resides.
     ///
     /// Constraints:
@@ -1056,7 +1164,7 @@ pub struct Person {
         default,
         setter(strip_option, doc = "Sets [`identifiers`](Person::identifiers).")
     )]
-    pub identifiers: Option<PersonalIdentifiers>,
+    pub identifiers: Option<MerchantsPersonalIdentifiers>,
     /// The Person's nationality. May be an [ISO3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, but legacy data may not conform to this standard.
     ///
     /// Constraints:
@@ -1077,6 +1185,12 @@ pub struct Person {
         setter(strip_option, doc = "Sets [`ownership`](Person::ownership).")
     )]
     pub ownership: Option<Ownership>,
+    /// A publicly available phone number in [E.164](https://en.wikipedia.org/wiki/E.164) format.
+    ///
+    /// Constraints:
+    /// - max length: 16
+    ///
+    /// Example: `+420123456789`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -1086,7 +1200,7 @@ pub struct Person {
             doc = "Sets [`phone_number`](Person::phone_number)."
         )
     )]
-    pub phone_number: Option<PhoneNumber>,
+    pub phone_number: Option<String>,
     /// A list of roles the Person has in the Merchant or towards SumUp. A Merchant must have at least one Person with the relationship `representative`.
     ///
     /// Constraints:
@@ -1107,48 +1221,16 @@ pub struct Person {
         setter(strip_option, into, doc = "Sets [`user_id`](Person::user_id).")
     )]
     pub user_id: Option<String>,
+    /// The version of the resource. The version reflects a specific change submitted to the API via one of the `PATCH` endpoints.
+    ///
+    /// Example: `chng_01HS0KG3MPVEVWW85E3KNXH55J`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, into, doc = "Sets [`version`](Person::version).")
     )]
-    pub version: Option<Version>,
+    pub version: Option<String>,
 }
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct PersonalIdentifier {
-    /// The unique reference for the personal identifier type.
-    ///
-    /// Constraints:
-    /// - max length: 32
-    ///
-    /// Example: `br.cpf`
-    #[serde(rename = "ref")]
-    #[builder(setter(into, doc = "Sets [`r#ref`](PersonalIdentifier::r#ref)."))]
-    pub r#ref: String,
-    /// The personal identifier value.
-    ///
-    /// Constraints:
-    /// - max length: 128
-    ///
-    /// Example: `847.060.136-90`
-    #[builder(setter(into, doc = "Sets [`value`](PersonalIdentifier::value)."))]
-    pub value: String,
-}
-/// A list of country-specific personal identifiers.
-///
-/// Constraints:
-/// - max items: 32
-pub type PersonalIdentifiers = Vec<PersonalIdentifier>;
-/// A publicly available phone number in [E.164](https://en.wikipedia.org/wiki/E.164) format.
-///
-/// Constraints:
-/// - max length: 16
-///
-/// Example: `+420123456789`
-pub type PhoneNumber = String;
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
 )]
@@ -1171,10 +1253,6 @@ pub struct Timestamps {
     #[builder(setter(doc = "Sets [`updated_at`](Timestamps::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
 }
-/// The version of the resource. The version reflects a specific change submitted to the API via one of the `PATCH` endpoints.
-///
-/// Example: `chng_01HS0KG3MPVEVWW85E3KNXH55J`
-pub type Version = String;
 use crate::client::Client;
 #[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
