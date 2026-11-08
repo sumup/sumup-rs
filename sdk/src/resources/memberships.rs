@@ -54,9 +54,15 @@ pub struct Membership {
     pub roles: Vec<String>,
     #[builder(setter(doc = "Sets [`status`](Membership::status)."))]
     pub status: MembershipStatus,
+    /// The type of the membership resource.
+    /// Possible values are:
+    /// * `merchant` - merchant account(s)
+    /// * `organization` - organization(s)
+    ///
+    /// Example: `merchant`
     #[serde(rename = "type")]
     #[builder(setter(into, doc = "Sets [`r#type`](Membership::r#type)."))]
-    pub r#type: ResourceType,
+    pub r#type: String,
     /// The timestamp of when the membership was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
@@ -106,22 +112,21 @@ pub struct MembershipResource {
     /// Example: `Acme Corp`
     #[builder(setter(into, doc = "Sets [`name`](MembershipResource::name)."))]
     pub name: String,
+    /// The type of the membership resource.
+    /// Possible values are:
+    /// * `merchant` - merchant account(s)
+    /// * `organization` - organization(s)
+    ///
+    /// Example: `merchant`
     #[serde(rename = "type")]
     #[builder(setter(into, doc = "Sets [`r#type`](MembershipResource::r#type)."))]
-    pub r#type: ResourceType,
+    pub r#type: String,
     /// The timestamp of when the membership resource was last updated.
     ///
     /// Example: `2023-01-20T15:16:17Z`
     #[builder(setter(doc = "Sets [`updated_at`](MembershipResource::updated_at)."))]
     pub updated_at: crate::datetime::DateTime,
 }
-/// The type of the membership resource.
-/// Possible values are:
-/// * `merchant` - merchant account(s)
-/// * `organization` - organization(s)
-///
-/// Example: `merchant`
-pub type ResourceType = String;
 #[derive(
     Debug,
     Clone,
@@ -159,12 +164,14 @@ pub struct ListParams {
     )]
     pub limit: Option<i64>,
     /// Filter memberships by resource kind.
+    ///
+    /// Example: `merchant`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, into, doc = "Sets [`kind`](ListParams::kind).")
     )]
-    pub kind: Option<ResourceType>,
+    pub kind: Option<String>,
     /// Filter the returned memberships by the membership status.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
@@ -173,6 +180,8 @@ pub struct ListParams {
     )]
     pub status: Option<MembershipStatus>,
     /// Filter memberships by resource kind.
+    ///
+    /// Example: `merchant`
     #[serde(rename = "resource.type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
@@ -183,7 +192,7 @@ pub struct ListParams {
             doc = "Sets [`resource_type`](ListParams::resource_type)."
         )
     )]
-    pub resource_type: Option<ResourceType>,
+    pub resource_type: Option<String>,
     /// Filter memberships by the sandbox status of the resource the membership is in.
     #[serde(rename = "resource.attributes.sandbox")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -234,6 +243,8 @@ pub struct ListParams {
     pub resource_parent_id: Option<String>,
     /// Filter memberships by the parent of the resource the membership is in.
     /// Omit both `resource.parent.id` and `resource.parent.type` to skip parent filtering. When filtering by parent, both parameters must be present. To select resources without a parent, set each parameter to an empty value. Otherwise, both parameters must identify a parent.
+    ///
+    /// Example: `merchant`
     #[serde(rename = "resource.parent.type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
@@ -244,7 +255,7 @@ pub struct ListParams {
             doc = "Sets [`resource_parent_type`](ListParams::resource_parent_type)."
         )
     )]
-    pub resource_parent_type: Option<ResourceType>,
+    pub resource_parent_type: Option<String>,
     /// Filter the returned memberships by role.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(

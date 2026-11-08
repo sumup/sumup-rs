@@ -245,9 +245,12 @@ pub struct Event {
         setter(strip_option, doc = "Sets [`fee_amount`](Event::fee_amount).")
     )]
     pub fee_amount: Option<f32>,
+    /// Numeric identifier of a transaction event. Use it as `tx_event_id` when requesting receipt details for a specific event. This is separate from the transaction ID and the transaction history pagination references.
+    ///
+    /// Example: `9567461191`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(strip_option, doc = "Sets [`id`](Event::id)."))]
-    pub id: Option<TransactionEventId>,
+    pub id: Option<i64>,
     /// Consecutive number of the installment associated with the event.
     ///
     /// Example: `1`
@@ -272,6 +275,9 @@ pub struct Event {
         setter(strip_option, doc = "Sets [`timestamp`](Event::timestamp).")
     )]
     pub timestamp: Option<crate::datetime::DateTime>,
+    /// Unique identifier of the transaction.
+    ///
+    /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -281,24 +287,12 @@ pub struct Event {
             doc = "Sets [`transaction_id`](Event::transaction_id)."
         )
     )]
-    pub transaction_id: Option<TransactionId>,
+    pub transaction_id: Option<String>,
     #[serde(rename = "type")]
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(default, setter(strip_option, doc = "Sets [`r#type`](Event::r#type)."))]
     pub r#type: Option<TransactionEventType>,
 }
-/// Indication of the precision of the geographical position received from the payment terminal.
-///
-/// Example: `5`
-pub type HorizontalAccuracy = f32;
-/// Latitude value from the coordinates of the payment location (as received from the payment terminal reader).
-///
-/// Constraints:
-/// - value >= -90
-/// - value <= 90
-///
-/// Example: `52.520008`
-pub type Lat = f32;
 /// Details of a link to a related resource.
 #[derive(
     Debug,
@@ -358,14 +352,6 @@ pub struct Link {
     )]
     pub r#type: Option<String>,
 }
-/// Longitude value from the coordinates of the payment location (as received from the payment terminal reader).
-///
-/// Constraints:
-/// - value >= -180
-/// - value <= 180
-///
-/// Example: `13.404954`
-pub type Lon = f32;
 /// Product details associated with a transaction.
 #[derive(
     Debug,
@@ -551,12 +537,15 @@ pub struct TransactionEvent {
         )
     )]
     pub event_type: Option<TransactionEventType>,
+    /// Numeric identifier of a transaction event. Use it as `tx_event_id` when requesting receipt details for a specific event. This is separate from the transaction ID and the transaction history pagination references.
+    ///
+    /// Example: `9567461191`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`id`](TransactionEvent::id).")
     )]
-    pub id: Option<TransactionEventId>,
+    pub id: Option<i64>,
     /// Consecutive number of the installment that is paid. Applicable only to payout events, i.e. `event_type = PAYOUT`.
     ///
     /// Example: `1`
@@ -706,6 +695,9 @@ pub struct TransactionFull {
         )
     )]
     pub foreign_transaction_id: Option<String>,
+    /// Indication of the precision of the geographical position received from the payment terminal.
+    ///
+    /// Example: `5`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -714,7 +706,7 @@ pub struct TransactionFull {
             doc = "Sets [`horizontal_accuracy`](TransactionFull::horizontal_accuracy)."
         )
     )]
-    pub horizontal_accuracy: Option<HorizontalAccuracy>,
+    pub horizontal_accuracy: Option<f32>,
     /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
@@ -739,12 +731,19 @@ pub struct TransactionFull {
         )
     )]
     pub installments_count: Option<i64>,
+    /// Latitude value from the coordinates of the payment location (as received from the payment terminal reader).
+    ///
+    /// Constraints:
+    /// - value >= -90
+    /// - value <= 90
+    ///
+    /// Example: `52.520008`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`lat`](TransactionFull::lat).")
     )]
-    pub lat: Option<Lat>,
+    pub lat: Option<f32>,
     /// List of hyperlinks for accessing related resources.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
@@ -771,12 +770,19 @@ pub struct TransactionFull {
         setter(strip_option, doc = "Sets [`location`](TransactionFull::location).")
     )]
     pub location: Option<TransactionFullLocation>,
+    /// Longitude value from the coordinates of the payment location (as received from the payment terminal reader).
+    ///
+    /// Constraints:
+    /// - value >= -180
+    /// - value <= 180
+    ///
+    /// Example: `13.404954`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`lon`](TransactionFull::lon).")
     )]
-    pub lon: Option<Lon>,
+    pub lon: Option<f32>,
     /// Unique code of the registered merchant to whom the payment is made.
     ///
     /// Example: `MH4H92C7`
@@ -1249,6 +1255,9 @@ pub struct TransactionHistory {
         )
     )]
     pub transaction_code: Option<String>,
+    /// Unique identifier of the transaction.
+    ///
+    /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -1258,7 +1267,7 @@ pub struct TransactionHistory {
             doc = "Sets [`transaction_id`](TransactionHistory::transaction_id)."
         )
     )]
-    pub transaction_id: Option<TransactionId>,
+    pub transaction_id: Option<String>,
     /// Type of the transaction for the registered user specified in the `user` property.
     ///
     /// Example: `PAYMENT`
@@ -1311,6 +1320,9 @@ pub struct TransactionsHistoryLink {
 )]
 #[builder(doc)]
 pub struct TransactionFullLocation {
+    /// Indication of the precision of the geographical position received from the payment terminal.
+    ///
+    /// Example: `5`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
@@ -1319,19 +1331,33 @@ pub struct TransactionFullLocation {
             doc = "Sets [`horizontal_accuracy`](TransactionFullLocation::horizontal_accuracy)."
         )
     )]
-    pub horizontal_accuracy: Option<HorizontalAccuracy>,
+    pub horizontal_accuracy: Option<f32>,
+    /// Latitude value from the coordinates of the payment location (as received from the payment terminal reader).
+    ///
+    /// Constraints:
+    /// - value >= -90
+    /// - value <= 90
+    ///
+    /// Example: `52.520008`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`lat`](TransactionFullLocation::lat).")
     )]
-    pub lat: Option<Lat>,
+    pub lat: Option<f32>,
+    /// Longitude value from the coordinates of the payment location (as received from the payment terminal reader).
+    ///
+    /// Constraints:
+    /// - value >= -180
+    /// - value <= 180
+    ///
+    /// Example: `13.404954`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`lon`](TransactionFullLocation::lon).")
     )]
-    pub lon: Option<Lon>,
+    pub lon: Option<f32>,
 }
 /// Payout plan of the registered user at the time when the transaction was made.
 ///

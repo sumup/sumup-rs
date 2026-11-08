@@ -32,6 +32,22 @@ pub struct Affiliate {
     #[builder(setter(into, doc = "Sets [`key`](Affiliate::key)."))]
     pub key: String,
 }
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct Amount {
+    /// Currency ISO 4217 code
+    ///
+    /// Example: `MXN`
+    #[builder(setter(into, doc = "Sets [`currency`](Amount::currency)."))]
+    pub currency: String,
+    /// Amount in minor units (e.g. cents).
+    ///
+    /// Example: `1000`
+    #[builder(setter(doc = "Sets [`value`](Amount::value)."))]
+    pub value: i64,
+}
 /// Payment details for a Reader Checkout.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
@@ -228,16 +244,31 @@ pub struct Reader {
     pub created_at: crate::datetime::DateTime,
     #[builder(setter(doc = "Sets [`device`](Reader::device)."))]
     pub device: ReaderDevice,
+    /// Unique identifier of the object.
+    ///
+    /// Note that this identifies the instance of the physical devices pairing with your SumUp account. If you [delete](https://developer.sumup.com/api/readers/delete-reader) a reader, and pair the device again, the ID will be different. Do not use this ID to refer to a physical device.
+    ///
+    /// Constraints:
+    /// - min length: 30
+    /// - max length: 30
+    ///
+    /// Example: `rdr_3MSAFM23CK82VSTT4BN6RWSQ65`
     #[builder(setter(into, doc = "Sets [`id`](Reader::id)."))]
-    pub id: ReaderId,
+    pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`metadata`](Reader::metadata).")
     )]
     pub metadata: Option<Metadata>,
+    /// Custom human-readable, user-defined name for easier identification of the reader.
+    ///
+    /// Constraints:
+    /// - max length: 500
+    ///
+    /// Example: `Frontdesk`
     #[builder(setter(into, doc = "Sets [`name`](Reader::name)."))]
-    pub name: ReaderName,
+    pub name: String,
     /// Identifier of the system-managed service account associated with this reader.
     /// Present only for readers that are already paired.
     /// This field is currently in beta and may change.
@@ -279,29 +310,6 @@ pub struct ReaderDevice {
     #[builder(setter(doc = "Sets [`model`](ReaderDevice::model)."))]
     pub model: ReaderDeviceModel,
 }
-/// Unique identifier of the reader that the payment is initiated on.
-///
-/// Constraints:
-/// - min length: 30
-/// - max length: 30
-///
-/// Example: `rdr_3MSAFM23CK82VSTT4BN6RWSQ65`
-pub type ReaderId = String;
-/// Custom human-readable, user-defined name for easier identification of the reader.
-///
-/// Constraints:
-/// - max length: 500
-///
-/// Example: `Frontdesk`
-pub type ReaderName = String;
-/// The pairing code is a 8 or 9 character alphanumeric string that is displayed on a SumUp Device after initiating the pairing. It is used to link the physical device to the created pairing.
-///
-/// Constraints:
-/// - min length: 8
-/// - max length: 9
-///
-/// Example: `4WLFDSBF`
-pub type ReaderPairingCode = String;
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
 )]
@@ -1322,10 +1330,23 @@ pub struct CreateRequest {
         setter(strip_option, doc = "Sets [`metadata`](CreateRequest::metadata).")
     )]
     pub metadata: Option<Metadata>,
+    /// Custom human-readable, user-defined name for easier identification of the reader.
+    ///
+    /// Constraints:
+    /// - max length: 500
+    ///
+    /// Example: `Frontdesk`
     #[builder(setter(into, doc = "Sets [`name`](CreateRequest::name)."))]
-    pub name: ReaderName,
+    pub name: String,
+    /// The pairing code is a 8 or 9 character alphanumeric string that is displayed on a SumUp Device after initiating the pairing. It is used to link the physical device to the created pairing.
+    ///
+    /// Constraints:
+    /// - min length: 8
+    /// - max length: 9
+    ///
+    /// Example: `4WLFDSBF`
     #[builder(setter(into, doc = "Sets [`pairing_code`](CreateRequest::pairing_code)."))]
-    pub pairing_code: ReaderPairingCode,
+    pub pairing_code: String,
 }
 #[derive(
     Debug,
@@ -1344,12 +1365,18 @@ pub struct UpdateRequest {
         setter(strip_option, doc = "Sets [`metadata`](UpdateRequest::metadata).")
     )]
     pub metadata: Option<Metadata>,
+    /// Custom human-readable, user-defined name for easier identification of the reader.
+    ///
+    /// Constraints:
+    /// - max length: 500
+    ///
+    /// Example: `Frontdesk`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, into, doc = "Sets [`name`](UpdateRequest::name).")
     )]
-    pub name: Option<ReaderName>,
+    pub name: Option<String>,
 }
 /// A checkout initial attributes
 #[derive(
