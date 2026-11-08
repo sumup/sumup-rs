@@ -194,105 +194,6 @@ pub struct ElvCardAccount {
     )]
     pub sort_code: Option<String>,
 }
-/// High-level transaction event details.
-#[derive(
-    Debug,
-    Clone,
-    Default,
-    PartialEq,
-    serde::Serialize,
-    serde::Deserialize,
-    typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct Event {
-    /// Amount associated with the transaction event, in major units.
-    ///
-    /// Example: `10.1`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(default, setter(strip_option, doc = "Sets [`amount`](Event::amount)."))]
-    pub amount: Option<f32>,
-    /// Amount deducted from the merchant for the event, in major units.
-    ///
-    /// Example: `10.1`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            doc = "Sets [`deducted_amount`](Event::deducted_amount)."
-        )
-    )]
-    pub deducted_amount: Option<f32>,
-    /// Fee deducted from the merchant for the event, in major units.
-    ///
-    /// Example: `0.25`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            doc = "Sets [`deducted_fee_amount`](Event::deducted_fee_amount)."
-        )
-    )]
-    pub deducted_fee_amount: Option<f32>,
-    /// Fee associated with the transaction event, in major units.
-    ///
-    /// Example: `0.25`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, doc = "Sets [`fee_amount`](Event::fee_amount).")
-    )]
-    pub fee_amount: Option<f32>,
-    /// Numeric identifier of a transaction event. Use it as `tx_event_id` when requesting receipt details for a specific event. This is separate from the transaction ID and the transaction history pagination references.
-    ///
-    /// Example: `9567461191`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(default, setter(strip_option, doc = "Sets [`id`](Event::id)."))]
-    pub id: Option<i64>,
-    /// Consecutive number of the installment associated with the event.
-    ///
-    /// Example: `1`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            doc = "Sets [`installment_number`](Event::installment_number)."
-        )
-    )]
-    pub installment_number: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(default, setter(strip_option, doc = "Sets [`status`](Event::status)."))]
-    pub status: Option<TransactionEventStatus>,
-    /// The timestamp of when the transaction event occurred.
-    ///
-    /// Example: `2020-05-25T10:49:42.784Z`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, doc = "Sets [`timestamp`](Event::timestamp).")
-    )]
-    pub timestamp: Option<crate::datetime::DateTime>,
-    /// Unique identifier of the transaction.
-    ///
-    /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            into,
-            doc = "Sets [`transaction_id`](Event::transaction_id)."
-        )
-    )]
-    pub transaction_id: Option<String>,
-    #[serde(rename = "type")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(default, setter(strip_option, doc = "Sets [`r#type`](Event::r#type)."))]
-    pub r#type: Option<TransactionEventType>,
-}
 /// Details of a link to a related resource.
 #[derive(
     Debug,
@@ -486,7 +387,7 @@ pub struct Product {
     )]
     pub vat_rate: Option<f64>,
 }
-/// Detailed information about a transaction event.
+/// High-level transaction event details.
 #[derive(
     Debug,
     Clone,
@@ -498,45 +399,51 @@ pub struct Product {
 )]
 #[builder(doc)]
 pub struct TransactionEvent {
-    /// Amount of the event in major units of the associated transaction's currency.
+    /// Amount associated with the transaction event, in major units.
     ///
-    /// Constraints:
-    /// - format: `decimal`
-    ///
-    /// Example: `58.8`
+    /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`amount`](TransactionEvent::amount).")
     )]
-    pub amount: Option<f64>,
-    /// Date when the transaction event occurred.
+    pub amount: Option<f32>,
+    /// Amount deducted from the merchant for the event, in major units.
     ///
-    /// Example: `2020-05-25`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, doc = "Sets [`date`](TransactionEvent::date).")
-    )]
-    pub date: Option<crate::datetime::Date>,
-    /// Date when the transaction event is due to occur.
-    ///
-    /// Example: `2020-05-25`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, doc = "Sets [`due_date`](TransactionEvent::due_date).")
-    )]
-    pub due_date: Option<crate::datetime::Date>,
+    /// Example: `10.1`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(
             strip_option,
-            doc = "Sets [`event_type`](TransactionEvent::event_type)."
+            doc = "Sets [`deducted_amount`](TransactionEvent::deducted_amount)."
         )
     )]
-    pub event_type: Option<TransactionEventType>,
+    pub deducted_amount: Option<f32>,
+    /// Fee deducted from the merchant for the event, in major units.
+    ///
+    /// Example: `0.25`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`deducted_fee_amount`](TransactionEvent::deducted_fee_amount)."
+        )
+    )]
+    pub deducted_fee_amount: Option<f32>,
+    /// Fee associated with the transaction event, in major units.
+    ///
+    /// Example: `0.25`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`fee_amount`](TransactionEvent::fee_amount)."
+        )
+    )]
+    pub fee_amount: Option<f32>,
     /// Numeric identifier of a transaction event. Use it as `tx_event_id` when requesting receipt details for a specific event. This is separate from the transaction ID and the transaction history pagination references.
     ///
     /// Example: `9567461191`
@@ -546,7 +453,7 @@ pub struct TransactionEvent {
         setter(strip_option, doc = "Sets [`id`](TransactionEvent::id).")
     )]
     pub id: Option<i64>,
-    /// Consecutive number of the installment that is paid. Applicable only to payout events, i.e. `event_type = PAYOUT`.
+    /// Consecutive number of the installment associated with the event.
     ///
     /// Example: `1`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -564,13 +471,133 @@ pub struct TransactionEvent {
         setter(strip_option, doc = "Sets [`status`](TransactionEvent::status).")
     )]
     pub status: Option<TransactionEventStatus>,
-    /// Date and time of the transaction event.
+    /// The timestamp of when the transaction event occurred.
     ///
     /// Example: `2020-05-25T10:49:42.784Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`timestamp`](TransactionEvent::timestamp).")
+    )]
+    pub timestamp: Option<crate::datetime::DateTime>,
+    /// Unique identifier of the transaction.
+    ///
+    /// Example: `410fc44a-5956-44e1-b5cc-19c6f8d727a4`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`transaction_id`](TransactionEvent::transaction_id)."
+        )
+    )]
+    pub transaction_id: Option<String>,
+    #[serde(rename = "type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`r#type`](TransactionEvent::r#type).")
+    )]
+    pub r#type: Option<TransactionEventType>,
+}
+/// Detailed information about a transaction event.
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct TransactionEventDetails {
+    /// Amount of the event in major units of the associated transaction's currency.
+    ///
+    /// Constraints:
+    /// - format: `decimal`
+    ///
+    /// Example: `58.8`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`amount`](TransactionEventDetails::amount)."
+        )
+    )]
+    pub amount: Option<f64>,
+    /// Date when the transaction event occurred.
+    ///
+    /// Example: `2020-05-25`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`date`](TransactionEventDetails::date).")
+    )]
+    pub date: Option<crate::datetime::Date>,
+    /// Date when the transaction event is due to occur.
+    ///
+    /// Example: `2020-05-25`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`due_date`](TransactionEventDetails::due_date)."
+        )
+    )]
+    pub due_date: Option<crate::datetime::Date>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`event_type`](TransactionEventDetails::event_type)."
+        )
+    )]
+    pub event_type: Option<TransactionEventType>,
+    /// Numeric identifier of a transaction event. Use it as `tx_event_id` when requesting receipt details for a specific event. This is separate from the transaction ID and the transaction history pagination references.
+    ///
+    /// Example: `9567461191`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`id`](TransactionEventDetails::id).")
+    )]
+    pub id: Option<i64>,
+    /// Consecutive number of the installment that is paid. Applicable only to payout events, i.e. `event_type = PAYOUT`.
+    ///
+    /// Example: `1`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`installment_number`](TransactionEventDetails::installment_number)."
+        )
+    )]
+    pub installment_number: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`status`](TransactionEventDetails::status)."
+        )
+    )]
+    pub status: Option<TransactionEventStatus>,
+    /// Date and time of the transaction event.
+    ///
+    /// Example: `2020-05-25T10:49:42.784Z`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`timestamp`](TransactionEventDetails::timestamp)."
+        )
     )]
     pub timestamp: Option<crate::datetime::DateTime>,
 }
@@ -666,7 +693,7 @@ pub struct TransactionFull {
         default,
         setter(strip_option, doc = "Sets [`events`](TransactionFull::events).")
     )]
-    pub events: Option<Vec<Event>>,
+    pub events: Option<Vec<TransactionEvent>>,
     /// Total SumUp transaction fee in major units of the transaction's currency.
     ///
     /// Constraints:
@@ -1005,7 +1032,7 @@ pub struct TransactionFull {
             doc = "Sets [`transaction_events`](TransactionFull::transaction_events)."
         )
     )]
-    pub transaction_events: Option<Vec<TransactionEvent>>,
+    pub transaction_events: Option<Vec<TransactionEventDetails>>,
     /// Email address of the registered user (merchant) to whom the payment is made.
     ///
     /// Constraints:
