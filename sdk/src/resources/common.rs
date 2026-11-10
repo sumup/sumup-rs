@@ -177,67 +177,6 @@ pub enum Currency {
     #[serde(untagged)]
     Other(String),
 }
-/// How the payment details were captured, for example `CHIP` or `CONTACTLESS` for card-present payments and `CUSTOMER_ENTRY` for card details entered by the payer. For wallet and alternative payment methods, this can identify the method, such as `APPLE_PAY` or `BLIK`.
-///
-/// Example: `CUSTOMER_ENTRY`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum EntryMode {
-    #[serde(rename = "BOLETO")]
-    Boleto,
-    #[serde(rename = "SOFORT")]
-    Sofort,
-    #[serde(rename = "IDEAL")]
-    Ideal,
-    #[serde(rename = "BANCONTACT")]
-    Bancontact,
-    #[serde(rename = "EPS")]
-    Eps,
-    #[serde(rename = "MYBANK")]
-    Mybank,
-    #[serde(rename = "SATISPAY")]
-    Satispay,
-    #[serde(rename = "BLIK")]
-    Blik,
-    P24,
-    #[serde(rename = "GIROPAY")]
-    Giropay,
-    #[serde(rename = "PIX")]
-    Pix,
-    #[serde(rename = "QR_CODE_PIX")]
-    QrCodePix,
-    #[serde(rename = "APPLE_PAY")]
-    ApplePay,
-    #[serde(rename = "GOOGLE_PAY")]
-    GooglePay,
-    #[serde(rename = "PAYPAL")]
-    Paypal,
-    #[serde(rename = "TWINT")]
-    Twint,
-    #[serde(rename = "NONE")]
-    None,
-    #[serde(rename = "CHIP")]
-    Chip,
-    #[serde(rename = "MANUAL_ENTRY")]
-    ManualEntry,
-    #[serde(rename = "CUSTOMER_ENTRY")]
-    CustomerEntry,
-    #[serde(rename = "MAGSTRIPE_FALLBACK")]
-    MagstripeFallback,
-    #[serde(rename = "MAGSTRIPE")]
-    Magstripe,
-    #[serde(rename = "DIRECT_DEBIT")]
-    DirectDebit,
-    #[serde(rename = "CONTACTLESS")]
-    Contactless,
-    #[serde(rename = "MOTO")]
-    Moto,
-    #[serde(rename = "CONTACTLESS_MAGSTRIPE")]
-    ContactlessMagstripe,
-    #[serde(rename = "N/A")]
-    NA,
-    #[serde(untagged)]
-    Other(String),
-}
 /// Details of an API error.
 #[derive(
     Debug,
@@ -800,15 +739,6 @@ pub struct TransactionCheckoutInfo {
         )
     )]
     pub auth_code: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            doc = "Sets [`entry_mode`](TransactionCheckoutInfo::entry_mode)."
-        )
-    )]
-    pub entry_mode: Option<EntryMode>,
     /// Unique code of the registered merchant to whom the payment is made.
     ///
     /// Example: `MH4H92C7`

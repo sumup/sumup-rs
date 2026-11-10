@@ -194,6 +194,74 @@ pub struct ElvCardAccount {
     )]
     pub sort_code: Option<String>,
 }
+/// How the payment details were captured, for example `chip` or `contactless` for card-present payments and `customer entry` for card details entered by the payer. For wallet and alternative payment methods, this can identify the method, such as `apple pay` or `blik`.
+///
+/// Example: `customer entry`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum EntryMode {
+    #[serde(rename = "none")]
+    None,
+    #[serde(rename = "magstripe")]
+    Magstripe,
+    #[serde(rename = "chip")]
+    Chip,
+    #[serde(rename = "manual entry")]
+    ManualEntry,
+    #[serde(rename = "customer entry")]
+    CustomerEntry,
+    #[serde(rename = "magstripe fallback")]
+    MagstripeFallback,
+    #[serde(rename = "contactless")]
+    Contactless,
+    #[serde(rename = "moto")]
+    Moto,
+    #[serde(rename = "contactless magstripe")]
+    ContactlessMagstripe,
+    #[serde(rename = "boleto")]
+    Boleto,
+    #[serde(rename = "direct debit")]
+    DirectDebit,
+    #[serde(rename = "sofort")]
+    Sofort,
+    #[serde(rename = "ideal")]
+    Ideal,
+    #[serde(rename = "bancontact")]
+    Bancontact,
+    #[serde(rename = "eps")]
+    Eps,
+    #[serde(rename = "mybank")]
+    Mybank,
+    #[serde(rename = "satispay")]
+    Satispay,
+    #[serde(rename = "blik")]
+    Blik,
+    #[serde(rename = "p24")]
+    P24,
+    #[serde(rename = "giropay")]
+    Giropay,
+    #[serde(rename = "pix")]
+    Pix,
+    #[serde(rename = "qr code pix")]
+    QrCodePix,
+    #[serde(rename = "apple pay")]
+    ApplePay,
+    #[serde(rename = "google pay")]
+    GooglePay,
+    #[serde(rename = "sumup gift card")]
+    SumupGiftCard,
+    #[serde(rename = "paypal")]
+    Paypal,
+    #[serde(rename = "twint")]
+    Twint,
+    #[serde(rename = "iris")]
+    Iris,
+    #[serde(rename = "sumup pay")]
+    SumupPay,
+    #[serde(rename = "na")]
+    Na,
+    #[serde(untagged)]
+    Other(String),
+}
 /// Details of a link to a related resource.
 #[derive(
     Debug,
@@ -1130,6 +1198,15 @@ pub struct TransactionHistory {
         setter(strip_option, doc = "Sets [`currency`](TransactionHistory::currency).")
     )]
     pub currency: Option<Currency>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`entry_mode`](TransactionHistory::entry_mode)."
+        )
+    )]
+    pub entry_mode: Option<EntryMode>,
     /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
