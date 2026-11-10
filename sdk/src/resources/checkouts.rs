@@ -446,6 +446,53 @@ pub struct CheckoutCreateRequest {
     )]
     pub valid_until: Option<crate::Nullable<crate::datetime::DateTime>>,
 }
+/// How the payment details were captured for a checkout transaction, for example `CUSTOMER_ENTRY` for card details entered by the payer or `APPLE_PAY` for an Apple Pay payment. Checkout entry modes use uppercase values, unlike entry modes returned by the Transactions endpoints.
+///
+/// Example: `CUSTOMER_ENTRY`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CheckoutEntryMode {
+    #[serde(rename = "CUSTOMER_ENTRY")]
+    CustomerEntry,
+    #[serde(rename = "MOTO")]
+    Moto,
+    #[serde(rename = "CARD")]
+    Card,
+    #[serde(rename = "BOLETO")]
+    Boleto,
+    #[serde(rename = "DIRECT_DEBIT")]
+    DirectDebit,
+    #[serde(rename = "IDEAL")]
+    Ideal,
+    #[serde(rename = "BANCONTACT")]
+    Bancontact,
+    #[serde(rename = "EPS")]
+    Eps,
+    #[serde(rename = "MYBANK")]
+    Mybank,
+    #[serde(rename = "SATISPAY")]
+    Satispay,
+    #[serde(rename = "BLIK")]
+    Blik,
+    P24,
+    #[serde(rename = "GIROPAY")]
+    Giropay,
+    #[serde(rename = "PIX")]
+    Pix,
+    #[serde(rename = "QR_CODE_PIX")]
+    QrCodePix,
+    #[serde(rename = "KLARNA")]
+    Klarna,
+    #[serde(rename = "BANCOMATPAY")]
+    Bancomatpay,
+    #[serde(rename = "APPLE_PAY")]
+    ApplePay,
+    #[serde(rename = "PAYPAL")]
+    Paypal,
+    #[serde(rename = "GOOGLE_PAY")]
+    GooglePay,
+    #[serde(untagged)]
+    Other(String),
+}
 /// Checkout resource returned after a synchronous processing attempt. In addition to the base checkout fields, it can include the resulting transaction identifiers and any newly created payment instrument token.
 #[derive(
     Debug,
@@ -1036,7 +1083,7 @@ pub struct CheckoutTransactionsItem {
             doc = "Sets [`entry_mode`](CheckoutTransactionsItem::entry_mode)."
         )
     )]
-    pub entry_mode: Option<EntryMode>,
+    pub entry_mode: Option<CheckoutEntryMode>,
     /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
@@ -1353,7 +1400,7 @@ pub struct CheckoutSuccessTransactionsItem {
             doc = "Sets [`entry_mode`](CheckoutSuccessTransactionsItem::entry_mode)."
         )
     )]
-    pub entry_mode: Option<EntryMode>,
+    pub entry_mode: Option<CheckoutEntryMode>,
     /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
@@ -1660,7 +1707,7 @@ pub struct ProcessResponse200TransactionsItem {
             doc = "Sets [`entry_mode`](ProcessResponse200TransactionsItem::entry_mode)."
         )
     )]
-    pub entry_mode: Option<EntryMode>,
+    pub entry_mode: Option<CheckoutEntryMode>,
     /// Unique identifier of the transaction.
     ///
     /// Example: `6b425463-3e1b-431d-83fa-1e51c2925e99`
