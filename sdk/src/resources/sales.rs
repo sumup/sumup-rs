@@ -1,6 +1,11 @@
 // The contents of this file are generated; do not modify them.
 
-//! Operations related to reading sales data.
+//! Read a merchant's fully-paid, closed sales, including item lines, taxes, discounts, and payments.
+//!
+//! List sales to retrieve full `Sale` objects, or search by date, payment status, and sales channel
+//! to retrieve summaries. Use a summary's `id` to get the full sale.
+//!
+//! Amounts are expressed in minor units according to each sale's `currency.scale`.
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum SaleCompleted {}
@@ -1227,8 +1232,9 @@ pub struct PublicPaymentV10 {
     pub amount: i64,
     /// Alternative payment method type when `method` is `apm`.
     /// Gift card is not an APM on this API.
-    /// Input is case-insensitive; the canonical form is lowercase snake_case.
-    /// **VALUES**: [qr_code_pix, sepa_dd, paypal, sumup_pay, twint, iris].
+    /// Values use lowercase snake_case. Known values are `qr_code_pix`, `sepa_dd`, `paypal`,
+    /// `sumup_pay`, `twint`, and `iris`.
+    /// Additional values may be returned as new alternative payment methods become available.
     ///
     /// Constraints:
     /// - max length: 20
@@ -1256,8 +1262,9 @@ pub struct PublicPaymentV10 {
     pub gift_card: Option<PublicGiftCardPayment>,
     /// Payment method on public sales read API v1.0.
     /// Digital wallets are first-class methods. Gift card payments use `gift_card`, not `apm`.
-    /// Input is case-insensitive; the canonical form is lowercase snake_case.
-    /// **VALUES**: [card, cash, apm, external, apple_pay, google_pay, whatsapp_pay, gift_card].
+    /// Values use lowercase snake_case. Known values are `card`, `cash`, `apm`, `external`,
+    /// `apple_pay`, `google_pay`, `whatsapp_pay`, and `gift_card`.
+    /// Additional values may be returned as new payment methods become available.
     ///
     /// Constraints:
     /// - max length: 20
@@ -1269,7 +1276,7 @@ pub struct PublicPaymentV10 {
     /// or canceled). Server processed time when available; otherwise the payment provider’s
     /// transaction time. Not the device clock.
     ///
-    /// Example: `2017-07-21T17:32:28+01:00`
+    /// Example: `2026-06-02T10:20:00Z`
     #[builder(setter(doc = "Sets [`processed_at`](PublicPaymentV10::processed_at)."))]
     pub processed_at: crate::datetime::DateTime,
     /// The reference to the actual payment used for this sale, e.g. the sumup transaction code.
@@ -1287,10 +1294,8 @@ pub struct PublicPaymentV10 {
     pub status: PublicPaymentV10Status,
     /// Payment operation type.
     /// This is distinct from the payment instrument in `method`.
-    /// Input is case-insensitive; the canonical form is lowercase snake_case.
-    /// **VALUES**: [purchase, unreferenced_refund]
-    /// Defaults to "purchase" if unspecified. Either a normal purchase or an unreferenced refund for negative
-    /// sales like deposit returns.
+    /// Values use lowercase snake_case. Known values are `purchase` for a normal purchase
+    /// and `unreferenced_refund` for negative sales such as deposit returns.
     ///
     /// Example: `purchase`
     #[serde(rename = "type")]
@@ -1513,7 +1518,7 @@ pub struct SaleLineItemV10 {
     pub unit_of_measure: UnitOfMeasure,
 }
 /// Paginated list of `Sale` objects. Results are ordered **newest first** by the newest
-/// activity recorded for each sale. See `ListSalesV10`.
+/// activity recorded for each sale.
 #[derive(
     Debug,
     Clone,
@@ -1527,10 +1532,8 @@ pub struct SaleLineItemV10 {
 pub struct SalePage {
     #[builder(setter(doc = "Sets [`items`](SalePage::items)."))]
     pub items: Vec<Sale>,
-    /// Pagination token for subsequent requests. Should only be set by clients if they have
-    /// received a token in the previous response, and this request is an immediate follow-up
-    /// request to that response to load the subsequent page. Clients should treat this as an
-    /// opaque token and should not attempt to parse it in any way.
+    /// Opaque token for the next page. Pass it as the `pagination_token` query parameter
+    /// on the next list request. Omitted when no further page is available.
     ///
     /// Example: `66bcbtzelrubzeuzruzgu76678trncH`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1689,8 +1692,8 @@ pub struct SaleSearchRequest {
         )
     )]
     pub pagination_limit: Option<i64>,
-    /// Opaque pagination token from a previous search response. Not interchangeable with tokens
-    /// from `GET /sales`.
+    /// Opaque token from the previous search response. To load the next page, send it with
+    /// the same filters. Not interchangeable with tokens from `GET /sales`.
     ///
     /// Example: `66bcbtzelrubzeuzruzgu76678trncH`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1763,7 +1766,8 @@ pub struct SaleSearchRequest {
 pub struct SaleSearchResponse {
     #[builder(setter(doc = "Sets [`items`](SaleSearchResponse::items)."))]
     pub items: Vec<SaleSearchItem>,
-    /// Opaque token for the next page of search results.
+    /// Opaque token for the next page. Pass it as `pagination_token` in the next search
+    /// request body with the same filters. Omitted when no further page is available.
     ///
     /// Example: `66bcbtzelrubzeuzruzgu76678trncH`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2079,18 +2083,17 @@ pub enum SaleLineItemV10ServiceType {
     typed_builder::TypedBuilder,
 )]
 #[builder(doc)]
-pub struct ListSalesV10Params {
-    /// Pagination token for subsequent requests. Should only be set by clients if they have
-    /// received a token in the previous response, and this request is an immediate follow-up
-    /// request to that response to load the subsequent page. Clients should treat this as an
-    /// opaque token and should not attempt to parse it in any way.
+pub struct ListParams {
+    /// Opaque token from the previous list response. Omit it on the first request. To load
+    /// the next page, pass the returned token unchanged. Not interchangeable with tokens
+    /// from `POST /sales/search`.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(
             strip_option,
             into,
-            doc = "Sets [`pagination_token`](ListSalesV10Params::pagination_token)."
+            doc = "Sets [`pagination_token`](ListParams::pagination_token)."
         )
     )]
     pub pagination_token: Option<String>,
@@ -2104,7 +2107,7 @@ pub struct ListSalesV10Params {
         default,
         setter(
             strip_option,
-            doc = "Sets [`pagination_limit`](ListSalesV10Params::pagination_limit)."
+            doc = "Sets [`pagination_limit`](ListParams::pagination_limit)."
         )
     )]
     pub pagination_limit: Option<i64>,
@@ -2123,17 +2126,14 @@ pub struct ListSalesV10Params {
     typed_builder::TypedBuilder,
 )]
 #[builder(doc)]
-pub struct SearchSalesV10Request {
+pub struct SearchRequest {
     /// Sale created **on or before** this instant (inclusive).
     ///
     /// Example: `2026-06-02T23:59:59Z`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
-        setter(
-            strip_option,
-            doc = "Sets [`end_date`](SearchSalesV10Request::end_date)."
-        )
+        setter(strip_option, doc = "Sets [`end_date`](SearchRequest::end_date).")
     )]
     pub end_date: Option<crate::datetime::DateTime>,
     /// Maximum number of results per page.
@@ -2148,12 +2148,12 @@ pub struct SearchSalesV10Request {
         default,
         setter(
             strip_option,
-            doc = "Sets [`pagination_limit`](SearchSalesV10Request::pagination_limit)."
+            doc = "Sets [`pagination_limit`](SearchRequest::pagination_limit)."
         )
     )]
     pub pagination_limit: Option<i64>,
-    /// Opaque pagination token from a previous search response. Not interchangeable with tokens
-    /// from `GET /sales`.
+    /// Opaque token from the previous search response. To load the next page, send it with
+    /// the same filters. Not interchangeable with tokens from `GET /sales`.
     ///
     /// Example: `66bcbtzelrubzeuzruzgu76678trncH`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2162,7 +2162,7 @@ pub struct SearchSalesV10Request {
         setter(
             strip_option,
             into,
-            doc = "Sets [`pagination_token`](SearchSalesV10Request::pagination_token)."
+            doc = "Sets [`pagination_token`](SearchRequest::pagination_token)."
         )
     )]
     pub pagination_token: Option<String>,
@@ -2173,7 +2173,7 @@ pub struct SearchSalesV10Request {
         default,
         setter(
             strip_option,
-            doc = "Sets [`payment_statuses`](SearchSalesV10Request::payment_statuses)."
+            doc = "Sets [`payment_statuses`](SearchRequest::payment_statuses)."
         )
     )]
     pub payment_statuses: Option<Vec<PaymentStatusFilterV10>>,
@@ -2185,7 +2185,7 @@ pub struct SearchSalesV10Request {
         default,
         setter(
             strip_option,
-            doc = "Sets [`sale_statuses`](SearchSalesV10Request::sale_statuses)."
+            doc = "Sets [`sale_statuses`](SearchRequest::sale_statuses)."
         )
     )]
     pub sale_statuses: Option<Vec<SaleStateV10>>,
@@ -2195,7 +2195,7 @@ pub struct SearchSalesV10Request {
         default,
         setter(
             strip_option,
-            doc = "Sets [`sales_channels`](SearchSalesV10Request::sales_channels)."
+            doc = "Sets [`sales_channels`](SearchRequest::sales_channels)."
         )
     )]
     pub sales_channels: Option<Vec<SalesChannelFilterV10>>,
@@ -2205,46 +2205,43 @@ pub struct SearchSalesV10Request {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
-        setter(
-            strip_option,
-            doc = "Sets [`start_date`](SearchSalesV10Request::start_date)."
-        )
+        setter(strip_option, doc = "Sets [`start_date`](SearchRequest::start_date).")
     )]
     pub start_date: Option<crate::datetime::DateTime>,
 }
 use crate::client::Client;
 #[derive(Debug, PartialEq)]
-pub enum ListSalesV10ErrorBody {
+pub enum ListErrorBody {
     BadRequest(ProblemV10),
     Unauthorized(ProblemV10),
     Forbidden(ProblemV10),
     PreconditionFailed(ProblemV10),
 }
-impl crate::error::ProblemDetails for ListSalesV10ErrorBody {
+impl crate::error::ProblemDetails for ListErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
         None
     }
 }
 #[derive(Debug, PartialEq)]
-pub enum SearchSalesV10ErrorBody {
+pub enum SearchErrorBody {
     BadRequest(ProblemV10),
     Unauthorized(ProblemV10),
     Forbidden(ProblemV10),
     PreconditionFailed(ProblemV10),
 }
-impl crate::error::ProblemDetails for SearchSalesV10ErrorBody {
+impl crate::error::ProblemDetails for SearchErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
         None
     }
 }
 #[derive(Debug, PartialEq)]
-pub enum GetSaleV10ErrorBody {
+pub enum GetErrorBody {
     Unauthorized(ProblemV10),
     Forbidden(ProblemV10),
     NotFound(ProblemV10),
     PreconditionFailed(ProblemV10),
 }
-impl crate::error::ProblemDetails for GetSaleV10ErrorBody {
+impl crate::error::ProblemDetails for GetErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
         None
     }
@@ -2262,7 +2259,7 @@ impl<'a> SalesClient<'a> {
     pub fn client(&self) -> &Client {
         self.client
     }
-    /// Lists sales
+    /// List sales
     ///
     /// Returns a paginated list of `Sale` objects. Results are sorted **newest first** by the
     /// **newest event** recorded for each sale. Pagination tokens follow that order.
@@ -2274,14 +2271,14 @@ impl<'a> SalesClient<'a> {
     /// - 200: Successful response with a page of sales.
     /// - 400: Validation error on the request.
     /// - 401: The client is not authenticated (auth header is empty or invalid).
-    /// - 403: Missing `sales.read`, merchant code mismatch on the token, or no `merchant_read`
+    /// - 403: Missing `sales.read`, merchant code mismatch on the token, or no `merchant.read`
     ///   permission.
     /// - 412: User-Agent header is not present or is empty.
-    pub async fn list_sales_v10(
+    pub async fn list(
         &self,
         merchant_code: impl AsRef<str>,
-        params: ListSalesV10Params,
-    ) -> crate::error::SdkResult<SalePage, ListSalesV10ErrorBody> {
+        params: ListParams,
+    ) -> crate::error::SdkResult<SalePage, ListErrorBody> {
         let path = format!("/v1.0/merchants/{}/sales", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -2311,34 +2308,32 @@ impl<'a> SalesClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(ListSalesV10ErrorBody::BadRequest)
+                    serde_json::from_slice::<ProblemV10>(raw).map(ListErrorBody::BadRequest)
                 })
                 .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw)
-                        .map(ListSalesV10ErrorBody::Unauthorized)
+                    serde_json::from_slice::<ProblemV10>(raw).map(ListErrorBody::Unauthorized)
                 })
                 .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(ListSalesV10ErrorBody::Forbidden)
+                    serde_json::from_slice::<ProblemV10>(raw).map(ListErrorBody::Forbidden)
                 })
                 .await)
             }
             reqwest::StatusCode::PRECONDITION_FAILED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw)
-                        .map(ListSalesV10ErrorBody::PreconditionFailed)
+                    serde_json::from_slice::<ProblemV10>(raw).map(ListErrorBody::PreconditionFailed)
                 })
                 .await)
             }
             _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
-    /// Searches sales
+    /// Search sales
     ///
     /// Returns a paginated list of `SaleSearchItem` rows matching filter criteria. Results are
     /// sorted **newest first** by **sale close date**.
@@ -2352,14 +2347,14 @@ impl<'a> SalesClient<'a> {
     /// - 200: Successful response with search results.
     /// - 400: Validation error on the request.
     /// - 401: The client is not authenticated (auth header is empty or invalid).
-    /// - 403: Missing `sales.read`, merchant code mismatch on the token, or no `merchant_read`
+    /// - 403: Missing `sales.read`, merchant code mismatch on the token, or no `merchant.read`
     ///   permission.
     /// - 412: User-Agent header is not present or is empty.
-    pub async fn search_sales_v10(
+    pub async fn search(
         &self,
         merchant_code: impl AsRef<str>,
-        body: SearchSalesV10Request,
-    ) -> crate::error::SdkResult<SaleSearchResponse, SearchSalesV10ErrorBody> {
+        body: SearchRequest,
+    ) -> crate::error::SdkResult<SaleSearchResponse, SearchErrorBody> {
         let path = format!("/v1.0/merchants/{}/sales/search", merchant_code.as_ref());
         let url = format!("{}{}", self.client.base_url(), path);
         let mut request = self
@@ -2384,36 +2379,33 @@ impl<'a> SalesClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw)
-                        .map(SearchSalesV10ErrorBody::BadRequest)
+                    serde_json::from_slice::<ProblemV10>(raw).map(SearchErrorBody::BadRequest)
                 })
                 .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw)
-                        .map(SearchSalesV10ErrorBody::Unauthorized)
+                    serde_json::from_slice::<ProblemV10>(raw).map(SearchErrorBody::Unauthorized)
                 })
                 .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw)
-                        .map(SearchSalesV10ErrorBody::Forbidden)
+                    serde_json::from_slice::<ProblemV10>(raw).map(SearchErrorBody::Forbidden)
                 })
                 .await)
             }
             reqwest::StatusCode::PRECONDITION_FAILED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
                     serde_json::from_slice::<ProblemV10>(raw)
-                        .map(SearchSalesV10ErrorBody::PreconditionFailed)
+                        .map(SearchErrorBody::PreconditionFailed)
                 })
                 .await)
             }
             _ => Err(crate::error::SdkError::unexpected_response(response).await),
         }
     }
-    /// Gets a sale
+    /// Get a sale
     ///
     /// Returns `Sale` for `sale_id`, including item lines and `payments[]`.
     /// Non-finalised sales are never returned; only fully-paid sales.
@@ -2421,15 +2413,15 @@ impl<'a> SalesClient<'a> {
     /// Responses:
     /// - 200: Sale data with item lines and payments.
     /// - 401: The client is not authenticated (auth header is empty or invalid).
-    /// - 403: Missing `sales.read`, merchant code mismatch on the token, or no `merchant_read`
+    /// - 403: Missing `sales.read`, merchant code mismatch on the token, or no `merchant.read`
     ///   permission.
     /// - 404: Sale not found. Non-finalised sales are never returned; only fully-paid sales.
     /// - 412: User-Agent header is not present or is empty.
-    pub async fn get_sale_v10(
+    pub async fn get(
         &self,
         merchant_code: impl AsRef<str>,
         sale_id: impl AsRef<str>,
-    ) -> crate::error::SdkResult<Sale, GetSaleV10ErrorBody> {
+    ) -> crate::error::SdkResult<Sale, GetErrorBody> {
         let path = format!(
             "/v1.0/merchants/{}/sales/{}",
             merchant_code.as_ref(),
@@ -2457,26 +2449,25 @@ impl<'a> SalesClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(GetSaleV10ErrorBody::Unauthorized)
+                    serde_json::from_slice::<ProblemV10>(raw).map(GetErrorBody::Unauthorized)
                 })
                 .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(GetSaleV10ErrorBody::Forbidden)
+                    serde_json::from_slice::<ProblemV10>(raw).map(GetErrorBody::Forbidden)
                 })
                 .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(GetSaleV10ErrorBody::NotFound)
+                    serde_json::from_slice::<ProblemV10>(raw).map(GetErrorBody::NotFound)
                 })
                 .await)
             }
             reqwest::StatusCode::PRECONDITION_FAILED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw)
-                        .map(GetSaleV10ErrorBody::PreconditionFailed)
+                    serde_json::from_slice::<ProblemV10>(raw).map(GetErrorBody::PreconditionFailed)
                 })
                 .await)
             }
