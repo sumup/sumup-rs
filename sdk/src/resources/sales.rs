@@ -6,6 +6,7 @@
 //! to retrieve summaries. Use a summary's `id` to get the full sale.
 //!
 //! Amounts are expressed in minor units according to each sale's `currency.scale`.
+use super::common::*;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum SaleCompleted {}
@@ -26,29 +27,6 @@ impl crate::events::EventSpec for SaleUpdated {
 }
 /// Event notification for this event type.
 pub type SaleUpdatedEvent = crate::events::Event<SaleUpdated>;
-/// A category a line belongs to.
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct CategoryV10 {
-    /// The category id. Usually a UUID, but not always (legacy cases).
-    ///
-    /// Constraints:
-    /// - max length: 100
-    ///
-    /// Example: `b064ed44-66e1-45a1-a963-b783808f0436`
-    #[builder(setter(into, doc = "Sets [`id`](CategoryV10::id)."))]
-    pub id: String,
-    /// The category name.
-    ///
-    /// Constraints:
-    /// - max length: 30
-    ///
-    /// Example: `Food`
-    #[builder(setter(into, doc = "Sets [`name`](CategoryV10::name)."))]
-    pub name: String,
-}
 /// Method of applying the discount to the items or cart.
 ///
 /// Example: `MANUAL`
@@ -569,77 +547,6 @@ pub struct DiscountValue {
     )]
     pub percentage: Option<i64>,
 }
-/// A named, typed characteristic of a line. New item types add data here instead of
-/// a typed sub-object per type.
-///
-/// Examples by item type (illustrative, not exhaustive):
-/// - DEPOSIT:   `operation_type` = "SALE", `linked_line_id` = "line-1"
-/// - GIFT_CARD: `gift_card_reference` = "GCMINGXPC5"
-/// - CATALOG:   `variant_name` = "Large", `item_id` / `variant_id` (TEXT),
-/// `reporting_category_id` = "cat-..."
-/// - FEE:       `fee_type` = "SHIPPING" (required); optional `fee_id`,
-/// `value_absolute` or `value_percentage`, and per-type metadata
-/// features such as `delivery_name` / `tracking_reference` (shipping),
-/// `card_type` / `scheme` (surcharge), or `policy_id` (cancellation)
-/// - (future) SUBSCRIPTION: `billing_period` = "P1M", `renews_at` = "2026-07-02"
-///
-/// Conventional `FEE` feature keys:
-/// - `fee_type` (TEXT, required): `SHIPPING`, `SURCHARGE`, `SERVICE_CHARGE`, or
-/// `CANCELLATION`
-/// - `fee_id` (TEXT, optional): identifier of the fee definition
-/// - `value_absolute` (INTEGER, optional): configured absolute value in minor units
-/// of the sale currency (the charged amount is on `price`)
-/// - `value_percentage` (INTEGER, optional): configured percentage in minor units
-/// (1/100000; e.g. 10000 = 10%)
-/// - Per-type metadata (optional, TEXT unless noted): `delivery_name`,
-/// `tracking_reference` (shipping); `card_type`, `scheme` (surcharge);
-/// `policy_id` (cancellation)
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct FeatureV10 {
-    /// The feature name/key.
-    ///
-    /// Constraints:
-    /// - max length: 100
-    ///
-    /// Example: `operation_type`
-    #[builder(setter(into, doc = "Sets [`name`](FeatureV10::name)."))]
-    pub name: String,
-    /// The feature value in canonical string form, to be parsed per `value_type`
-    /// (e.g. INTEGER -> "3", DECIMAL -> "1.50", DATE -> "2026-07-02",
-    /// BOOLEAN -> "true"). Carrying it as a string keeps the wire format stable as
-    /// new feature names and value types are introduced.
-    ///
-    /// Constraints:
-    /// - max length: 1000
-    ///
-    /// Example: `SALE`
-    #[builder(setter(into, doc = "Sets [`value`](FeatureV10::value)."))]
-    pub value: String,
-    #[builder(setter(doc = "Sets [`value_type`](FeatureV10::value_type)."))]
-    pub value_type: FeatureValueTypeV10,
-}
-/// The data type of a feature value. The wire `value` is always a string and is parsed
-/// according to this type.
-///
-/// Example: `TEXT`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum FeatureValueTypeV10 {
-    #[serde(rename = "TEXT")]
-    Text,
-    #[serde(rename = "INTEGER")]
-    Integer,
-    #[serde(rename = "DECIMAL")]
-    Decimal,
-    #[serde(rename = "DATE")]
-    Date,
-    #[serde(rename = "BOOLEAN")]
-    Boolean,
-    #[serde(untagged)]
-    Other(String),
-}
 /// Final price amounts after all calculations and adjustments.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
@@ -700,161 +607,6 @@ pub struct FinalPriceAmounts {
     ))]
     pub total_net_amount_final: i64,
 }
-/// Outward identifiers and links for a line, kept in one place rather than scattered
-/// per item type.
-#[derive(
-    Debug,
-    Clone,
-    Default,
-    PartialEq,
-    serde::Serialize,
-    serde::Deserialize,
-    typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct ItemReferencesV10 {
-    /// Reference to the backing catalog entity (item variant, deposit, ...),
-    /// typically a URN such as
-    /// `urn:sumup:pos:variant:${MERCHANT_CODE}:${ITEM_ID}:${VARIANT_ID}` or
-    /// `urn:sumup:pos:deposit:${MERCHANT_CODE}:${DEPOSIT_ID}`.
-    /// Empty for ad-hoc / manual lines. Type-agnostic on purpose: a new item type
-    /// backed by a catalog entity reuses this field instead of adding its own.
-    ///
-    /// Constraints:
-    /// - max length: 255
-    ///
-    /// Example: `urn:sumup:pos:variant:MCGLE7VC:9736e947-6f1f-487f-846a-c5954fb06a5a:7fff192f-ce29-4673-890f-2d68ba557946`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            into,
-            doc = "Sets [`catalog_reference`](ItemReferencesV10::catalog_reference)."
-        )
-    )]
-    pub catalog_reference: Option<String>,
-    /// The source of the catalog the line originates from.
-    ///
-    /// Example: `SUMUP`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            doc = "Sets [`catalog_source`](ItemReferencesV10::catalog_source)."
-        )
-    )]
-    pub catalog_source: Option<ItemReferencesV10CatalogSource>,
-    /// An external reference id connecting this line to another system.
-    ///
-    /// Constraints:
-    /// - max length: 250
-    ///
-    /// Example: `POS-LINE-001`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            into,
-            doc = "Sets [`external_id`](ItemReferencesV10::external_id)."
-        )
-    )]
-    pub external_id: Option<String>,
-    /// Stock keeping unit, enriched from the Catalog when available.
-    ///
-    /// Constraints:
-    /// - max length: 100
-    ///
-    /// Example: `COFFEE-LARGE`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`sku`](ItemReferencesV10::sku).")
-    )]
-    pub sku: Option<String>,
-}
-/// Pricing for a single line, valid for every item type.
-///
-/// Merges the standard amounts (with tax breakdown) and the final amounts (after
-/// discounts/modifiers).
-///
-/// Totals and tax amounts can be negative for return-like operations (for example
-/// a deposit with `operation_type` = `RETURN`).
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct LineItemPriceV10 {
-    /// Discounts applied. Discount amounts do not affect `total_net_amount` /
-    /// `total_gross_amount`; they are reflected in the `*_final` amounts.
-    ///
-    /// Constraints:
-    /// - max items: 1000
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, doc = "Sets [`discounts`](LineItemPriceV10::discounts).")
-    )]
-    pub discounts: Option<Vec<DiscountLine>>,
-    /// Taxes applied on top of the net amount resulting in the gross amount.
-    ///
-    /// Constraints:
-    /// - min items: 1
-    /// - max items: 1000
-    #[builder(setter(doc = "Sets [`taxes`](LineItemPriceV10::taxes)."))]
-    pub taxes: Vec<TaxLine>,
-    /// Taxes applied on top of `total_net_amount_final` resulting in `total_gross_amount_final`. Equals `taxes` if no discounts apply.
-    ///
-    /// Constraints:
-    /// - min items: 1
-    /// - max items: 1000
-    #[builder(setter(doc = "Sets [`taxes_final`](LineItemPriceV10::taxes_final)."))]
-    pub taxes_final: Vec<TaxLine>,
-    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
-    /// `value` can get large for some currencies and applications.
-    /// Use Long type or a similar data type when parsing `value`.
-    ///
-    /// Example: `100`
-    #[builder(setter(doc = "Sets [`total_gross_amount`](LineItemPriceV10::total_gross_amount)."))]
-    pub total_gross_amount: i64,
-    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
-    /// `value` can get large for some currencies and applications.
-    /// Use Long type or a similar data type when parsing `value`.
-    ///
-    /// Example: `100`
-    #[builder(setter(
-        doc = "Sets [`total_gross_amount_final`](LineItemPriceV10::total_gross_amount_final)."
-    ))]
-    pub total_gross_amount_final: i64,
-    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
-    /// `value` can get large for some currencies and applications.
-    /// Use Long type or a similar data type when parsing `value`.
-    ///
-    /// Example: `100`
-    #[builder(setter(doc = "Sets [`total_net_amount`](LineItemPriceV10::total_net_amount)."))]
-    pub total_net_amount: i64,
-    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
-    /// `value` can get large for some currencies and applications.
-    /// Use Long type or a similar data type when parsing `value`.
-    ///
-    /// Example: `100`
-    #[builder(setter(
-        doc = "Sets [`total_net_amount_final`](LineItemPriceV10::total_net_amount_final)."
-    ))]
-    pub total_net_amount_final: i64,
-    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
-    /// `value` can get large for some currencies and applications.
-    /// Use Long type or a similar data type when parsing `value`.
-    ///
-    /// Constraints:
-    /// - value >= 0
-    ///
-    /// Example: `100`
-    #[builder(setter(doc = "Sets [`unit_amount`](LineItemPriceV10::unit_amount)."))]
-    pub unit_amount: i64,
-}
 /// Modifiers are reported under line items and can be build from Item Catalog objects.
 /// Modifiers has to be attached to an item and can't be sold and refunded alone.
 pub type ModifierItem = serde_json::Value;
@@ -881,21 +633,6 @@ pub struct ModifierSet {
     /// Example: `Burger Toppings`
     #[builder(setter(into, doc = "Sets [`name`](ModifierSet::name)."))]
     pub name: String,
-}
-/// Payment outcome filter value. Multi-select uses **OR** within this field; combined with
-/// other filters using **AND**.
-/// Only fully-paid closed sales are exposed. Refunded original sales remain searchable as
-/// `PAID`; refunds are separate negative sales, not a `REFUNDED` sale-search outcome.
-///
-/// Example: `PAID`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum PaymentStatusFilterV10 {
-    #[serde(rename = "PAID")]
-    Paid,
-    #[serde(rename = "CHARGED_BACK")]
-    ChargedBack,
-    #[serde(untagged)]
-    Other(String),
 }
 /// Price information for items with positive amounts only.
 #[derive(
@@ -1089,224 +826,11 @@ pub struct PriceAmounts {
     #[builder(setter(doc = "Sets [`unit_amount`](PriceAmounts::unit_amount)."))]
     pub unit_amount: i64,
 }
-/// A RFC 9457 problem details object.
-///
-/// Additional properties specific to the problem type may be present.
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct ProblemV10 {
-    /// A human-readable explanation specific to this occurrence of the problem.
-    ///
-    /// Example: `The requested resource doesn't exist or does not belong to you.`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`detail`](ProblemV10::detail).")
-    )]
-    pub detail: Option<String>,
-    /// A URI reference that identifies the specific occurrence of the problem.
-    ///
-    /// Constraints:
-    /// - format: `uri`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`instance`](ProblemV10::instance).")
-    )]
-    pub instance: Option<String>,
-    /// The HTTP status code generated by the origin server for this occurrence of the problem.
-    ///
-    /// Example: `404`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, doc = "Sets [`status`](ProblemV10::status).")
-    )]
-    pub status: Option<i64>,
-    /// A short, human-readable summary of the problem type.
-    ///
-    /// Example: `Requested resource couldn't be found.`
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, into, doc = "Sets [`title`](ProblemV10::title).")
-    )]
-    pub title: Option<String>,
-    /// A URI reference that identifies the problem type.
-    ///
-    /// Constraints:
-    /// - format: `uri`
-    ///
-    /// Example: `https://developer.sumup.com/problem/not-found`
-    #[serde(rename = "type")]
-    #[builder(setter(into, doc = "Sets [`r#type`](ProblemV10::r#type)."))]
-    pub r#type: String,
-    #[serde(
-        flatten,
-        default,
-        skip_serializing_if = "std::collections::HashMap::is_empty"
-    )]
-    #[builder(
-        default,
-        setter(doc = "Sets [`additional_properties`](ProblemV10::additional_properties).")
-    )]
-    pub additional_properties: std::collections::HashMap<String, serde_json::Value>,
-}
-impl std::fmt::Display for ProblemV10 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-impl std::error::Error for ProblemV10 {}
-/// Card brand, credit/debit processing type, and last four digits.
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct PublicCardV10 {
-    /// The brand of the card.
-    /// Input is case-insensitive; the canonical form is lowercase snake_case.
-    /// **VALUES**: [amex, cup, diners, discover, elo, elv, hipercard, jcb, maestro, mastercard, visa, visa_electron,
-    /// visa_vpay, vr, eftpos, conecs, swile, girocard, interac, sumup, bancomat].
-    ///
-    /// Constraints:
-    /// - max length: 20
-    ///
-    /// Example: `visa`
-    #[builder(setter(into, doc = "Sets [`brand`](PublicCardV10::brand)."))]
-    pub brand: String,
-    /// The last 4 digits of the card used for the payment.
-    ///
-    /// Constraints:
-    /// - pattern: `^\d{4}$`
-    /// - min length: 4
-    /// - max length: 4
-    ///
-    /// Example: `1234`
-    #[builder(setter(into, doc = "Sets [`last_4_digits`](PublicCardV10::last_4_digits)."))]
-    pub last_4_digits: String,
-    /// Credit or debit processing choice, not brand or funding.
-    /// `unknown` when unavailable; prepaid/voucher are not processing types.
-    ///
-    /// Example: `debit`
-    #[serde(rename = "type")]
-    #[builder(setter(doc = "Sets [`r#type`](PublicCardV10::r#type)."))]
-    pub r#type: PublicCardV10Type,
-}
-/// Gift card used for this payment. Present when `method` is `gift_card` and the gift card
-/// id is known.
-/// Gift card IDs use the format "GC" followed by 9 alphanumeric characters
-/// (e.g. GCZ3NTMB1V).
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct PublicGiftCardPayment {
-    /// Gift card identifier. Format "GC" followed by 9 alphanumeric characters
-    /// (e.g. GCZ3NTMB1V).
-    ///
-    /// Example: `GCZ3NTMB1V`
-    #[builder(setter(into, doc = "Sets [`id`](PublicGiftCardPayment::id)."))]
-    pub id: String,
-}
-/// Payment on a closed sale, for bookkeeping and reconciliation.
-///
-/// Acquirer/processing cost is not on this object. Merchant-charged fees (shipping, service
-/// charge, etc.) appear as `type: "FEE"` item lines in `Sale.items`.
-#[derive(
-    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
-)]
-#[builder(doc)]
-pub struct PublicPaymentV10 {
-    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
-    /// `value` can get large for some currencies and applications.
-    /// Use Long type or a similar data type when parsing `value`.
-    ///
-    /// Constraints:
-    /// - value >= 0
-    ///
-    /// Example: `100`
-    #[builder(setter(doc = "Sets [`amount`](PublicPaymentV10::amount)."))]
-    pub amount: i64,
-    /// Alternative payment method type when `method` is `apm`.
-    /// Gift card is not an APM on this API.
-    /// Values use lowercase snake_case. Known values are `qr_code_pix`, `sepa_dd`, `paypal`,
-    /// `sumup_pay`, `twint`, and `iris`.
-    /// Additional values may be returned as new alternative payment methods become available.
-    ///
-    /// Constraints:
-    /// - max length: 20
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(
-            strip_option,
-            into,
-            doc = "Sets [`apm_type`](PublicPaymentV10::apm_type)."
-        )
-    )]
-    pub apm_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, doc = "Sets [`card`](PublicPaymentV10::card).")
-    )]
-    pub card: Option<PublicCardV10>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[builder(
-        default,
-        setter(strip_option, doc = "Sets [`gift_card`](PublicPaymentV10::gift_card).")
-    )]
-    pub gift_card: Option<PublicGiftCardPayment>,
-    /// Payment method on public sales read API v1.0.
-    /// Digital wallets are first-class methods. Gift card payments use `gift_card`, not `apm`.
-    /// Values use lowercase snake_case. Known values are `card`, `cash`, `apm`, `external`,
-    /// `apple_pay`, `google_pay`, `whatsapp_pay`, and `gift_card`.
-    /// Additional values may be returned as new payment methods become available.
-    ///
-    /// Constraints:
-    /// - max length: 20
-    ///
-    /// Example: `card`
-    #[builder(setter(into, doc = "Sets [`method`](PublicPaymentV10::method)."))]
-    pub method: String,
-    /// UTC date-time when SumUp recorded this payment’s exposed `status` (successful, failed,
-    /// or canceled). Server processed time when available; otherwise the payment provider’s
-    /// transaction time. Not the device clock.
-    ///
-    /// Example: `2026-06-02T10:20:00Z`
-    #[builder(setter(doc = "Sets [`processed_at`](PublicPaymentV10::processed_at)."))]
-    pub processed_at: crate::datetime::DateTime,
-    /// The reference to the actual payment used for this sale, e.g. the sumup transaction code.
-    ///
-    /// Constraints:
-    /// - max length: 50
-    ///
-    /// Example: `TERTYFQ4G3`
-    #[builder(setter(into, doc = "Sets [`reference`](PublicPaymentV10::reference)."))]
-    pub reference: String,
-    /// The status of the payment.
-    ///
-    /// Example: `SUCCESSFUL`
-    #[builder(setter(doc = "Sets [`status`](PublicPaymentV10::status)."))]
-    pub status: PublicPaymentV10Status,
-    /// Payment operation type.
-    /// This is distinct from the payment instrument in `method`.
-    /// Values use lowercase snake_case. Known values are `purchase` for a normal purchase
-    /// and `unreferenced_refund` for negative sales such as deposit returns.
-    ///
-    /// Example: `purchase`
-    #[serde(rename = "type")]
-    #[builder(setter(into, doc = "Sets [`r#type`](PublicPaymentV10::r#type)."))]
-    pub r#type: String,
-}
 /// Core model of the Sales API. Returned by `GET /sales` and `GET /sales/{sale_id}`.
 ///
 /// Non-finalised sales are never returned; only fully-paid sales.
 ///
-/// Item lines are `SaleLineItem`. Merchant fees appear as `type: "FEE"` lines; extra fee data
+/// Item lines are `SaleItem`. Merchant fees appear as `type: "FEE"` lines; extra fee data
 /// is in `features`.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
@@ -1337,7 +861,7 @@ pub struct Sale {
     /// - min items: 1
     /// - max items: 1000
     #[builder(setter(doc = "Sets [`items`](Sale::items)."))]
-    pub items: Vec<SaleLineItemV10>,
+    pub items: Vec<SaleItem>,
     /// Human-readable name of the sale (not unique, not the sale id).
     ///
     /// Constraints:
@@ -1367,13 +891,13 @@ pub struct Sale {
     /// Constraints:
     /// - max items: 1000
     #[builder(setter(doc = "Sets [`payments`](Sale::payments)."))]
-    pub payments: Vec<PublicPaymentV10>,
+    pub payments: Vec<SalePayment>,
     #[builder(setter(doc = "Sets [`price`](Sale::price)."))]
-    pub price: SalePriceV10,
+    pub price: SaleTotals,
     #[builder(setter(doc = "Sets [`source`](Sale::source)."))]
     pub source: SaleSource,
     #[builder(setter(doc = "Sets [`state`](Sale::state)."))]
-    pub state: SaleStateV10,
+    pub state: SaleLifecycleState,
     #[builder(setter(doc = "Sets [`tax_mode`](Sale::tax_mode)."))]
     pub tax_mode: TaxMode,
     /// Identity UUID of the cashier who processed the sale. Omitted when the cashier
@@ -1390,6 +914,52 @@ pub struct Sale {
     )]
     pub user_id: Option<String>,
 }
+/// Sale channel filter value. Multi-select uses **OR** within this field.
+///
+/// Example: `POS`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum SaleChannelFilter {
+    #[serde(rename = "POS")]
+    Pos,
+    #[serde(rename = "ONLINE_PAYMENTS")]
+    OnlinePayments,
+    #[serde(rename = "KIOSK")]
+    Kiosk,
+    #[serde(rename = "ONLINE_STORE")]
+    OnlineStore,
+    #[serde(rename = "SOLO")]
+    Solo,
+    #[serde(rename = "ORDER_AND_PAY")]
+    OrderAndPay,
+    #[serde(rename = "INVOICE")]
+    Invoice,
+    #[serde(rename = "BOOKINGS")]
+    Bookings,
+    #[serde(rename = "ORDER_AGGREGATOR")]
+    OrderAggregator,
+    #[serde(rename = "SUBSCRIPTIONS")]
+    Subscriptions,
+    #[serde(rename = "UNKNOWN")]
+    Unknown,
+    #[serde(untagged)]
+    Other(String),
+}
+/// Gift card used for this payment. Present when `method` is `gift_card` and the gift card
+/// id is known.
+/// Gift card IDs use the format "GC" followed by 9 alphanumeric characters
+/// (e.g. GCZ3NTMB1V).
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct SaleGiftCardPayment {
+    /// Gift card identifier. Format "GC" followed by 9 alphanumeric characters
+    /// (e.g. GCZ3NTMB1V).
+    ///
+    /// Example: `GCZ3NTMB1V`
+    #[builder(setter(into, doc = "Sets [`id`](SaleGiftCardPayment::id)."))]
+    pub id: String,
+}
 /// A single line of a sale.
 ///
 /// The envelope (id, type, name, quantity, unit_of_measure, price) is stable and
@@ -1400,7 +970,7 @@ pub struct Sale {
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
 )]
 #[builder(doc)]
-pub struct SaleLineItemV10 {
+pub struct SaleItem {
     /// Categories the line belongs to. A shared optional structure available to any
     /// line; not a per-type field.
     ///
@@ -1409,30 +979,27 @@ pub struct SaleLineItemV10 {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
-        setter(
-            strip_option,
-            doc = "Sets [`categories`](SaleLineItemV10::categories)."
-        )
+        setter(strip_option, doc = "Sets [`categories`](SaleItem::categories).")
     )]
-    pub categories: Option<Vec<CategoryV10>>,
+    pub categories: Option<Vec<SaleItemCategory>>,
     /// Named, typed, type-specific data. New item types add their data here as
-    /// features instead of new schema variants. See `Feature` for per-type examples.
+    /// features instead of new schema variants. See `SaleItemFeature` for per-type examples.
     ///
     /// Constraints:
     /// - max items: 100
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
-        setter(strip_option, doc = "Sets [`features`](SaleLineItemV10::features).")
+        setter(strip_option, doc = "Sets [`features`](SaleItem::features).")
     )]
-    pub features: Option<Vec<FeatureV10>>,
+    pub features: Option<Vec<SaleItemFeature>>,
     /// Stable identifier of the line within the sale. Used for linking (e.g. deposits).
     ///
     /// Constraints:
     /// - max length: 100
     ///
     /// Example: `line-1`
-    #[builder(setter(into, doc = "Sets [`id`](SaleLineItemV10::id)."))]
+    #[builder(setter(into, doc = "Sets [`id`](SaleItem::id)."))]
     pub id: String,
     /// Modifiers customise a line (e.g. "oat milk" on a cappuccino). A shared
     /// optional structure available to any line; not a per-type field.
@@ -1442,7 +1009,7 @@ pub struct SaleLineItemV10 {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
-        setter(strip_option, doc = "Sets [`modifiers`](SaleLineItemV10::modifiers).")
+        setter(strip_option, doc = "Sets [`modifiers`](SaleItem::modifiers).")
     )]
     pub modifiers: Option<Vec<ModifierItem>>,
     /// Display name of the line.
@@ -1451,7 +1018,7 @@ pub struct SaleLineItemV10 {
     /// - max length: 250
     ///
     /// Example: `Cappuccino`
-    #[builder(setter(into, doc = "Sets [`name`](SaleLineItemV10::name)."))]
+    #[builder(setter(into, doc = "Sets [`name`](SaleItem::name)."))]
     pub name: String,
     /// Optional free-text note attached to the line, visible on receipts.
     ///
@@ -1462,47 +1029,41 @@ pub struct SaleLineItemV10 {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
-        setter(strip_option, into, doc = "Sets [`note`](SaleLineItemV10::note).")
+        setter(strip_option, into, doc = "Sets [`note`](SaleItem::note).")
     )]
     pub note: Option<String>,
-    #[builder(setter(doc = "Sets [`price`](SaleLineItemV10::price)."))]
-    pub price: LineItemPriceV10,
+    #[builder(setter(doc = "Sets [`price`](SaleItem::price)."))]
+    pub price: SaleItemPrice,
     /// The numerical value representing the quantity in the specified unit.
     ///
     /// Constraints:
     /// - value >= 0
     ///
     /// Example: `2.15332`
-    #[builder(setter(doc = "Sets [`quantity`](SaleLineItemV10::quantity)."))]
+    #[builder(setter(doc = "Sets [`quantity`](SaleItem::quantity)."))]
     pub quantity: f64,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
-        setter(
-            strip_option,
-            doc = "Sets [`references`](SaleLineItemV10::references)."
-        )
+        setter(strip_option, doc = "Sets [`references`](SaleItem::references).")
     )]
-    pub references: Option<ItemReferencesV10>,
+    pub references: Option<SaleItemReferences>,
     /// The type of service for this line.
     ///
     /// Example: `IN_HOUSE`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
-        setter(
-            strip_option,
-            doc = "Sets [`service_type`](SaleLineItemV10::service_type)."
-        )
+        setter(strip_option, doc = "Sets [`service_type`](SaleItem::service_type).")
     )]
-    pub service_type: Option<SaleLineItemV10ServiceType>,
+    pub service_type: Option<SaleItemServiceType>,
     /// Classifies a sale line. Not a schema subclass.
     ///
     /// Known values: `CATALOG`, `DEPOSIT`, `GIFT_CARD`, `CUSTOM`, `FEE`.
     ///
     /// `FEE` lines represent merchant-charged fees on the sale (e.g. shipping, service
     /// charge, surcharge, cancellation). They participate in sale totals like any other
-    /// line; type-specific data is carried in `features` (see `Feature` for the
+    /// line; type-specific data is carried in `features` (see `SaleItemFeature` for the
     /// conventional feature keys).
     ///
     /// This is intentionally an open string, NOT a closed enum: new values are added
@@ -1512,10 +1073,270 @@ pub struct SaleLineItemV10 {
     ///
     /// Example: `CATALOG`
     #[serde(rename = "type")]
-    #[builder(setter(into, doc = "Sets [`r#type`](SaleLineItemV10::r#type)."))]
+    #[builder(setter(into, doc = "Sets [`r#type`](SaleItem::r#type)."))]
     pub r#type: String,
-    #[builder(setter(doc = "Sets [`unit_of_measure`](SaleLineItemV10::unit_of_measure)."))]
+    #[builder(setter(doc = "Sets [`unit_of_measure`](SaleItem::unit_of_measure)."))]
     pub unit_of_measure: UnitOfMeasure,
+}
+/// A category a line belongs to.
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct SaleItemCategory {
+    /// The category id. Usually a UUID, but not always (legacy cases).
+    ///
+    /// Constraints:
+    /// - max length: 100
+    ///
+    /// Example: `b064ed44-66e1-45a1-a963-b783808f0436`
+    #[builder(setter(into, doc = "Sets [`id`](SaleItemCategory::id)."))]
+    pub id: String,
+    /// The category name.
+    ///
+    /// Constraints:
+    /// - max length: 30
+    ///
+    /// Example: `Food`
+    #[builder(setter(into, doc = "Sets [`name`](SaleItemCategory::name)."))]
+    pub name: String,
+}
+/// A named, typed characteristic of a line. New item types add data here instead of
+/// a typed sub-object per type.
+///
+/// Examples by item type (illustrative, not exhaustive):
+/// - DEPOSIT:   `operation_type` = "SALE", `linked_line_id` = "line-1"
+/// - GIFT_CARD: `gift_card_reference` = "GCMINGXPC5"
+/// - CATALOG:   `variant_name` = "Large", `item_id` / `variant_id` (TEXT),
+/// `reporting_category_id` = "cat-..."
+/// - FEE:       `fee_type` = "SHIPPING" (required); optional `fee_id`,
+/// `value_absolute` or `value_percentage`, and per-type metadata
+/// features such as `delivery_name` / `tracking_reference` (shipping),
+/// `card_type` / `scheme` (surcharge), or `policy_id` (cancellation)
+/// - (future) SUBSCRIPTION: `billing_period` = "P1M", `renews_at` = "2026-07-02"
+///
+/// Conventional `FEE` feature keys:
+/// - `fee_type` (TEXT, required): `SHIPPING`, `SURCHARGE`, `SERVICE_CHARGE`, or
+/// `CANCELLATION`
+/// - `fee_id` (TEXT, optional): identifier of the fee definition
+/// - `value_absolute` (INTEGER, optional): configured absolute value in minor units
+/// of the sale currency (the charged amount is on `price`)
+/// - `value_percentage` (INTEGER, optional): configured percentage in minor units
+/// (1/100000; e.g. 10000 = 10%)
+/// - Per-type metadata (optional, TEXT unless noted): `delivery_name`,
+/// `tracking_reference` (shipping); `card_type`, `scheme` (surcharge);
+/// `policy_id` (cancellation)
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct SaleItemFeature {
+    /// The feature name/key.
+    ///
+    /// Constraints:
+    /// - max length: 100
+    ///
+    /// Example: `operation_type`
+    #[builder(setter(into, doc = "Sets [`name`](SaleItemFeature::name)."))]
+    pub name: String,
+    /// The feature value in canonical string form, to be parsed per `value_type`
+    /// (e.g. INTEGER -> "3", DECIMAL -> "1.50", DATE -> "2026-07-02",
+    /// BOOLEAN -> "true"). Carrying it as a string keeps the wire format stable as
+    /// new feature names and value types are introduced.
+    ///
+    /// Constraints:
+    /// - max length: 1000
+    ///
+    /// Example: `SALE`
+    #[builder(setter(into, doc = "Sets [`value`](SaleItemFeature::value)."))]
+    pub value: String,
+    #[builder(setter(doc = "Sets [`value_type`](SaleItemFeature::value_type)."))]
+    pub value_type: SaleItemFeatureValueType,
+}
+/// The data type of a feature value. The wire `value` is always a string and is parsed
+/// according to this type.
+///
+/// Example: `TEXT`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum SaleItemFeatureValueType {
+    #[serde(rename = "TEXT")]
+    Text,
+    #[serde(rename = "INTEGER")]
+    Integer,
+    #[serde(rename = "DECIMAL")]
+    Decimal,
+    #[serde(rename = "DATE")]
+    Date,
+    #[serde(rename = "BOOLEAN")]
+    Boolean,
+    #[serde(untagged)]
+    Other(String),
+}
+/// Pricing for a single line, valid for every item type.
+///
+/// Merges the standard amounts (with tax breakdown) and the final amounts (after
+/// discounts/modifiers).
+///
+/// Totals and tax amounts can be negative for return-like operations (for example
+/// a deposit with `operation_type` = `RETURN`).
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct SaleItemPrice {
+    /// Discounts applied. Discount amounts do not affect `total_net_amount` /
+    /// `total_gross_amount`; they are reflected in the `*_final` amounts.
+    ///
+    /// Constraints:
+    /// - max items: 1000
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`discounts`](SaleItemPrice::discounts).")
+    )]
+    pub discounts: Option<Vec<DiscountLine>>,
+    /// Taxes applied on top of the net amount resulting in the gross amount.
+    ///
+    /// Constraints:
+    /// - min items: 1
+    /// - max items: 1000
+    #[builder(setter(doc = "Sets [`taxes`](SaleItemPrice::taxes)."))]
+    pub taxes: Vec<TaxLine>,
+    /// Taxes applied on top of `total_net_amount_final` resulting in `total_gross_amount_final`. Equals `taxes` if no discounts apply.
+    ///
+    /// Constraints:
+    /// - min items: 1
+    /// - max items: 1000
+    #[builder(setter(doc = "Sets [`taxes_final`](SaleItemPrice::taxes_final)."))]
+    pub taxes_final: Vec<TaxLine>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
+    #[builder(setter(doc = "Sets [`total_gross_amount`](SaleItemPrice::total_gross_amount)."))]
+    pub total_gross_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
+    #[builder(setter(
+        doc = "Sets [`total_gross_amount_final`](SaleItemPrice::total_gross_amount_final)."
+    ))]
+    pub total_gross_amount_final: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
+    #[builder(setter(doc = "Sets [`total_net_amount`](SaleItemPrice::total_net_amount)."))]
+    pub total_net_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
+    #[builder(setter(
+        doc = "Sets [`total_net_amount_final`](SaleItemPrice::total_net_amount_final)."
+    ))]
+    pub total_net_amount_final: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `100`
+    #[builder(setter(doc = "Sets [`unit_amount`](SaleItemPrice::unit_amount)."))]
+    pub unit_amount: i64,
+}
+/// Outward identifiers and links for a line, kept in one place rather than scattered
+/// per item type.
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    serde::Serialize,
+    serde::Deserialize,
+    typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct SaleItemReferences {
+    /// Reference to the backing catalog entity (item variant, deposit, ...),
+    /// typically a URN such as
+    /// `urn:sumup:pos:variant:${MERCHANT_CODE}:${ITEM_ID}:${VARIANT_ID}` or
+    /// `urn:sumup:pos:deposit:${MERCHANT_CODE}:${DEPOSIT_ID}`.
+    /// Empty for ad-hoc / manual lines. Type-agnostic on purpose: a new item type
+    /// backed by a catalog entity reuses this field instead of adding its own.
+    ///
+    /// Constraints:
+    /// - max length: 255
+    ///
+    /// Example: `urn:sumup:pos:variant:MCGLE7VC:9736e947-6f1f-487f-846a-c5954fb06a5a:7fff192f-ce29-4673-890f-2d68ba557946`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`catalog_reference`](SaleItemReferences::catalog_reference)."
+        )
+    )]
+    pub catalog_reference: Option<String>,
+    /// The source of the catalog the line originates from.
+    ///
+    /// Example: `SUMUP`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`catalog_source`](SaleItemReferences::catalog_source)."
+        )
+    )]
+    pub catalog_source: Option<SaleItemReferencesCatalogSource>,
+    /// An external reference id connecting this line to another system.
+    ///
+    /// Constraints:
+    /// - max length: 250
+    ///
+    /// Example: `POS-LINE-001`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            into,
+            doc = "Sets [`external_id`](SaleItemReferences::external_id)."
+        )
+    )]
+    pub external_id: Option<String>,
+    /// Stock keeping unit, enriched from the Catalog when available.
+    ///
+    /// Constraints:
+    /// - max length: 100
+    ///
+    /// Example: `COFFEE-LARGE`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, into, doc = "Sets [`sku`](SaleItemReferences::sku).")
+    )]
+    pub sku: Option<String>,
+}
+/// Lifecycle state of the sale.
+/// Non-finalised sales are never returned; only fully-paid sales.
+///
+/// Example: `CLOSED`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum SaleLifecycleState {
+    #[serde(rename = "CLOSED")]
+    Closed,
+    #[serde(untagged)]
+    Other(String),
 }
 /// Paginated list of `Sale` objects. Results are ordered **newest first** by the newest
 /// activity recorded for each sale.
@@ -1547,52 +1368,142 @@ pub struct SalePage {
     )]
     pub pagination_token: Option<String>,
 }
-/// Sale-level pricing aggregate, parallel to `LineItemPrice` on each `SaleLineItem`.
+/// Payment on a closed sale, for bookkeeping and reconciliation.
 ///
-/// Line-level breakdown (unit price, line discounts, per-line taxes) lives on
-/// `items[].price`. This object holds the rolled-up totals and cart-level
-/// adjustments that consumers use for receipts and payment reconciliation.
+/// Acquirer/processing cost is not on this object. Merchant-charged fees (shipping, service
+/// charge, etc.) appear as `type: "FEE"` item lines in `Sale.items`.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
 )]
 #[builder(doc)]
-pub struct SalePriceV10 {
-    /// Discounts applied at cart level. Item-level discounts remain on
-    /// `items[].price.discounts`.
+pub struct SalePayment {
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
     ///
     /// Constraints:
-    /// - max items: 1000
+    /// - value >= 0
+    ///
+    /// Example: `100`
+    #[builder(setter(doc = "Sets [`amount`](SalePayment::amount)."))]
+    pub amount: i64,
+    /// Alternative payment method type when `method` is `apm`.
+    /// Gift card is not an APM on this API.
+    /// Values use lowercase snake_case. Known values are `qr_code_pix`, `sepa_dd`, `paypal`,
+    /// `sumup_pay`, `twint`, and `iris`.
+    /// Additional values may be returned as new alternative payment methods become available.
+    ///
+    /// Constraints:
+    /// - max length: 20
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
-        setter(
-            strip_option,
-            doc = "Sets [`cart_discounts`](SalePriceV10::cart_discounts)."
-        )
+        setter(strip_option, into, doc = "Sets [`apm_type`](SalePayment::apm_type).")
     )]
-    pub cart_discounts: Option<Vec<DiscountLine>>,
-    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
-    /// `value` can get large for some currencies and applications.
-    /// Use Long type or a similar data type when parsing `value`.
-    ///
-    /// Example: `100`
-    #[builder(setter(doc = "Sets [`gross_amount`](SalePriceV10::gross_amount)."))]
-    pub gross_amount: i64,
-    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
-    /// `value` can get large for some currencies and applications.
-    /// Use Long type or a similar data type when parsing `value`.
-    ///
-    /// Example: `100`
-    #[builder(setter(doc = "Sets [`net_amount`](SalePriceV10::net_amount)."))]
-    pub net_amount: i64,
-    /// Tax lines aggregated across the sale (after cart-level discounts).
-    /// Per-line tax detail remains on `items[].price.taxes` / `taxes_final`.
+    pub apm_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`card`](SalePayment::card).")
+    )]
+    pub card: Option<SalePaymentCard>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(strip_option, doc = "Sets [`gift_card`](SalePayment::gift_card).")
+    )]
+    pub gift_card: Option<SaleGiftCardPayment>,
+    /// Payment method on public sales read API v1.0.
+    /// Digital wallets are first-class methods. Gift card payments use `gift_card`, not `apm`.
+    /// Values use lowercase snake_case. Known values are `card`, `cash`, `apm`, `external`,
+    /// `apple_pay`, `google_pay`, `whatsapp_pay`, and `gift_card`.
+    /// Additional values may be returned as new payment methods become available.
     ///
     /// Constraints:
-    /// - min items: 1
-    /// - max items: 1000
-    #[builder(setter(doc = "Sets [`taxes`](SalePriceV10::taxes)."))]
-    pub taxes: Vec<TaxLine>,
+    /// - max length: 20
+    ///
+    /// Example: `card`
+    #[builder(setter(into, doc = "Sets [`method`](SalePayment::method)."))]
+    pub method: String,
+    /// UTC date-time when SumUp recorded this payment’s exposed `status` (successful, failed,
+    /// or canceled). Server processed time when available; otherwise the payment provider’s
+    /// transaction time. Not the device clock.
+    ///
+    /// Example: `2026-06-02T10:20:00Z`
+    #[builder(setter(doc = "Sets [`processed_at`](SalePayment::processed_at)."))]
+    pub processed_at: crate::datetime::DateTime,
+    /// The reference to the actual payment used for this sale, e.g. the sumup transaction code.
+    ///
+    /// Constraints:
+    /// - max length: 50
+    ///
+    /// Example: `TERTYFQ4G3`
+    #[builder(setter(into, doc = "Sets [`reference`](SalePayment::reference)."))]
+    pub reference: String,
+    /// The status of the payment.
+    ///
+    /// Example: `SUCCESSFUL`
+    #[builder(setter(doc = "Sets [`status`](SalePayment::status)."))]
+    pub status: SalePaymentStatus,
+    /// Payment operation type.
+    /// This is distinct from the payment instrument in `method`.
+    /// Values use lowercase snake_case. Known values are `purchase` for a normal purchase
+    /// and `unreferenced_refund` for negative sales such as deposit returns.
+    ///
+    /// Example: `purchase`
+    #[serde(rename = "type")]
+    #[builder(setter(into, doc = "Sets [`r#type`](SalePayment::r#type)."))]
+    pub r#type: String,
+}
+/// Card brand, credit/debit processing type, and last four digits.
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct SalePaymentCard {
+    /// The brand of the card.
+    /// Input is case-insensitive; the canonical form is lowercase snake_case.
+    /// **VALUES**: [amex, cup, diners, discover, elo, elv, hipercard, jcb, maestro, mastercard, visa, visa_electron,
+    /// visa_vpay, vr, eftpos, conecs, swile, girocard, interac, sumup, bancomat].
+    ///
+    /// Constraints:
+    /// - max length: 20
+    ///
+    /// Example: `visa`
+    #[builder(setter(into, doc = "Sets [`brand`](SalePaymentCard::brand)."))]
+    pub brand: String,
+    /// The last 4 digits of the card used for the payment.
+    ///
+    /// Constraints:
+    /// - pattern: `^\d{4}$`
+    /// - min length: 4
+    /// - max length: 4
+    ///
+    /// Example: `1234`
+    #[builder(setter(into, doc = "Sets [`last_4_digits`](SalePaymentCard::last_4_digits)."))]
+    pub last_4_digits: String,
+    /// Credit or debit processing choice, not brand or funding.
+    /// `unknown` when unavailable; prepaid/voucher are not processing types.
+    ///
+    /// Example: `debit`
+    #[serde(rename = "type")]
+    #[builder(setter(doc = "Sets [`r#type`](SalePaymentCard::r#type)."))]
+    pub r#type: SalePaymentCardType,
+}
+/// Payment outcome filter value. Multi-select uses **OR** within this field; combined with
+/// other filters using **AND**.
+/// Only fully-paid closed sales are exposed. Refunded original sales remain searchable as
+/// `PAID`; refunds are separate negative sales, not a `REFUNDED` sale-search outcome.
+///
+/// Example: `PAID`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum SalePaymentStatusFilter {
+    #[serde(rename = "PAID")]
+    Paid,
+    #[serde(rename = "CHARGED_BACK")]
+    ChargedBack,
+    #[serde(untagged)]
+    Other(String),
 }
 /// Summary row for a sale in search results. Use `GET /sales/{sale_id}` for the full `Sale`.
 #[derive(
@@ -1628,7 +1539,7 @@ pub struct SaleSearchItem {
     )]
     pub name: Option<String>,
     #[builder(setter(doc = "Sets [`state`](SaleSearchItem::state)."))]
-    pub state: SaleStateV10,
+    pub state: SaleLifecycleState,
     #[builder(setter(doc = "Sets [`tax_mode`](SaleSearchItem::tax_mode)."))]
     pub tax_mode: TaxMode,
     /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
@@ -1716,7 +1627,7 @@ pub struct SaleSearchRequest {
             doc = "Sets [`payment_statuses`](SaleSearchRequest::payment_statuses)."
         )
     )]
-    pub payment_statuses: Option<Vec<PaymentStatusFilterV10>>,
+    pub payment_statuses: Option<Vec<SalePaymentStatusFilter>>,
     /// Filters rows by sale lifecycle (`state`). Multiple values match any of them (**OR**).
     /// Uses the same values as `Sale.state`. Non-finalised sales are never returned; only
     /// fully-paid sales.
@@ -1728,7 +1639,7 @@ pub struct SaleSearchRequest {
             doc = "Sets [`sale_statuses`](SaleSearchRequest::sale_statuses)."
         )
     )]
-    pub sale_statuses: Option<Vec<SaleStateV10>>,
+    pub sale_statuses: Option<Vec<SaleLifecycleState>>,
     /// Sales channel filter. Multiple values match any of them (**OR**).
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
@@ -1738,7 +1649,7 @@ pub struct SaleSearchRequest {
             doc = "Sets [`sales_channels`](SaleSearchRequest::sales_channels)."
         )
     )]
-    pub sales_channels: Option<Vec<SalesChannelFilterV10>>,
+    pub sales_channels: Option<Vec<SaleChannelFilter>>,
     /// Sale created **on or after** this instant (inclusive).
     ///
     /// Example: `2026-06-01T00:00:00Z`
@@ -1850,16 +1761,52 @@ pub struct SaleSource {
     )]
     pub sub_channel: Option<String>,
 }
-/// Lifecycle state of the sale.
-/// Non-finalised sales are never returned; only fully-paid sales.
+/// Sale-level pricing aggregate, parallel to `SaleItemPrice` on each `SaleItem`.
 ///
-/// Example: `CLOSED`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum SaleStateV10 {
-    #[serde(rename = "CLOSED")]
-    Closed,
-    #[serde(untagged)]
-    Other(String),
+/// Line-level breakdown (unit price, line discounts, per-line taxes) lives on
+/// `items[].price`. This object holds the rolled-up totals and cart-level
+/// adjustments that consumers use for receipts and payment reconciliation.
+#[derive(
+    Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
+)]
+#[builder(doc)]
+pub struct SaleTotals {
+    /// Discounts applied at cart level. Item-level discounts remain on
+    /// `items[].price.discounts`.
+    ///
+    /// Constraints:
+    /// - max items: 1000
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[builder(
+        default,
+        setter(
+            strip_option,
+            doc = "Sets [`cart_discounts`](SaleTotals::cart_discounts)."
+        )
+    )]
+    pub cart_discounts: Option<Vec<DiscountLine>>,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
+    #[builder(setter(doc = "Sets [`gross_amount`](SaleTotals::gross_amount)."))]
+    pub gross_amount: i64,
+    /// The value of the amount in minor units of the currency according to the Sale.currency.scale.
+    /// `value` can get large for some currencies and applications.
+    /// Use Long type or a similar data type when parsing `value`.
+    ///
+    /// Example: `100`
+    #[builder(setter(doc = "Sets [`net_amount`](SaleTotals::net_amount)."))]
+    pub net_amount: i64,
+    /// Tax lines aggregated across the sale (after cart-level discounts).
+    /// Per-line tax detail remains on `items[].price.taxes` / `taxes_final`.
+    ///
+    /// Constraints:
+    /// - min items: 1
+    /// - max items: 1000
+    #[builder(setter(doc = "Sets [`taxes`](SaleTotals::taxes)."))]
+    pub taxes: Vec<TaxLine>,
 }
 /// The currency of the sale.
 #[derive(
@@ -1882,36 +1829,6 @@ pub struct SalesActivityCurrency {
     /// Example: `2`
     #[builder(setter(doc = "Sets [`scale`](SalesActivityCurrency::scale)."))]
     pub scale: i64,
-}
-/// Sale channel filter value. Multi-select uses **OR** within this field.
-///
-/// Example: `POS`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum SalesChannelFilterV10 {
-    #[serde(rename = "POS")]
-    Pos,
-    #[serde(rename = "ONLINE_PAYMENTS")]
-    OnlinePayments,
-    #[serde(rename = "KIOSK")]
-    Kiosk,
-    #[serde(rename = "ONLINE_STORE")]
-    OnlineStore,
-    #[serde(rename = "SOLO")]
-    Solo,
-    #[serde(rename = "ORDER_AND_PAY")]
-    OrderAndPay,
-    #[serde(rename = "INVOICE")]
-    Invoice,
-    #[serde(rename = "BOOKINGS")]
-    Bookings,
-    #[serde(rename = "ORDER_AGGREGATOR")]
-    OrderAggregator,
-    #[serde(rename = "SUBSCRIPTIONS")]
-    Subscriptions,
-    #[serde(rename = "UNKNOWN")]
-    Unknown,
-    #[serde(untagged)]
-    Other(String),
 }
 /// Information about tax together with amounts before and after its application such as:
 /// - net amount: taxable net amount, scoped by this tax
@@ -2020,11 +1937,23 @@ pub struct UnitOfMeasure {
     #[builder(setter(doc = "Sets [`unit_ratio`](UnitOfMeasure::unit_ratio)."))]
     pub unit_ratio: f64,
 }
+/// The type of service for this line.
+///
+/// Example: `IN_HOUSE`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum SaleItemServiceType {
+    #[serde(rename = "IN_HOUSE")]
+    InHouse,
+    #[serde(rename = "TAKE_AWAY")]
+    TakeAway,
+    #[serde(untagged)]
+    Other(String),
+}
 /// The source of the catalog the line originates from.
 ///
 /// Example: `SUMUP`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum ItemReferencesV10CatalogSource {
+pub enum SaleItemReferencesCatalogSource {
     #[serde(rename = "SUMUP")]
     Sumup,
     #[serde(rename = "EXTERNAL")]
@@ -2032,26 +1961,11 @@ pub enum ItemReferencesV10CatalogSource {
     #[serde(untagged)]
     Other(String),
 }
-/// Credit or debit processing choice, not brand or funding.
-/// `unknown` when unavailable; prepaid/voucher are not processing types.
-///
-/// Example: `debit`
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum PublicCardV10Type {
-    #[serde(rename = "credit")]
-    Credit,
-    #[serde(rename = "debit")]
-    Debit,
-    #[serde(rename = "unknown")]
-    Unknown,
-    #[serde(untagged)]
-    Other(String),
-}
 /// The status of the payment.
 ///
 /// Example: `SUCCESSFUL`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum PublicPaymentV10Status {
+pub enum SalePaymentStatus {
     #[serde(rename = "FAILED")]
     Failed,
     #[serde(rename = "SUCCESSFUL")]
@@ -2061,15 +1975,18 @@ pub enum PublicPaymentV10Status {
     #[serde(untagged)]
     Other(String),
 }
-/// The type of service for this line.
+/// Credit or debit processing choice, not brand or funding.
+/// `unknown` when unavailable; prepaid/voucher are not processing types.
 ///
-/// Example: `IN_HOUSE`
+/// Example: `debit`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum SaleLineItemV10ServiceType {
-    #[serde(rename = "IN_HOUSE")]
-    InHouse,
-    #[serde(rename = "TAKE_AWAY")]
-    TakeAway,
+pub enum SalePaymentCardType {
+    #[serde(rename = "credit")]
+    Credit,
+    #[serde(rename = "debit")]
+    Debit,
+    #[serde(rename = "unknown")]
+    Unknown,
     #[serde(untagged)]
     Other(String),
 }
@@ -2176,7 +2093,7 @@ pub struct SearchRequest {
             doc = "Sets [`payment_statuses`](SearchRequest::payment_statuses)."
         )
     )]
-    pub payment_statuses: Option<Vec<PaymentStatusFilterV10>>,
+    pub payment_statuses: Option<Vec<SalePaymentStatusFilter>>,
     /// Filters rows by sale lifecycle (`state`). Multiple values match any of them (**OR**).
     /// Uses the same values as `Sale.state`. Non-finalised sales are never returned; only
     /// fully-paid sales.
@@ -2188,7 +2105,7 @@ pub struct SearchRequest {
             doc = "Sets [`sale_statuses`](SearchRequest::sale_statuses)."
         )
     )]
-    pub sale_statuses: Option<Vec<SaleStateV10>>,
+    pub sale_statuses: Option<Vec<SaleLifecycleState>>,
     /// Sales channel filter. Multiple values match any of them (**OR**).
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
@@ -2198,7 +2115,7 @@ pub struct SearchRequest {
             doc = "Sets [`sales_channels`](SearchRequest::sales_channels)."
         )
     )]
-    pub sales_channels: Option<Vec<SalesChannelFilterV10>>,
+    pub sales_channels: Option<Vec<SaleChannelFilter>>,
     /// Sale created **on or after** this instant (inclusive).
     ///
     /// Example: `2026-06-01T00:00:00Z`
@@ -2212,38 +2129,53 @@ pub struct SearchRequest {
 use crate::client::Client;
 #[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
-    BadRequest(ProblemV10),
-    Unauthorized(ProblemV10),
-    Forbidden(ProblemV10),
-    PreconditionFailed(ProblemV10),
+    BadRequest(Problem),
+    Unauthorized(Problem),
+    Forbidden(Problem),
+    PreconditionFailed(Problem),
 }
 impl crate::error::ProblemDetails for ListErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
-        None
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::Unauthorized(problem) => Some(problem),
+            Self::Forbidden(problem) => Some(problem),
+            Self::PreconditionFailed(problem) => Some(problem),
+        }
     }
 }
 #[derive(Debug, PartialEq)]
 pub enum SearchErrorBody {
-    BadRequest(ProblemV10),
-    Unauthorized(ProblemV10),
-    Forbidden(ProblemV10),
-    PreconditionFailed(ProblemV10),
+    BadRequest(Problem),
+    Unauthorized(Problem),
+    Forbidden(Problem),
+    PreconditionFailed(Problem),
 }
 impl crate::error::ProblemDetails for SearchErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
-        None
+        match self {
+            Self::BadRequest(problem) => Some(problem),
+            Self::Unauthorized(problem) => Some(problem),
+            Self::Forbidden(problem) => Some(problem),
+            Self::PreconditionFailed(problem) => Some(problem),
+        }
     }
 }
 #[derive(Debug, PartialEq)]
 pub enum GetErrorBody {
-    Unauthorized(ProblemV10),
-    Forbidden(ProblemV10),
-    NotFound(ProblemV10),
-    PreconditionFailed(ProblemV10),
+    Unauthorized(Problem),
+    Forbidden(Problem),
+    NotFound(Problem),
+    PreconditionFailed(Problem),
 }
 impl crate::error::ProblemDetails for GetErrorBody {
     fn problem(&self) -> Option<&crate::resources::common::Problem> {
-        None
+        match self {
+            Self::Unauthorized(problem) => Some(problem),
+            Self::Forbidden(problem) => Some(problem),
+            Self::NotFound(problem) => Some(problem),
+            Self::PreconditionFailed(problem) => Some(problem),
+        }
     }
 }
 /// Client for the Sales API endpoints.
@@ -2308,25 +2240,25 @@ impl<'a> SalesClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(ListErrorBody::BadRequest)
+                    serde_json::from_slice::<Problem>(raw).map(ListErrorBody::BadRequest)
                 })
                 .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(ListErrorBody::Unauthorized)
+                    serde_json::from_slice::<Problem>(raw).map(ListErrorBody::Unauthorized)
                 })
                 .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(ListErrorBody::Forbidden)
+                    serde_json::from_slice::<Problem>(raw).map(ListErrorBody::Forbidden)
                 })
                 .await)
             }
             reqwest::StatusCode::PRECONDITION_FAILED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(ListErrorBody::PreconditionFailed)
+                    serde_json::from_slice::<Problem>(raw).map(ListErrorBody::PreconditionFailed)
                 })
                 .await)
             }
@@ -2379,26 +2311,25 @@ impl<'a> SalesClient<'a> {
             }
             reqwest::StatusCode::BAD_REQUEST => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(SearchErrorBody::BadRequest)
+                    serde_json::from_slice::<Problem>(raw).map(SearchErrorBody::BadRequest)
                 })
                 .await)
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(SearchErrorBody::Unauthorized)
+                    serde_json::from_slice::<Problem>(raw).map(SearchErrorBody::Unauthorized)
                 })
                 .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(SearchErrorBody::Forbidden)
+                    serde_json::from_slice::<Problem>(raw).map(SearchErrorBody::Forbidden)
                 })
                 .await)
             }
             reqwest::StatusCode::PRECONDITION_FAILED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw)
-                        .map(SearchErrorBody::PreconditionFailed)
+                    serde_json::from_slice::<Problem>(raw).map(SearchErrorBody::PreconditionFailed)
                 })
                 .await)
             }
@@ -2449,25 +2380,25 @@ impl<'a> SalesClient<'a> {
             }
             reqwest::StatusCode::UNAUTHORIZED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(GetErrorBody::Unauthorized)
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::Unauthorized)
                 })
                 .await)
             }
             reqwest::StatusCode::FORBIDDEN => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(GetErrorBody::Forbidden)
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::Forbidden)
                 })
                 .await)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(GetErrorBody::NotFound)
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::NotFound)
                 })
                 .await)
             }
             reqwest::StatusCode::PRECONDITION_FAILED => {
                 Err(crate::error::SdkError::from_response(response, |raw| {
-                    serde_json::from_slice::<ProblemV10>(raw).map(GetErrorBody::PreconditionFailed)
+                    serde_json::from_slice::<Problem>(raw).map(GetErrorBody::PreconditionFailed)
                 })
                 .await)
             }
