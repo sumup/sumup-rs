@@ -1749,15 +1749,18 @@ pub enum ListParamsTypesItem {
 )]
 #[builder(doc)]
 pub struct RefundRequest {
-    /// Amount to refund in major units of the transaction's currency, for example `5` for EUR 5.00. It must be greater than zero and cannot exceed the amount eligible for a refund. Eligibility depends on the transaction and country/currency rules. If omitted, the system requests a full refund.
+    /// Amount to refund in minor units of the transaction's currency, for example `500` for EUR 5.00. It must be greater than zero and cannot exceed the amount eligible for a refund. Eligibility depends on the transaction and country/currency rules. If omitted, the system requests a full refund.
     ///
-    /// Example: `5`
+    /// Constraints:
+    /// - value >= 0
+    ///
+    /// Example: `500`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
         default,
         setter(strip_option, doc = "Sets [`amount`](RefundRequest::amount).")
     )]
-    pub amount: Option<f32>,
+    pub amount: Option<i64>,
 }
 /// The transaction was refunded in full or partially based on the request.
 pub type RefundResponse = serde_json::Value;
