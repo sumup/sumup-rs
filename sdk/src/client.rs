@@ -128,6 +128,16 @@ impl Client {
     pub fn payouts(&self) -> crate::resources::payouts::PayoutsClient<'_> {
         crate::resources::payouts::PayoutsClient::new(self)
     }
+    /// Returns a client for the ReaderCheckouts API endpoints.
+    pub fn reader_checkouts(
+        &self,
+    ) -> crate::resources::reader_checkouts::ReaderCheckoutsClient<'_> {
+        crate::resources::reader_checkouts::ReaderCheckoutsClient::new(self)
+    }
+    /// Returns a client for the ReaderSettings API endpoints.
+    pub fn reader_settings(&self) -> crate::resources::reader_settings::ReaderSettingsClient<'_> {
+        crate::resources::reader_settings::ReaderSettingsClient::new(self)
+    }
     /// Returns a client for the Readers API endpoints.
     pub fn readers(&self) -> crate::resources::readers::ReadersClient<'_> {
         crate::resources::readers::ReadersClient::new(self)

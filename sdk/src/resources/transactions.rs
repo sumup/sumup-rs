@@ -1751,9 +1751,6 @@ pub enum ListParamsTypesItem {
 pub struct RefundRequest {
     /// Amount to refund in minor units of the transaction's currency, for example `500` for EUR 5.00. It must be greater than zero and cannot exceed the amount eligible for a refund. Eligibility depends on the transaction and country/currency rules. If omitted, the system requests a full refund.
     ///
-    /// Constraints:
-    /// - value >= 0
-    ///
     /// Example: `500`
     #[serde(skip_serializing_if = "Option::is_none")]
     #[builder(
