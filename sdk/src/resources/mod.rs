@@ -7,6 +7,8 @@ pub mod members;
 pub mod memberships;
 pub mod merchants;
 pub mod payouts;
+pub mod reader_checkouts;
+pub mod reader_settings;
 pub mod readers;
 pub mod receipts;
 pub mod roles;
