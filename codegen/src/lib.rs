@@ -489,7 +489,7 @@ fn generate_tag_client_with_registry(
         .iter()
         .filter(|(_, parent)| parent.tag == tag)
         .collect();
-    children.sort_by(|(left, _), (right, _)| left.cmp(right));
+    children.sort_by_key(|(tag, _)| *tag);
     let mut accessors = Vec::new();
     for (child, parent) in children {
         if collect_tagged_operations(spec, child).is_empty() {
