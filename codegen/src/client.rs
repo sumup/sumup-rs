@@ -5,13 +5,25 @@ use quote::quote;
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::TagSchemas;
+use crate::{
+    TagSchemas,
+    tag::{ResourceParents, resource_parents},
+};
 
 /// Writes the top-level API client file and tag accessors to the output directory.
 pub fn generate_client_file(
     out_path: &Path,
     spec: &OpenAPI,
     tag_schemas: &HashMap<String, TagSchemas>,
+) -> Result<(), String> {
+    generate_client_with_parents(out_path, spec, tag_schemas, &resource_parents(spec)?)
+}
+
+pub(crate) fn generate_client_with_parents(
+    out_path: &Path,
+    spec: &OpenAPI,
+    tag_schemas: &HashMap<String, TagSchemas>,
+    parents: &ResourceParents,
 ) -> Result<(), String> {
     let mut client_path = out_path.to_path_buf();
     client_path.push("client.rs");
@@ -29,7 +41,6 @@ pub fn generate_client_file(
     }
 
     // Generate accessor methods for each tag client
-    let parents = crate::tag::resource_parents(spec)?;
     let mut tag_methods = Vec::new();
     for tag in sorted_tags {
         if parents.contains_key(tag.as_str()) {

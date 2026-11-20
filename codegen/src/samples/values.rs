@@ -14,8 +14,7 @@ pub(super) struct SampleTypes {
 }
 
 impl SampleTypes {
-    pub(super) fn new(spec: &Spec) -> Result<Self, String> {
-        let schemas = crate::collect_schemas_by_tag(spec)?;
+    pub(super) fn new(spec: &Spec, schemas: &crate::SchemasByTag) -> Result<Self, String> {
         let mut types = Self {
             modules: HashMap::new(),
         };
