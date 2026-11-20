@@ -1,9 +1,110 @@
 use std::collections::{HashMap, HashSet};
 
+use heck::ToSnakeCase;
 use oas3::{
     Spec,
     spec::{ObjectOrReference, ObjectSchema, ParameterIn, Schema},
 };
+
+#[derive(serde::Deserialize)]
+struct TagGroup {
+    name: String,
+    tags: Vec<String>,
+}
+
+pub(crate) struct ResourceParent {
+    pub tag: String,
+    pub accessor: String,
+}
+
+pub(crate) fn resource_parents(spec: &Spec) -> Result<HashMap<String, ResourceParent>, String> {
+    let Some(extension) = spec.extensions.get("tagGroups") else {
+        return Ok(HashMap::new());
+    };
+    let groups: Vec<TagGroup> = serde_json::from_value(extension.clone())
+        .map_err(|err| format!("decode x-tagGroups: {err}"))?;
+    let known: HashMap<_, _> = spec
+        .tags
+        .iter()
+        .map(|tag| (tag.name.as_str(), tag))
+        .collect();
+    let mut parents: HashMap<String, ResourceParent> = HashMap::new();
+    for group in groups {
+        if !known.contains_key(group.name.as_str()) {
+            continue;
+        }
+        for child in group.tags {
+            let Some(tag) = known.get(child.as_str()) else {
+                continue;
+            };
+            if child == group.name || parents.contains_key(&child) {
+                continue;
+            }
+            let mut ancestor = Some(group.name.as_str());
+            while let Some(name) = ancestor {
+                if name == child {
+                    return Err(format!("tag hierarchy contains a cycle at {child}"));
+                }
+                ancestor = parents.get(name).map(|parent| parent.tag.as_str());
+            }
+            let accessor = tag
+                .extensions
+                .get("displayName")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or(&child)
+                .to_snake_case();
+            parents.insert(
+                child,
+                ResourceParent {
+                    tag: group.name.clone(),
+                    accessor,
+                },
+            );
+        }
+    }
+    Ok(parents)
+}
+
+pub(crate) fn resource_path(parents: &HashMap<String, ResourceParent>, tag: &str) -> String {
+    match parents.get(tag) {
+        Some(parent) => format!(
+            "{}().{}",
+            resource_path(parents, &parent.tag),
+            parent.accessor
+        ),
+        None => tag.to_snake_case(),
+    }
+}
+
+pub(crate) fn add_ancestor_tags(spec: &mut Spec) -> Result<(), String> {
+    let parents = resource_parents(spec)?;
+    if parents.is_empty() {
+        return Ok(());
+    }
+    for path in spec.paths.iter_mut().flat_map(|paths| paths.values_mut()) {
+        for operation in [
+            &mut path.delete,
+            &mut path.get,
+            &mut path.patch,
+            &mut path.post,
+            &mut path.put,
+        ]
+        .into_iter()
+        .flatten()
+        {
+            for tag in operation.tags.clone() {
+                let mut current = parents.get(&tag);
+                while let Some(parent) = current {
+                    if !operation.tags.contains(&parent.tag) {
+                        operation.tags.push(parent.tag.clone());
+                    }
+                    current = parents.get(&parent.tag);
+                }
+            }
+        }
+    }
+    Ok(())
+}
 
 /// Holds the schemas associated with a single OpenAPI tag.
 pub struct TagSchemas {
@@ -198,6 +299,39 @@ fn collect_schema_references(schema: &ObjectSchema, schemas: &mut HashSet<String
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reader_checkout_keeps_its_parent_method_and_gets_a_nested_accessor() {
+        let mut spec: Spec = serde_json::from_value(serde_json::json!({
+            "openapi": "3.1.0",
+            "info": {"title": "Readers", "version": "1.0.0"},
+            "tags": [
+                {"name": "Readers"},
+                {"name": "ReaderCheckouts", "x-displayName": "Checkouts"}
+            ],
+            "x-tagGroups": [{"name": "Readers", "tags": ["ReaderCheckouts"]}],
+            "paths": {"/readers/checkouts": {"post": {
+                "operationId": "CreateReaderCheckout",
+                "tags": ["ReaderCheckouts"],
+                "responses": {"204": {"description": "OK"}}
+            }}}
+        }))
+        .unwrap();
+
+        let parents = resource_parents(&spec).unwrap();
+        assert_eq!(
+            resource_path(&parents, "ReaderCheckouts"),
+            "readers().checkouts"
+        );
+        add_ancestor_tags(&mut spec).unwrap();
+        let operations = crate::collect_tagged_operations(&spec, "Readers");
+        assert_eq!(operations.len(), 1);
+        assert_eq!(operations[0].operation.tags, ["ReaderCheckouts", "Readers"]);
+        let parent = crate::generate_tag_client(&spec, "Readers")
+            .unwrap()
+            .to_string();
+        assert!(parent.contains("pub fn checkouts"));
+    }
 
     #[test]
     fn tracks_common_and_untagged_schemas() {

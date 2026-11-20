@@ -66,6 +66,7 @@ pub fn generate_code_samples(
 ) -> Result<CodeSampleCatalog, String> {
     let mut samples = Vec::new();
     let types = values::SampleTypes::new(spec)?;
+    let parents = crate::tag::resource_parents(spec)?;
 
     for (path, path_item) in spec.paths.iter().flatten() {
         for (http_method, operation) in crate::operations_for_path_item(path_item) {
@@ -98,6 +99,7 @@ pub fn generate_code_samples(
                     path_item,
                     operation,
                     tag,
+                    &crate::tag::resource_path(&parents, tag),
                     example.value.as_ref(),
                     &types,
                 )?;
@@ -224,6 +226,7 @@ fn render_program(
     path_item: &openapiv3::PathItem,
     operation: &Operation,
     tag: &str,
+    accessor_path: &str,
     example: Option<&Value>,
     types: &values::SampleTypes,
 ) -> Result<String, String> {
@@ -278,7 +281,7 @@ fn render_program(
 
     let arguments = arguments.join(", ");
     let source = format!(
-        "use sumup::{{Authorization, Client}};\n\n#[tokio::main]\nasync fn main() {{\n    let client = Client::default()\n        .with_authorization(Authorization::api_key(\"sup_sk_test_...\"));\n{body_declaration}\n    let response = client\n        .{resource}()\n        .{method}({arguments})\n        .await\n        .expect(\"{method} request failed\");\n\n    println!(\"{{response:#?}}\");\n}}\n"
+        "use sumup::{{Authorization, Client}};\n\n#[tokio::main]\nasync fn main() {{\n    let client = Client::default()\n        .with_authorization(Authorization::api_key(\"sup_sk_test_...\"));\n{body_declaration}\n    let response = client\n        .{accessor_path}()\n        .{method}({arguments})\n        .await\n        .expect(\"{method} request failed\");\n\n    println!(\"{{response:#?}}\");\n}}\n"
     );
     let syntax = syn::parse_file(&source).map_err(|error| {
         format!(

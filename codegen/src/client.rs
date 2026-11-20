@@ -29,8 +29,12 @@ pub fn generate_client_file(
     }
 
     // Generate accessor methods for each tag client
+    let parents = crate::tag::resource_parents(spec)?;
     let mut tag_methods = Vec::new();
     for tag in sorted_tags {
+        if parents.contains_key(tag.as_str()) {
+            continue;
+        }
         let snake_tag = tag.to_snake_case();
         let method_name = Ident::new(&snake_tag, Span::call_site());
         let client_module = Ident::new(&snake_tag, Span::call_site());

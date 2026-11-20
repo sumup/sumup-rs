@@ -128,9 +128,10 @@ pub struct Generator {
 
 impl Generator {
     /// Prepares a generator by loading derived schema metadata for later use.
-    pub fn new(spec: OpenAPI, out_path: impl Into<PathBuf>) -> Result<Self, String> {
+    pub fn new(mut spec: OpenAPI, out_path: impl Into<PathBuf>) -> Result<Self, String> {
         let mut out_path = out_path.into();
         out_path.push("src");
+        tag::add_ancestor_tags(&mut spec)?;
         let schemas_by_tag = collect_schemas_by_tag(&spec)?;
         Ok(Self {
             spec,
@@ -227,7 +228,12 @@ impl Generator {
             .map(generate_module_doc_comment)
             .unwrap_or_default();
 
-        let use_common = if use_common_schemas {
+        let parents = tag::resource_parents(&self.spec)?;
+        let grouped = parents.contains_key(tag) || parents.values().any(|parent| parent.tag == tag);
+        let use_common = if use_common_schemas && grouped {
+            // Keep type imports through the parent module working for existing callers.
+            quote! { pub use super::common::*; }
+        } else if use_common_schemas {
             quote! {
                 use super::common::*;
             }
@@ -478,6 +484,33 @@ fn generate_tag_client_with_registry(
         extra_items,
     } = operation::generate_client_methods_with_registry(spec, tag, symbols)?;
     let methods_tokens = quote! { #(#methods)* };
+    let parents = crate::tag::resource_parents(spec)?;
+    let mut children: Vec<_> = parents
+        .iter()
+        .filter(|(_, parent)| parent.tag == tag)
+        .collect();
+    children.sort_by(|(left, _), (right, _)| left.cmp(right));
+    let mut accessors = Vec::new();
+    for (child, parent) in children {
+        if collect_tagged_operations(spec, child).is_empty() {
+            continue;
+        }
+        let accessor = Ident::new(&parent.accessor, Span::call_site());
+        let module = Ident::new(&child.to_snake_case(), Span::call_site());
+        let client = Ident::new(
+            &format!("{}Client", child.to_upper_camel_case()),
+            Span::call_site(),
+        );
+        let doc = schema::generate_doc_comment(&format!(
+            "Returns a client for the {child} API endpoints."
+        ));
+        accessors.push(quote! {
+            #doc
+            pub fn #accessor(&self) -> super::#module::#client<'a> {
+                super::#module::#client::new(self.client)
+            }
+        });
+    }
     let extra_items_tokens = if extra_items.is_empty() {
         quote! {}
     } else {
@@ -506,6 +539,7 @@ fn generate_tag_client_with_registry(
             }
 
             #methods_tokens
+            #(#accessors)*
         }
     })
 }
