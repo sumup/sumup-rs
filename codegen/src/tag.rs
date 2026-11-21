@@ -1,11 +1,100 @@
 use std::collections::{HashMap, HashSet};
 
+use heck::ToSnakeCase;
 use oas3::{
     Spec,
     spec::{ObjectOrReference, ObjectSchema, ParameterIn, Schema},
 };
 
+#[derive(serde::Deserialize)]
+struct TagGroup {
+    name: String,
+    tags: Vec<String>,
+}
+
+pub(crate) struct ResourceParent {
+    pub tag: String,
+    pub accessor: String,
+}
+
+pub(crate) type ResourceParents = HashMap<String, ResourceParent>;
+
+pub(crate) fn resource_parents(spec: &Spec) -> Result<ResourceParents, String> {
+    let Some(extension) = spec.extensions.get("tagGroups") else {
+        return Ok(HashMap::new());
+    };
+    let groups: Vec<TagGroup> = serde_json::from_value(extension.clone())
+        .map_err(|err| format!("decode x-tagGroups: {err}"))?;
+    let known: HashMap<_, _> = spec
+        .tags
+        .iter()
+        .map(|tag| (tag.name.as_str(), tag))
+        .collect();
+    let mut parents = ResourceParents::new();
+    for group in groups {
+        if !known.contains_key(group.name.as_str()) {
+            continue;
+        }
+        for child in group.tags {
+            let Some(tag) = known.get(child.as_str()) else {
+                continue;
+            };
+            if child == group.name || parents.contains_key(&child) {
+                continue;
+            }
+            let mut ancestor = Some(group.name.as_str());
+            while let Some(name) = ancestor {
+                if name == child {
+                    return Err(format!("tag hierarchy contains a cycle at {child}"));
+                }
+                ancestor = parents.get(name).map(|parent| parent.tag.as_str());
+            }
+            let accessor = tag
+                .extensions
+                .get("displayName")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or(&child)
+                .to_snake_case();
+            parents.insert(
+                child,
+                ResourceParent {
+                    tag: group.name.clone(),
+                    accessor,
+                },
+            );
+        }
+    }
+    let mut active = HashSet::new();
+    for item in spec.paths.iter().flat_map(|paths| paths.values()) {
+        for (_, operation) in crate::operations_for_path_item(item) {
+            for tag in &operation.tags {
+                let mut child = tag.as_str();
+                while let Some(parent) = parents.get(child) {
+                    if !active.insert(child.to_string()) {
+                        break;
+                    }
+                    child = &parent.tag;
+                }
+            }
+        }
+    }
+    parents.retain(|child, _| active.contains(child));
+    Ok(parents)
+}
+
+pub(crate) fn resource_path(parents: &ResourceParents, tag: &str) -> String {
+    match parents.get(tag) {
+        Some(parent) => format!(
+            "{}().{}",
+            resource_path(parents, &parent.tag),
+            parent.accessor
+        ),
+        None => tag.to_snake_case(),
+    }
+}
+
 /// Holds the schemas associated with a single OpenAPI tag.
+#[derive(Default)]
 pub struct TagSchemas {
     pub all_schemas: HashSet<String>,
     pub error_schemas: HashSet<String>,
@@ -20,6 +109,13 @@ pub struct SchemasByTag {
 
 /// Collects schemas referenced by each tag and identifies shared/common schemas.
 pub fn collect_schemas_by_tag(spec: &Spec) -> Result<SchemasByTag, String> {
+    collect_schemas_with_parents(spec, &resource_parents(spec)?)
+}
+
+pub(crate) fn collect_schemas_with_parents(
+    spec: &Spec,
+    parents: &ResourceParents,
+) -> Result<SchemasByTag, String> {
     let mut tag_schemas: HashMap<String, TagSchemas> = HashMap::new();
 
     for path_item in spec.paths.iter().flat_map(|paths| paths.values()) {
@@ -31,10 +127,7 @@ pub fn collect_schemas_by_tag(spec: &Spec) -> Result<SchemasByTag, String> {
             };
 
             for tag in tags {
-                let tag_data = tag_schemas.entry(tag).or_insert_with(|| TagSchemas {
-                    all_schemas: HashSet::new(),
-                    error_schemas: HashSet::new(),
-                });
+                let tag_data = tag_schemas.entry(tag).or_default();
 
                 if let Some(request_body_ref) = &operation.request_body {
                     let request_body = crate::body::resolve_request_body(spec, request_body_ref)?;
@@ -79,6 +172,10 @@ pub fn collect_schemas_by_tag(spec: &Spec) -> Result<SchemasByTag, String> {
                 }
             }
         }
+    }
+
+    for parent in parents.values() {
+        tag_schemas.entry(parent.tag.clone()).or_default();
     }
 
     let Some(components) = &spec.components else {
@@ -198,6 +295,43 @@ fn collect_schema_references(schema: &ObjectSchema, schemas: &mut HashSet<String
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reader_checkout_uses_its_annotated_name_on_the_nested_resource() {
+        let spec: Spec = serde_json::from_value(serde_json::json!({
+            "openapi": "3.1.0",
+            "info": {"title": "Readers", "version": "1.0.0"},
+            "tags": [
+                {"name": "Readers"},
+                {"name": "ReaderCheckouts", "x-displayName": "Checkouts"}
+            ],
+            "x-tagGroups": [{"name": "Readers", "tags": ["ReaderCheckouts"]}],
+            "paths": {"/readers/checkouts": {"post": {
+                "operationId": "CreateReaderCheckout",
+                "tags": ["ReaderCheckouts"],
+                "x-codegen": {"method_name": "create"},
+                "responses": {"204": {"description": "OK"}}
+            }}}
+        }))
+        .unwrap();
+
+        let parents = resource_parents(&spec).unwrap();
+        assert_eq!(
+            resource_path(&parents, "ReaderCheckouts"),
+            "readers().checkouts"
+        );
+        let schemas = collect_schemas_by_tag(&spec).unwrap();
+        assert!(schemas.tag_schemas.contains_key("Readers"));
+        let parent = crate::generate_tag_client(&spec, "Readers")
+            .unwrap()
+            .to_string();
+        assert!(parent.contains("pub fn checkouts"));
+        assert!(!parent.contains("pub async fn create"));
+        let child = crate::generate_tag_client(&spec, "ReaderCheckouts")
+            .unwrap()
+            .to_string();
+        assert!(child.contains("pub async fn create ("));
+    }
 
     #[test]
     fn tracks_common_and_untagged_schemas() {

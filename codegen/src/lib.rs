@@ -124,6 +124,7 @@ pub struct Generator {
     spec: OpenAPI,
     out_path: PathBuf,
     schemas_by_tag: SchemasByTag,
+    parents: tag::ResourceParents,
 }
 
 impl Generator {
@@ -131,11 +132,13 @@ impl Generator {
     pub fn new(spec: OpenAPI, out_path: impl Into<PathBuf>) -> Result<Self, String> {
         let mut out_path = out_path.into();
         out_path.push("src");
-        let schemas_by_tag = collect_schemas_by_tag(&spec)?;
+        let parents = tag::resource_parents(&spec)?;
+        let schemas_by_tag = tag::collect_schemas_with_parents(&spec, &parents)?;
         Ok(Self {
             spec,
             out_path,
             schemas_by_tag,
+            parents,
         })
     }
 
@@ -221,13 +224,19 @@ impl Generator {
         )?;
         let body_tokens =
             body::generate_operation_bodies_with_registry(&self.spec, tag, &mut symbols)?;
-        let client_tokens = generate_tag_client_with_registry(&self.spec, tag, &mut symbols)?;
+        let client_tokens =
+            generate_tag_client_with_registry(&self.spec, tag, &self.parents, &mut symbols)?;
         let event_tokens = generate_tag_event_tokens(&self.spec, tag)?;
         let module_doc_comment = tag_description(&self.spec, tag)
             .map(generate_module_doc_comment)
             .unwrap_or_default();
 
-        let use_common = if use_common_schemas {
+        let grouped =
+            self.parents.contains_key(tag) || self.parents.values().any(|parent| parent.tag == tag);
+        let use_common = if use_common_schemas && grouped {
+            // Keep type imports through the parent module working for existing callers.
+            quote! { pub use super::common::*; }
+        } else if use_common_schemas {
             quote! {
                 use super::common::*;
             }
@@ -279,7 +288,12 @@ impl Generator {
 
     fn generate_client_module(&self) -> Result<(), String> {
         Self::log("[generate sdk] generating client.rs ...");
-        generate_client_file(&self.out_path, &self.spec, &self.schemas_by_tag.tag_schemas)
+        client::generate_client_with_parents(
+            &self.out_path,
+            &self.spec,
+            &self.schemas_by_tag.tag_schemas,
+            &self.parents,
+        )
     }
 
     fn generate_events_module(&self) -> Result<(), String> {
@@ -456,12 +470,13 @@ fn format_with_rustfmt(code: &str) -> Result<String, std::io::Error> {
 pub fn generate_tag_client(spec: &OpenAPI, tag: &str) -> Result<TokenStream, String> {
     let mut symbols = symbol::SymbolRegistry::new(tag.to_snake_case());
     symbols.reserve("Client", "import `crate::client::Client`")?;
-    generate_tag_client_with_registry(spec, tag, &mut symbols)
+    generate_tag_client_with_registry(spec, tag, &tag::resource_parents(spec)?, &mut symbols)
 }
 
 fn generate_tag_client_with_registry(
     spec: &OpenAPI,
     tag: &str,
+    parents: &tag::ResourceParents,
     symbols: &mut symbol::SymbolRegistry,
 ) -> Result<TokenStream, String> {
     let client_type = Ident::new(
@@ -478,6 +493,29 @@ fn generate_tag_client_with_registry(
         extra_items,
     } = operation::generate_client_methods_with_registry(spec, tag, symbols)?;
     let methods_tokens = quote! { #(#methods)* };
+    let mut children: Vec<_> = parents
+        .iter()
+        .filter(|(_, parent)| parent.tag == tag)
+        .collect();
+    children.sort_by_key(|(tag, _)| *tag);
+    let mut accessors = Vec::new();
+    for (child, parent) in children {
+        let accessor = Ident::new(&parent.accessor, Span::call_site());
+        let module = Ident::new(&child.to_snake_case(), Span::call_site());
+        let client = Ident::new(
+            &format!("{}Client", child.to_upper_camel_case()),
+            Span::call_site(),
+        );
+        let doc = schema::generate_doc_comment(&format!(
+            "Returns a client for the {child} API endpoints."
+        ));
+        accessors.push(quote! {
+            #doc
+            pub fn #accessor(&self) -> super::#module::#client<'a> {
+                super::#module::#client::new(self.client)
+            }
+        });
+    }
     let extra_items_tokens = if extra_items.is_empty() {
         quote! {}
     } else {
@@ -506,6 +544,7 @@ fn generate_tag_client_with_registry(
             }
 
             #methods_tokens
+            #(#accessors)*
         }
     })
 }
@@ -687,7 +726,7 @@ mod tests {
             &mut symbols,
         )?;
         body::generate_operation_bodies_with_registry(spec, tag, &mut symbols)?;
-        generate_tag_client_with_registry(spec, tag, &mut symbols)?;
+        generate_tag_client_with_registry(spec, tag, &tag::resource_parents(spec)?, &mut symbols)?;
         Ok(())
     }
 
