@@ -1,7 +1,7 @@
 // The contents of this file are generated; do not modify them.
 
 //! Create, retrieve, and terminate payments on a card reader.
-pub use super::common::*;
+pub use crate::resources::common::*;
 /// Payment details for a Reader Checkout.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,

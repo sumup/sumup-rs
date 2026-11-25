@@ -7,7 +7,7 @@
 /// 1. Set your API key: export SUMUP_API_KEY="your_api_key_here"
 /// 2. Set your merchant code: export SUMUP_MERCHANT_CODE="your_merchant_code"
 /// 3. Run: cargo run --example checkout_card_reader
-use sumup::Client;
+use sumup::{Client, readers};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,14 +35,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initiate the checkout on a card reader for a card-present payment
     match client
         .readers()
-        .create_checkout(
+        .checkouts()
+        .create(
             &merchant_code,
             &reader.id,
-            sumup::readers::CreateCheckoutRequest::builder()
+            readers::checkouts::CreateRequest::builder()
                 .total_amount(
-                    sumup::readers::CreateCheckoutRequestTotalAmount::builder()
+                    readers::checkouts::CreateRequestTotalAmount::builder()
                         .currency("EUR")
-                        .minor_unit(2)
                         .value(1000)
                         .build(),
                 )

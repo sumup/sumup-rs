@@ -235,7 +235,7 @@ impl Generator {
             self.parents.contains_key(tag) || self.parents.values().any(|parent| parent.tag == tag);
         let use_common = if use_common_schemas && grouped {
             // Keep type imports through the parent module working for existing callers.
-            quote! { pub use super::common::*; }
+            quote! { pub use crate::resources::common::*; }
         } else if use_common_schemas {
             quote! {
                 use super::common::*;
@@ -260,12 +260,26 @@ impl Generator {
 
         let contents = format_generated_code(combined_tokens);
 
-        let file_name = format!("{}.rs", tag.to_snake_case());
-        let mut tag_out_path = self.resources_dir();
-        tag_out_path.push(&file_name);
+        let file_name = format!("{}.rs", tag::resource_module_stem(&self.parents, tag));
+        let resources_dir = self.resources_dir();
+        let tag_out_path = resources_dir.join(&file_name);
+        if let Some((dir, _)) = file_name.rsplit_once('/') {
+            let dir = resources_dir.join(dir);
+            std::fs::create_dir_all(&dir)
+                .map_err(|e| format!("failed to create {}: {e}", dir.display()))?;
+        }
 
         std::fs::write(&tag_out_path, &contents)
             .map_err(|e| format!("Failed to write {}: {}", file_name, e))?;
+
+        if self.parents.contains_key(tag) {
+            let flat_path = resources_dir.join(format!("{}.rs", tag.to_snake_case()));
+            match std::fs::remove_file(&flat_path) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => return Err(format!("failed to remove {}: {e}", flat_path.display())),
+            }
+        }
 
         Ok(())
     }
@@ -325,7 +339,7 @@ impl Generator {
     }
 
     fn generate_mod_rs(&self) -> Result<(), String> {
-        generate_mod_file(&self.out_path, &self.schemas_by_tag)
+        generate_mod_file_with_parents(&self.out_path, &self.schemas_by_tag, &self.parents)
     }
 
     fn resources_dir(&self) -> PathBuf {
@@ -349,6 +363,14 @@ pub(crate) fn tag_description<'a>(spec: &'a OpenAPI, tag: &str) -> Option<&'a st
 
 /// Generates `resources/mod.rs`, wiring up tag modules and common exports.
 pub fn generate_mod_file(out_path: &Path, schemas_by_tag: &SchemasByTag) -> Result<(), String> {
+    generate_mod_file_with_parents(out_path, schemas_by_tag, &tag::ResourceParents::new())
+}
+
+fn generate_mod_file_with_parents(
+    out_path: &Path,
+    schemas_by_tag: &SchemasByTag,
+    parents: &tag::ResourceParents,
+) -> Result<(), String> {
     let tag_schemas = &schemas_by_tag.tag_schemas;
     let mut mod_path = out_path.to_path_buf();
     mod_path.push("resources");
@@ -374,10 +396,14 @@ pub fn generate_mod_file(out_path: &Path, schemas_by_tag: &SchemasByTag) -> Resu
     // Add tag modules (schemas + clients)
     for tag in sorted_tags {
         let module_name = Ident::new(&tag.to_snake_case(), Span::call_site());
-
-        modules.push(quote! {
-            pub mod #module_name;
-        });
+        if parents.contains_key(tag) {
+            let path = tag::resource_module_path(parents, tag);
+            let path = syn::parse_str::<syn::Path>(&path)
+                .map_err(|error| format!("invalid resource module path {path}: {error}"))?;
+            re_exports.push(quote! { pub use #path as #module_name; });
+        } else {
+            modules.push(quote! { pub mod #module_name; });
+        }
     }
 
     let tokens = quote! {
@@ -498,10 +524,11 @@ fn generate_tag_client_with_registry(
         .filter(|(_, parent)| parent.tag == tag)
         .collect();
     children.sort_by_key(|(tag, _)| *tag);
+    let mut child_modules = Vec::new();
     let mut accessors = Vec::new();
     for (child, parent) in children {
         let accessor = Ident::new(&parent.accessor, Span::call_site());
-        let module = Ident::new(&child.to_snake_case(), Span::call_site());
+        child_modules.push(quote! { pub mod #accessor; });
         let client = Ident::new(
             &format!("{}Client", child.to_upper_camel_case()),
             Span::call_site(),
@@ -511,8 +538,8 @@ fn generate_tag_client_with_registry(
         ));
         accessors.push(quote! {
             #doc
-            pub fn #accessor(&self) -> super::#module::#client<'a> {
-                super::#module::#client::new(self.client)
+            pub fn #accessor(&self) -> #accessor::#client<'a> {
+                #accessor::#client::new(self.client)
             }
         });
     }
@@ -524,6 +551,8 @@ fn generate_tag_client_with_registry(
 
     Ok(quote! {
         use crate::client::Client;
+
+        #(#child_modules)*
 
         #extra_items_tokens
 

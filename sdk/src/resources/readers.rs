@@ -1,7 +1,7 @@
 // The contents of this file are generated; do not modify them.
 
 //! A reader represents a device that accepts payments. You can use the SumUp Solo to accept in-person payments.
-pub use super::common::*;
+pub use crate::resources::common::*;
 /// Marker type for this event notification.
 #[derive(Debug, Clone)]
 pub enum ReaderCreated {}
@@ -542,6 +542,8 @@ pub struct CreateGoCheckoutRequest {
     pub total_amount: Amount,
 }
 use crate::client::Client;
+pub mod checkouts;
+pub mod settings;
 #[derive(Debug, PartialEq)]
 pub enum ListErrorBody {
     Unauthorized(Problem),
@@ -1045,11 +1047,11 @@ impl<'a> ReadersClient<'a> {
         }
     }
     /// Returns a client for the ReaderCheckouts API endpoints.
-    pub fn checkouts(&self) -> super::reader_checkouts::ReaderCheckoutsClient<'a> {
-        super::reader_checkouts::ReaderCheckoutsClient::new(self.client)
+    pub fn checkouts(&self) -> checkouts::ReaderCheckoutsClient<'a> {
+        checkouts::ReaderCheckoutsClient::new(self.client)
     }
     /// Returns a client for the ReaderSettings API endpoints.
-    pub fn settings(&self) -> super::reader_settings::ReaderSettingsClient<'a> {
-        super::reader_settings::ReaderSettingsClient::new(self.client)
+    pub fn settings(&self) -> settings::ReaderSettingsClient<'a> {
+        settings::ReaderSettingsClient::new(self.client)
     }
 }

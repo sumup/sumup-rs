@@ -1,7 +1,7 @@
 // The contents of this file are generated; do not modify them.
 
 //! Retrieve and update card reader settings.
-pub use super::common::*;
+pub use crate::resources::common::*;
 /// Menu lock settings reported by the reader, or the last saved settings when offline.
 #[derive(
     Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, typed_builder::TypedBuilder,
