@@ -93,6 +93,21 @@ pub(crate) fn resource_path(parents: &ResourceParents, tag: &str) -> String {
     }
 }
 
+pub(crate) fn resource_module_stem(parents: &ResourceParents, tag: &str) -> String {
+    match parents.get(tag) {
+        Some(parent) => format!(
+            "{}/{}",
+            resource_module_stem(parents, &parent.tag),
+            parent.accessor
+        ),
+        None => tag.to_snake_case(),
+    }
+}
+
+pub(crate) fn resource_module_path(parents: &ResourceParents, tag: &str) -> String {
+    resource_module_stem(parents, tag).replace('/', "::")
+}
+
 /// Holds the schemas associated with a single OpenAPI tag.
 #[derive(Default)]
 pub struct TagSchemas {
@@ -320,11 +335,16 @@ mod tests {
             resource_path(&parents, "ReaderCheckouts"),
             "readers().checkouts"
         );
+        assert_eq!(
+            resource_module_stem(&parents, "ReaderCheckouts"),
+            "readers/checkouts"
+        );
         let schemas = collect_schemas_by_tag(&spec).unwrap();
         assert!(schemas.tag_schemas.contains_key("Readers"));
         let parent = crate::generate_tag_client(&spec, "Readers")
             .unwrap()
             .to_string();
+        assert!(parent.contains("pub mod checkouts"));
         assert!(parent.contains("pub fn checkouts"));
         assert!(!parent.contains("pub async fn create"));
         let child = crate::generate_tag_client(&spec, "ReaderCheckouts")

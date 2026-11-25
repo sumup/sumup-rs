@@ -105,6 +105,8 @@ pub enum CardType {
     Amex,
     #[serde(rename = "BANCOMAT")]
     Bancomat,
+    #[serde(rename = "CARNET")]
+    Carnet,
     #[serde(rename = "CONECS")]
     Conecs,
     #[serde(rename = "CUP")]

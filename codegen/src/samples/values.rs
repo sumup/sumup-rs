@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use heck::ToSnakeCase;
 use oas3::Spec;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
@@ -14,7 +13,11 @@ pub(super) struct SampleTypes {
 }
 
 impl SampleTypes {
-    pub(super) fn new(spec: &Spec, schemas: &crate::SchemasByTag) -> Result<Self, String> {
+    pub(super) fn new(
+        spec: &Spec,
+        schemas: &crate::SchemasByTag,
+        parents: &crate::tag::ResourceParents,
+    ) -> Result<Self, String> {
         let mut types = Self {
             modules: HashMap::new(),
         };
@@ -33,7 +36,7 @@ impl SampleTypes {
                 &schemas.error_schemas,
             )?;
             tokens.extend(crate::generate_operation_bodies(spec, tag)?);
-            types.insert(&tag.to_snake_case(), tokens)?;
+            types.insert(&crate::tag::resource_module_path(parents, tag), tokens)?;
         }
         Ok(types)
     }

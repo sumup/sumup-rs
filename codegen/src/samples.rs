@@ -67,7 +67,7 @@ pub fn generate_code_samples(
     let mut samples = Vec::new();
     let parents = crate::tag::resource_parents(spec)?;
     let schemas = crate::tag::collect_schemas_with_parents(spec, &parents)?;
-    let types = values::SampleTypes::new(spec, &schemas)?;
+    let types = values::SampleTypes::new(spec, &schemas, &parents)?;
 
     for (path, path_item) in spec.paths.iter().flatten() {
         for (http_method, operation) in crate::operations_for_path_item(path_item) {
@@ -88,6 +88,7 @@ pub fn generate_code_samples(
                 .ok_or_else(|| format!("operation {operation_id} is missing a tag"))?;
 
             let accessor_path = crate::tag::resource_path(&parents, tag);
+            let resource = crate::tag::resource_module_path(&parents, tag);
             for example in request_examples(spec, operation) {
                 let id = match &example.name {
                     Some(name) => format!("{operation_id}.{name}"),
@@ -100,7 +101,7 @@ pub fn generate_code_samples(
                     spec,
                     path_item,
                     operation,
-                    tag,
+                    &resource,
                     &accessor_path,
                     example.value.as_ref(),
                     &types,
@@ -227,14 +228,13 @@ fn render_program(
     spec: &OpenAPI,
     path_item: &openapiv3::PathItem,
     operation: &Operation,
-    tag: &str,
+    resource: &str,
     accessor_path: &str,
     example: Option<&Value>,
     types: &values::SampleTypes,
 ) -> Result<String, String> {
     let operation_name = crate::operation_name(operation);
     let method = operation_name.to_snake_case();
-    let resource = tag.to_snake_case();
     let mut arguments = Vec::new();
 
     for parameter in path_item.parameters.iter().chain(&operation.parameters) {
@@ -263,7 +263,7 @@ fn render_program(
             .unwrap_or_else(|| Value::Object(Map::new()));
         let body_type = crate::body::operation_request_type_ident(&operation_name);
         let expression = types
-            .render(&resource, &body_type, &value)
+            .render(resource, &body_type, &value)
             .map_err(|error| format!("render request body for {operation_name}: {error}"))?;
         body_declaration = format!("    let body = {expression};\n");
         arguments.push(if required { "body" } else { "Some(body)" }.to_string());
@@ -278,7 +278,7 @@ fn render_program(
             &format!("{}Params", operation_name.to_upper_camel_case()),
             proc_macro2::Span::call_site(),
         );
-        arguments.push(types.render(&resource, &params_type, &Value::Object(Map::new()))?);
+        arguments.push(types.render(resource, &params_type, &Value::Object(Map::new()))?);
     }
 
     let arguments = arguments.join(", ");

@@ -46,22 +46,22 @@ fn request_builders_preserve_enums_and_nullable_values() {
 
 #[test]
 fn nested_builders_preserve_absent_null_and_present_fields() {
-    let request = readers::CreateCheckoutRequest::builder()
-        .total_amount(
-            readers::CreateCheckoutRequestTotalAmount::builder()
-                .currency("EUR")
-                .minor_unit(2)
-                .value(1000)
-                .build(),
-        )
-        .affiliate(Nullable::Null)
-        .installments(Nullable::Value(3))
-        .build();
+    let request: sumup::reader_checkouts::CreateRequest =
+        readers::checkouts::CreateRequest::builder()
+            .total_amount(
+                readers::checkouts::CreateRequestTotalAmount::builder()
+                    .currency("EUR")
+                    .value(1000)
+                    .build(),
+            )
+            .affiliate(Nullable::Null)
+            .installments(Nullable::Value(3))
+            .build();
 
     assert_eq!(
         serde_json::to_value(request).unwrap(),
         json!({
-            "total_amount": {"currency": "EUR", "minor_unit": 2, "value": 1000},
+            "total_amount": {"currency": "EUR", "value": 1000},
             "affiliate": null,
             "installments": 3
         })
@@ -87,10 +87,10 @@ fn query_builders_accept_optional_strings_and_numbers() {
 
 #[test]
 fn additional_properties_default_to_empty_and_remain_settable() {
-    let empty = readers::CreateCheckoutRequestAffiliateTags::builder().build();
+    let empty = readers::checkouts::CreateRequestAffiliateTags::builder().build();
     assert_eq!(serde_json::to_value(empty).unwrap(), json!({}));
 
-    let tags = readers::CreateCheckoutRequestAffiliateTags::builder()
+    let tags = readers::checkouts::CreateRequestAffiliateTags::builder()
         .additional_properties(std::collections::HashMap::from([(
             "order".to_owned(),
             json!("123"),

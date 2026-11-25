@@ -14,3 +14,5 @@ pub mod sales;
 pub mod tokens;
 pub mod transactions;
 pub use common::*;
+pub use readers::checkouts as reader_checkouts;
+pub use readers::settings as reader_settings;
